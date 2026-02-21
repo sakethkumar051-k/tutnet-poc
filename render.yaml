@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: tutnet-api
+    runtime: node
+    region: oregon # or your preferred region
+    plan: free
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5001
+      - key: MONGODB_URI
+        sync: false # You'll add this manually in Render dashboard
+      - key: JWT_SECRET
+        sync: false # You'll add this manually in Render dashboard
+      - key: ADMIN_SECRET
+        sync: false # You'll add this manually in Render dashboard

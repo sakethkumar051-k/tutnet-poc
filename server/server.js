@@ -1,0 +1,163 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const morgan = require('morgan');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(cors({
+    origin: [
+        'http://localhost:5173',
+        'http://192.168.29.213:5173',
+        'https://tutnet-ffxb.vercel.app',
+        /\.vercel\.app$/  // Allow all Vercel preview deployments
+    ],
+    credentials: true
+}));
+app.use(express.json());
+app.use(morgan('dev'));
+
+// Session configuration
+const session = require('express-session');
+const passport = require('passport');
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'tutnet-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport config
+require('./config/passport')(passport);
+
+// Health check endpoint (defined early, before routes)
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'OK',
+        message: 'Tutnet API is running',
+        timestamp: new Date().toISOString(),
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+    res.send('Tutor Connect API is running');
+});
+
+// Database Connection (non-blocking - server will start even if DB fails)
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('MongoDB Connected'))
+    .catch(err => {
+        console.error('MongoDB Connection Error:', err);
+        console.log('Server will continue without database connection');
+    });
+
+// Routes (wrapped in try-catch to prevent server crash)
+try {
+    app.use('/api/auth', require('./routes/auth.routes'));
+    app.use('/api/admin', require('./routes/admin.routes'));
+    app.use('/api/tutors', require('./routes/tutor.routes'));
+    app.use('/api/bookings', require('./routes/booking.routes'));
+    app.use('/api/reviews', require('./routes/review.routes'));
+    app.use('/api/favorites', require('./routes/favorite.routes'));
+    app.use('/api/progress-reports', require('./routes/progressReport.routes'));
+    app.use('/api/attendance', require('./routes/attendance.routes'));
+    app.use('/api/current-tutors', require('./routes/currentTutor.routes'));
+    app.use('/api/session-feedback', require('./routes/sessionFeedback.routes'));
+    app.use('/api/study-materials', require('./routes/studyMaterial.routes'));
+    app.use('/api/messages', require('./routes/message.routes'));
+    app.use('/api/payments', require('./routes/payment.routes'));
+    app.use('/api/escalations', require('./routes/escalation.routes'));
+    app.use('/api/incentives', require('./routes/incentive.routes'));
+    app.use('/api/jobs', require('./routes/jobs.routes'));
+    app.use('/api/goals', require('./routes/learningGoal.routes'));
+    app.use('/api/analytics', require('./routes/platformAnalytics.routes'));
+
+    // Notification routes with specific error handling
+    try {
+        const notificationRoutes = require('./routes/notification.routes');
+        app.use('/api/notifications', notificationRoutes);
+        console.log('✓ Notification routes loaded successfully');
+    } catch (notifError) {
+        console.error('✗ Error loading notification routes:', notifError.message);
+        console.error(notifError.stack);
+    }
+
+    console.log('All routes loaded successfully');
+} catch (error) {
+    console.error('Error loading routes:', error);
+    // Server will still start, but routes won't work
+}
+
+// 404 Handler for undefined routes
+app.use((req, res, next) => {
+    // Check if it's a method mismatch (e.g., GET on a POST-only route)
+    const methodMismatch = {
+        '/api/auth/login': 'POST',
+        '/api/auth/register': 'POST',
+        '/api/auth/forgot-password': 'POST',
+        '/api/auth/reset-password': 'POST',
+        '/api/auth/verify-admin': 'POST',
+        '/api/bookings': 'POST',
+        '/api/reviews': 'POST',
+        '/api/current-tutors/student/my-tutors': 'GET',
+        '/api/current-tutors/tutor/my-students': 'GET',
+        '/api/session-feedback/booking/:bookingId/tutor-feedback': 'POST',
+        '/api/session-feedback/booking/:bookingId/student-feedback': 'POST'
+    };
+
+    const correctMethod = methodMismatch[req.path];
+    const methodHint = correctMethod && req.method !== correctMethod
+        ? ` This endpoint requires ${correctMethod} method, but you used ${req.method}.`
+        : '';
+
+    res.status(404).json({
+        message: `Route ${req.method} ${req.path} not found.${methodHint}`,
+        hint: correctMethod
+            ? `Try using ${correctMethod} method instead of ${req.method}`
+            : 'Check the API documentation for the correct endpoint and method',
+        availableEndpoints: [
+            'GET /',
+            'GET /api/health',
+            'POST /api/auth/register',
+            'POST /api/auth/login',
+            'GET /api/auth/me (requires auth)',
+            'GET /api/tutors',
+            'GET /api/tutors/:id'
+        ]
+    });
+});
+
+// Error Handler (must be last)
+app.use(require('./middleware/error.middleware').errorHandler);
+
+// Start Server
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Health check available at: http://localhost:${PORT}/api/health`);
+
+    // Session reminder job — runs every 30 minutes
+    const { sendSessionReminders } = require('./jobs/sessionReminders');
+    setInterval(async () => {
+        try {
+            const result = await sendSessionReminders();
+            if (result.processed24h + result.processed1h > 0) {
+                console.log(`[Reminders] Sent: ${result.processed24h} (24h), ${result.processed1h} (1h)`);
+            }
+        } catch (e) {
+            console.error('[Reminders] Error:', e.message);
+        }
+    }, 30 * 60 * 1000);
+});
