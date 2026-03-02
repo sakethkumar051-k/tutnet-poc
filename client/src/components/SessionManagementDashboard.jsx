@@ -8,7 +8,7 @@ import SessionDetailsModal from './SessionDetailsModal';
 import TodaysSessions from './TodaysSessions';
 
 const SessionManagementDashboard = () => {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [relationship, setRelationship] = useState(null);
     const [allRelationships, setAllRelationships] = useState([]);

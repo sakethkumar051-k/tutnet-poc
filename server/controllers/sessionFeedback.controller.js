@@ -375,7 +375,7 @@ const updateHomeworkStatus = async (req, res) => {
     }
 };
 
-// @desc    Mark attendance for session
+// @desc    Mark attendance for session (Attendance collection is source of truth; booking.status -> completed)
 // @route   POST /api/session-feedback/booking/:bookingId/attendance
 // @access  Private (Tutor)
 const markAttendance = async (req, res) => {
@@ -391,22 +391,44 @@ const markAttendance = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
-        // Update booking attendance status
-        // Map status from frontend to valid enum values for booking
-        const statusLower = (status || '').toLowerCase();
-        let bookingAttendanceStatus = 'pending';
-
-        if (statusLower === 'completed' || statusLower === 'present') {
-            bookingAttendanceStatus = 'present';
-        } else if (statusLower === 'student_absent' || statusLower === 'absent') {
-            bookingAttendanceStatus = 'absent';
+        if (booking.status !== 'approved' && booking.status !== 'completed') {
+            return res.status(400).json({ message: 'Attendance can only be marked for approved sessions' });
         }
 
-        booking.attendanceStatus = bookingAttendanceStatus;
-        if (duration) booking.duration = duration;
+        const sessionDate = booking.sessionDate || booking.createdAt;
+
+        // Cannot mark attendance twice
+        const existing = await Attendance.findOne({ bookingId: req.params.bookingId, sessionDate });
+        if (existing) {
+            return res.status(400).json({ message: 'Attendance already marked for this session', code: 'ATTENDANCE_ALREADY_MARKED' });
+        }
+
+        const statusLower = (status || '').toLowerCase();
+        let attendanceStatusValue = 'present';
+        if (statusLower === 'completed' || statusLower === 'present') {
+            attendanceStatusValue = 'present';
+        } else if (statusLower === 'student_absent' || statusLower === 'absent') {
+            attendanceStatusValue = 'absent';
+        } else if (statusLower === 'pending') {
+            attendanceStatusValue = 'pending';
+        }
+
+        const attendance = await Attendance.create({
+            bookingId: req.params.bookingId,
+            studentId: booking.studentId,
+            tutorId: booking.tutorId,
+            sessionDate,
+            status: attendanceStatusValue,
+            duration: duration || 60,
+            notes,
+            markedBy: req.user.id
+        });
+
+        // Lifecycle rule: marking attendance completes the booking
+        booking.status = 'completed';
         await booking.save();
 
-        // Get or create SessionFeedback
+        // Update SessionFeedback duration/notes only (no attendanceStatus - Attendance is source of truth)
         let feedback = await SessionFeedback.findOne({ bookingId: req.params.bookingId });
         if (!feedback) {
             const currentTutor = await CurrentTutor.findOne({
@@ -421,45 +443,12 @@ const markAttendance = async (req, res) => {
                 currentTutorId: currentTutor?._id,
                 studentId: booking.studentId,
                 tutorId: booking.tutorId,
-                sessionDate: booking.sessionDate || booking.createdAt
+                sessionDate
             });
         }
-
-        // Update SessionFeedback with attendance
-        feedback.attendanceStatus = status;
         feedback.duration = duration || 60;
         feedback.attendanceNotes = notes;
         await feedback.save();
-
-        // Create/update attendance record
-        // statusLower is already declared above, so we can reuse it
-        let attendanceStatusValue = 'present'; // default
-
-        if (statusLower === 'completed' || statusLower === 'present') {
-            attendanceStatusValue = 'present';
-        } else if (statusLower === 'student_absent' || statusLower === 'absent') {
-            attendanceStatusValue = 'absent';
-        } else if (statusLower === 'pending') {
-            attendanceStatusValue = 'pending';
-        }
-
-        const attendance = await Attendance.findOneAndUpdate(
-            {
-                bookingId: req.params.bookingId,
-                sessionDate: booking.sessionDate || booking.createdAt
-            },
-            {
-                bookingId: req.params.bookingId,
-                studentId: booking.studentId,
-                tutorId: booking.tutorId,
-                sessionDate: booking.sessionDate || booking.createdAt,
-                status: attendanceStatusValue,
-                duration: duration || 60,
-                notes,
-                markedBy: req.user.id
-            },
-            { upsert: true, new: true }
-        );
 
         // Update CurrentTutor stats
         const currentTutor = await CurrentTutor.findOne({
@@ -470,9 +459,9 @@ const markAttendance = async (req, res) => {
         });
 
         if (currentTutor) {
-            if (status === 'completed') {
+            if (statusLower === 'completed' || statusLower === 'present') {
                 currentTutor.sessionsCompleted += 1;
-            } else if (status === 'student_absent') {
+            } else if (statusLower === 'student_absent' || statusLower === 'absent') {
                 currentTutor.sessionsMissed += 1;
             }
             await currentTutor.save();

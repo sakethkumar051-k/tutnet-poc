@@ -7,10 +7,8 @@ const AttendanceTracker = () => {
     const [attendance, setAttendance] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [showMarkModal, setShowMarkModal] = useState(false);
-    const [selectedBooking, setSelectedBooking] = useState(null);
     const { user } = useAuth();
-    const { showSuccess, showError } = useToast();
+    const { showError } = useToast();
 
     const fetchAttendance = useCallback(async () => {
         try {
@@ -36,18 +34,6 @@ const AttendanceTracker = () => {
         fetchAttendance();
         fetchStats();
     }, [fetchAttendance, fetchStats]);
-
-    const markAttendance = async (formData) => {
-        try {
-            await api.post('/attendance', formData);
-            showSuccess('Attendance marked successfully');
-            setShowMarkModal(false);
-            fetchAttendance();
-            fetchStats();
-        } catch (err) {
-            showError('Failed to mark attendance');
-        }
-    };
 
     const getStatusColor = (status) => {
         const colors = {

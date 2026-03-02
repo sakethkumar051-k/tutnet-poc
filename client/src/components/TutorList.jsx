@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useToast } from '../context/ToastContext';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import api from '../utils/api';
 import TutorCard from './TutorCard';
 import RequestDemoModal from './RequestDemoModal';
@@ -52,14 +51,14 @@ const EMPTY_FILTERS = {
 };
 
 const TutorList = () => {
-    const [tutors, setTutors]             = useState([]);
-    const [loading, setLoading]           = useState(true);
+    const [tutors, setTutors] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [selectedTutor, setSelectedTutor] = useState(null);
-    const [sort, setSort]                 = useState('match');
+    const [sort, setSort] = useState('match');
     const [activeFilters, setActiveFilters] = useState(EMPTY_FILTERS);
-    const { showSuccess }                 = useToast();
+    const fetchStarted = useRef(false);
 
-    const fetchTutors = async (filters = EMPTY_FILTERS) => {
+    const fetchTutors = useCallback(async (filters = EMPTY_FILTERS) => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -73,7 +72,6 @@ const TutorList = () => {
             if (filters.minRating)     params.append('minRating',     filters.minRating);
 
             const { data } = await api.get(`/tutors?${params.toString()}`);
-            // Apply verifiedOnly client-side (since it's already in approvalStatus)
             const result = filters.verifiedOnly
                 ? data.filter(t => t.approvalStatus === 'approved')
                 : data;
@@ -84,9 +82,13 @@ const TutorList = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    useEffect(() => { fetchTutors(); }, []);
+    useEffect(() => {
+        if (fetchStarted.current) return;
+        fetchStarted.current = true;
+        fetchTutors();
+    }, [fetchTutors]);
 
     // Client-side sort
     const sorted = useMemo(() => {
@@ -118,6 +120,20 @@ const TutorList = () => {
         const next = { ...activeFilters, [key]: key === 'verifiedOnly' ? false : key === 'mode' ? 'all' : '' };
         fetchTutors(next);
     };
+
+    const onFavoriteChange = useCallback((tutorUserId, isFavorite) => {
+        setTutors(prev => prev.map(t => {
+            const id = t.userId?._id?.toString?.() ?? t.userId?.toString?.();
+            if (id !== (tutorUserId?.toString?.() ?? tutorUserId)) return t;
+            return { ...t, isFavorited: isFavorite };
+        }));
+    }, []);
+
+    const onRequestDemo = useCallback((tutor) => setSelectedTutor(tutor), []);
+
+    const onBookingSuccess = useCallback(() => {
+        fetchTutors(activeFilters);
+    }, [fetchTutors, activeFilters]);
 
     return (
         <div className="space-y-5">
@@ -177,8 +193,13 @@ const TutorList = () => {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {sorted.map(tutor => (
-                        <TutorCard key={tutor._id} tutor={tutor}
-                            onRequestDemo={t => setSelectedTutor(t)} />
+                        <TutorCard
+                            key={tutor._id}
+                            tutor={tutor}
+                            onRequestDemo={onRequestDemo}
+                            onFavoriteChange={onFavoriteChange}
+                            onBookingSuccess={onBookingSuccess}
+                        />
                     ))}
                 </div>
             )}

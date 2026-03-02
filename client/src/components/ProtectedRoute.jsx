@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
 import { checkTutorProfileComplete, isUserProfileComplete } from '../utils/profileUtils';
 
-const ProtectedRoute = ({ allowedRoles = [], requireOnboarding = false }) => {
+const ProtectedRoute = ({ allowedRoles = [] }) => {
     const { user, loading } = useAuth();
     const location = useLocation();
     const [profileCheckLoading, setProfileCheckLoading] = useState(true);

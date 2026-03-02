@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
-import { useAuth } from '../context/AuthContext';
 
 const STATUS_CONFIG = {
     not_started: { label: 'Not Started', color: 'bg-gray-100 text-gray-600 border-gray-200' },
@@ -22,7 +21,6 @@ function ProgressBar({ pct }) {
 }
 
 export default function LearningGoals({ role = 'student' }) {
-    const { user } = useAuth();
     const { showSuccess, showError } = useToast();
     const [goals, setGoals] = useState([]);
     const [loading, setLoading] = useState(true);

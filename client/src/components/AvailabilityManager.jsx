@@ -22,6 +22,7 @@ export default function AvailabilityManager() {
     const [availability, setAvailability] = useState(
         DAYS.map(day => ({ day, slots: [] }))
     );
+    const [availabilityMode, setAvailabilityMode] = useState('flexible');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -29,6 +30,9 @@ export default function AvailabilityManager() {
         api.get('/tutors/my-profile')
             .then(res => {
                 const wa = res.data?.weeklyAvailability;
+                if (res.data?.availabilityMode === 'fixed' || res.data?.availabilityMode === 'flexible') {
+                    setAvailabilityMode(res.data.availabilityMode);
+                }
                 if (wa && wa.length > 0) {
                     const filled = DAYS.map(day => {
                         const existing = wa.find(d => d.day === day);
@@ -65,7 +69,7 @@ export default function AvailabilityManager() {
         setSaving(true);
         try {
             const filtered = availability.filter(d => d.slots.length > 0);
-            await api.patch('/tutors/availability', { weeklyAvailability: filtered });
+            await api.patch('/tutors/availability', { weeklyAvailability: filtered, availabilityMode });
             showSuccess('Availability saved');
         } catch (err) {
             showError(err.response?.data?.message || 'Failed to save');
@@ -82,10 +86,44 @@ export default function AvailabilityManager() {
 
     return (
         <div className="space-y-5">
+            {/* Availability mode: Fixed vs Flexible */}
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+                <h3 className="text-sm font-bold text-gray-900 mb-1">Availability mode</h3>
+                <p className="text-xs text-gray-500 mb-3">Choose how students can book with you.</p>
+                <div className="flex flex-wrap gap-6">
+                    <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                            type="radio"
+                            name="availabilityMode"
+                            checked={availabilityMode === 'flexible'}
+                            onChange={() => setAvailabilityMode('flexible')}
+                            className="mt-1 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <div>
+                            <span className="text-sm font-medium text-gray-900">Flexible</span>
+                            <p className="text-xs text-gray-500">Students can request any date/time. You confirm or suggest another. Best if your schedule varies.</p>
+                        </div>
+                    </label>
+                    <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                            type="radio"
+                            name="availabilityMode"
+                            checked={availabilityMode === 'fixed'}
+                            onChange={() => setAvailabilityMode('fixed')}
+                            className="mt-1 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <div>
+                            <span className="text-sm font-medium text-gray-900">Fixed</span>
+                            <p className="text-xs text-gray-500">Only the slots below are bookable. Students must pick from these times.</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
             <div className="flex items-start justify-between">
                 <div>
                     <h3 className="text-base font-bold text-gray-900">Weekly Availability</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">Set the times you're available each week. Students will see this before booking.</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Set the times you're available each week. Students will see this before booking. {availabilityMode === 'fixed' && 'Only these slots can be booked.'}</p>
                 </div>
                 <button onClick={handleSave} disabled={saving}
                     className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-60 transition-colors">

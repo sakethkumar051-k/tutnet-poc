@@ -54,11 +54,6 @@ const sessionFeedbackSchema = new mongoose.Schema({
     studentSubmittedAt: {
         type: Date
     },
-    // Attendance
-    attendanceStatus: {
-        type: String,
-        enum: ['scheduled', 'completed', 'student_absent', 'tutor_absent', 'rescheduled']
-    },
     duration: {
         type: Number,
         default: 60

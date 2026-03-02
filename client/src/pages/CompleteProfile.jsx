@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
-import { getBaseURL } from '../utils/api';
+import api from '../utils/api';
 
 const CompleteProfile = () => {
     const [searchParams] = useSearchParams();
@@ -82,17 +81,11 @@ const CompleteProfile = () => {
             // Check for token in URL (from OAuth or direct link)
             const urlToken = searchParams.get('token');
             if (urlToken) {
+                localStorage.setItem('token', urlToken);
                 setToken(urlToken);
-                // Try to fetch user data with this token to get role
                 try {
-                    const { getBaseURL } = await import('../utils/api');
-                    const apiUrl = getBaseURL();
-                    const response = await axios.get(`${apiUrl}/auth/me`, {
-                        headers: { Authorization: `Bearer ${urlToken}` }
-                    });
-                    if (response.data.role) {
-                        setRole(response.data.role);
-                    }
+                    const response = await api.get('/auth/me');
+                    if (response.data?.role) setRole(response.data.role);
                 } catch (err) {
                     console.error('Could not fetch user data:', err);
                 }
@@ -131,128 +124,70 @@ const CompleteProfile = () => {
         e.preventDefault();
         setError('');
 
-        // Basic validation - role should already be set from user's registration
-        if (!role) {
+        // Use role from state or fallback to current user (avoids race where state isn't updated yet)
+        const effectiveRole = role || loginUser?.role;
+        if (!effectiveRole) {
             setError('Role not detected. Please log in again.');
             return;
         }
 
-        if (!formData.phone || !formData.location.area) {
-            setError('Please fill in phone and location');
+        if (!formData.phone?.trim() || !formData.location?.area?.trim()) {
+            setError('Please fill in phone and area/locality');
             return;
         }
 
         // Student validation
-        if (role === 'student' && !formData.classGrade) {
+        if (effectiveRole === 'student' && !formData.classGrade) {
             setError('Please select your class/grade');
             return;
         }
 
-        // Tutor validation - collect all required fields
-        if (role === 'tutor') {
-            if (!formData.subjects) {
-                setError('Please enter at least one subject');
-                return;
-            }
-            if (!formData.classes) {
-                setError('Please enter classes/grades you teach');
-                return;
-            }
-            if (!formData.hourlyRate || formData.hourlyRate <= 0) {
-                setError('Please enter a valid hourly rate');
-                return;
-            }
-            if (!formData.experienceYears || formData.experienceYears < 0) {
-                setError('Please enter your years of experience');
-                return;
-            }
-            if (!formData.bio || formData.bio.trim().length < 50) {
-                setError('Please write a bio (minimum 50 characters)');
-                return;
-            }
-            if (!formData.languages) {
-                setError('Please enter languages you speak');
+        // Tutor: only basic info here; full profile is completed in 5-step form on dashboard
+        if (effectiveRole === 'tutor') {
+            const pincode = formData.location?.pincode?.trim() || '';
+            if (pincode.length !== 6) {
+                setError('Please enter a valid 6-digit pincode');
                 return;
             }
         }
 
+        if (!localStorage.getItem('token')) {
+            setError('Session expired. Please log in again.');
+            return;
+        }
+
         setLoading(true);
+        setError('');
 
         try {
-            const apiUrl = getBaseURL();
-
-            // Prepare payload
             const payload = {
-                role,
-                phone: formData.phone,
-                location: formData.location,
-                classGrade: role === 'student' ? formData.classGrade : undefined
+                role: effectiveRole,
+                phone: formData.phone.trim(),
+                location: {
+                    ...formData.location,
+                    area: formData.location?.area?.trim() || '',
+                    pincode: (formData.location?.pincode || '').trim()
+                },
+                classGrade: effectiveRole === 'student' ? formData.classGrade : undefined
             };
 
-            // Add tutor-specific fields
-            if (role === 'tutor') {
-                payload.subjects = formData.subjects.split(',').map(s => s.trim()).filter(s => s);
-                payload.classes = formData.classes.split(',').map(s => s.trim()).filter(s => s);
-                payload.hourlyRate = Number(formData.hourlyRate);
-                payload.experienceYears = Number(formData.experienceYears);
-                payload.bio = formData.bio.trim();
-                payload.mode = formData.mode;
-                payload.languages = formData.languages.split(',').map(s => s.trim()).filter(s => s);
-                payload.availableSlots = formData.availableSlots ? formData.availableSlots.split(',').map(s => s.trim()).filter(s => s) : [];
-                payload.education = formData.education;
-                payload.qualifications = formData.qualifications ? formData.qualifications.split(',').map(s => s.trim()).filter(s => s) : [];
-            }
+            const response = await api.put('/auth/profile', payload);
 
-            // Use token from state or localStorage
-            const authToken = token || localStorage.getItem('token');
-            
-            if (!authToken) {
-                throw new Error('No authentication token found');
-            }
-
-            // Call update profile endpoint
-            const response = await axios.put(
-                `${apiUrl}/auth/profile`,
-                payload,
-                {
-                    headers: {
-                        Authorization: `Bearer ${authToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 30000 // 30 second timeout
-                }
-            );
-
-            // IMPORTANT: Use the NEW token returned from the server
-            const newToken = response.data.token;
-
+            const newToken = response.data?.token;
             if (newToken) {
-                // Pass the new token to login
-                await login(newToken);
-
-                // Show success message
-                setError(''); // Clear any errors
+                localStorage.setItem('token', newToken);
+                login(newToken).catch(() => {});
                 setSuccess(true);
                 setLoading(false);
-                
-                // Small delay to show success message and ensure state is updated
-                setTimeout(() => {
-                    // Redirect based on role
-                    if (role === 'tutor') {
-                        navigate('/tutor-dashboard', { replace: true });
-                    } else {
-                        navigate('/student-dashboard', { replace: true });
-                    }
-                }, 1500); // Give user time to see success message
+                const isTutor = effectiveRole === 'tutor';
+                navigate(isTutor ? '/tutor-dashboard?tab=profile' : '/student-dashboard', { replace: true });
             } else {
                 throw new Error('No token returned from update');
             }
         } catch (err) {
             console.error('Profile update error:', err);
-            const errorMessage = err.response?.data?.message || err.message || 'Failed to update profile. Please try again.';
-            setError(errorMessage);
-            setLoading(false); // Stop loading on error so user can retry
-            // Don't reset form - keep user's data so they can fix and resubmit
+            setError(err.response?.data?.message || err.message || 'Failed to update profile. Please try again.');
+            setLoading(false);
         }
     };
 
@@ -271,7 +206,7 @@ const CompleteProfile = () => {
                     </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                     {error && (
                         <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-lg text-sm">
                             <div className="flex items-center">
@@ -373,13 +308,15 @@ const CompleteProfile = () => {
 
                     {/* Pincode */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Pincode (Optional)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Pincode {role === 'tutor' ? '*' : '(Optional)'}</label>
                         <input
                             name="pincode"
                             type="text"
                             placeholder="500001"
                             value={formData.location.pincode}
                             onChange={handleChange}
+                            required={role === 'tutor'}
+                            maxLength={6}
                             className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
                         />
                     </div>
@@ -405,189 +342,21 @@ const CompleteProfile = () => {
                         </div>
                     )}
 
-                    {/* Tutor Specific Fields */}
+                    {/* Tutor: basic info only; full profile in 5-step form on dashboard */}
                     {role === 'tutor' && (
-                        <div className="animate-fade-in border-t pt-6 space-y-6">
-                            <h3 className="text-lg font-semibold text-gray-900">Tutor Information</h3>
-
-                            {/* Subjects and Classes */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Subjects You Teach *</label>
-                                    <input
-                                        name="subjects"
-                                        type="text"
-                                        placeholder="Math, Physics, Chemistry"
-                                        required
-                                        value={formData.subjects}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Separate with commas</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Classes / Grades You Teach *</label>
-                                    <input
-                                        name="classes"
-                                        type="text"
-                                        placeholder="Class 10, Class 12, Undergraduate"
-                                        required
-                                        value={formData.classes}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Separate with commas</p>
-                                </div>
-                            </div>
-
-                            {/* Hourly Rate and Experience */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Rate (₹) *</label>
-                                    <input
-                                        name="hourlyRate"
-                                        type="number"
-                                        min="0"
-                                        required
-                                        value={formData.hourlyRate}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience *</label>
-                                    <input
-                                        name="experienceYears"
-                                        type="number"
-                                        min="0"
-                                        required
-                                        value={formData.experienceYears}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Teaching Mode and Languages */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Teaching Mode *</label>
-                                    <select
-                                        name="mode"
-                                        required
-                                        value={formData.mode}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    >
-                                        <option value="home">Home Tuition</option>
-                                        <option value="online">Online</option>
-                                        <option value="both">Both</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Languages Spoken *</label>
-                                    <input
-                                        name="languages"
-                                        type="text"
-                                        placeholder="English, Telugu, Hindi"
-                                        required
-                                        value={formData.languages}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Separate with commas</p>
-                                </div>
-                            </div>
-
-                            {/* Education */}
-                            <div className="border-t pt-4">
-                                <h4 className="text-sm font-semibold text-gray-900 mb-3">Education</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Degree</label>
-                                        <input
-                                            name="education.degree"
-                                            type="text"
-                                            placeholder="B.Tech, M.Sc, etc."
-                                            value={formData.education.degree}
-                                            onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Institution</label>
-                                        <input
-                                            name="education.institution"
-                                            type="text"
-                                            placeholder="University/College name"
-                                            value={formData.education.institution}
-                                            onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                                        <input
-                                            name="education.year"
-                                            type="text"
-                                            placeholder="2020"
-                                            value={formData.education.year}
-                                            onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Qualifications */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Qualifications / Certifications</label>
-                                <input
-                                    name="qualifications"
-                                    type="text"
-                                    placeholder="B.Ed, TET, etc. (comma separated)"
-                                    value={formData.qualifications}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">Separate with commas</p>
-                            </div>
-
-                            {/* Bio */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Bio / Teaching Style *</label>
-                                <textarea
-                                    name="bio"
-                                    rows={4}
-                                    required
-                                    minLength={50}
-                                    value={formData.bio}
-                                    onChange={handleChange}
-                                    placeholder="Describe your teaching style, experience, and what makes you a great tutor... (minimum 50 characters)"
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">{formData.bio.length}/50 characters minimum</p>
-                            </div>
-
-                            {/* Available Slots */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Available Time Slots</label>
-                                <input
-                                    name="availableSlots"
-                                    type="text"
-                                    placeholder="Mon-Fri 6PM-9PM, Weekends 10AM-2PM"
-                                    value={formData.availableSlots}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">Separate different slots with commas</p>
+                        <div className="animate-fade-in border-t pt-6">
+                            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-sm text-indigo-800">
+                                After saving phone and location, you will complete your tutor profile in a short 5-step form (subjects, availability, bio, etc.) on your dashboard.
                             </div>
                         </div>
                     )}
 
+                    {/* Tutor long form removed; full profile completed in 5-step form on dashboard */}
+
                     <button
-                        type="submit"
+                        type="button"
                         disabled={loading}
+                        onClick={() => handleSubmit({ preventDefault: () => {} })}
                         className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {loading ? 'Creating Profile...' : 'Complete Registration'}

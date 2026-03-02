@@ -10,16 +10,7 @@ const NotificationCenter = () => {
     const { user } = useAuth();
     const { showError } = useToast();
 
-    useEffect(() => {
-        if (user) {
-            fetchNotifications();
-            // Poll for new notifications every 30 seconds
-            const interval = setInterval(fetchNotifications, 30000);
-            return () => clearInterval(interval);
-        }
-    }, [user]);
-
-    const fetchNotifications = async () => {
+    async function fetchNotifications() {
         try {
             const { data } = await api.get('/notifications');
             setNotifications(data);
@@ -27,7 +18,17 @@ const NotificationCenter = () => {
         } catch (err) {
             console.error('Failed to fetch notifications:', err);
         }
-    };
+    }
+
+    useEffect(() => {
+        if (user) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            fetchNotifications();
+            // Poll for new notifications every 30 seconds
+            const interval = setInterval(fetchNotifications, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [user]);
 
     const markAsRead = async (id) => {
         try {

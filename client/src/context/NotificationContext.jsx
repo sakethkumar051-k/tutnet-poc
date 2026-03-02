@@ -2,8 +2,12 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { useAuth } from './AuthContext';
 import api from '../utils/api';
 
+// Phase 1 (booking): disable notification polling to reduce network requests on /find-tutors.
+const PHASE = 'booking';
+
 const NotificationContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useNotifications = () => useContext(NotificationContext);
 
 export const NotificationProvider = ({ children }) => {
@@ -70,13 +74,13 @@ export const NotificationProvider = ({ children }) => {
         }
     };
 
-    // Initial fetch and polling
+    // Initial fetch and polling (disabled in Phase 1 to avoid extra requests on /find-tutors)
     useEffect(() => {
+        if (PHASE === 'booking') return;
         if (user) {
             fetchUnreadCount();
             fetchNotifications();
 
-            // Poll for new notifications every 30 seconds
             const interval = setInterval(() => {
                 fetchUnreadCount();
             }, 30000);
@@ -88,8 +92,9 @@ export const NotificationProvider = ({ children }) => {
         }
     }, [user, fetchUnreadCount, fetchNotifications]);
 
-    // Re-fetch list when opening panel
+    // Re-fetch list when opening panel (disabled in Phase 1)
     useEffect(() => {
+        if (PHASE === 'booking') return;
         if (isOpen && user) {
             fetchNotifications();
         }

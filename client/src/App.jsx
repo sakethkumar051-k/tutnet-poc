@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -11,13 +10,13 @@ import StudentDashboard from './pages/StudentDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLogin from './pages/AdminLogin';
 import FindTutors from './pages/FindTutors';
-import Footer from './components/Footer';
 import TutorProfilePage from './pages/TutorProfilePage';
 import OAuthSuccess from './pages/OAuthSuccess';
 import CompleteProfile from './pages/CompleteProfile';
 import About from './pages/About';
 import Contact from './pages/Contact';
-
+import AppLayout from './layouts/AppLayout';
+import DashboardLayout from './layouts/DashboardLayout';
 import { NotificationProvider } from './context/NotificationContext';
 
 function App() {
@@ -26,10 +25,9 @@ function App() {
             <AuthProvider>
                 <ToastProvider>
                     <NotificationProvider>
-                        <div className="flex flex-col min-h-screen">
-                            <Navbar />
-                            <Routes>
-                                {/* Public Routes */}
+                        <Routes>
+                            {/* App shell routes (navbar + footer) */}
+                            <Route element={<AppLayout />}>
                                 <Route path="/" element={<Home />} />
                                 <Route path="/login" element={<Login />} />
                                 <Route path="/register" element={<Register />} />
@@ -39,25 +37,26 @@ function App() {
                                 <Route path="/about" element={<About />} />
                                 <Route path="/contact" element={<Contact />} />
 
-                                {/* Protected Routes - Student */}
+                                {/* Protected routes inside app shell */}
                                 <Route element={<ProtectedRoute allowedRoles={['student']} />}>
-                                    <Route path="/student-dashboard" element={<StudentDashboard />} />
                                     <Route path="/find-tutors" element={<FindTutors />} />
                                     <Route path="/tutor/:id" element={<TutorProfilePage />} />
                                 </Route>
+                            </Route>
 
-                                {/* Protected Routes - Tutor */}
+                            {/* Dashboard shell routes (no global navbar/footer) */}
+                            <Route element={<DashboardLayout />}>
+                                <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+                                    <Route path="/student-dashboard" element={<StudentDashboard />} />
+                                </Route>
                                 <Route element={<ProtectedRoute allowedRoles={['tutor']} />}>
                                     <Route path="/tutor-dashboard" element={<TutorDashboard />} />
                                 </Route>
-
-                                {/* Protected Routes - Admin */}
                                 <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
                                     <Route path="/admin-dashboard" element={<AdminDashboard />} />
                                 </Route>
-                            </Routes>
-                            <Footer />
-                        </div>
+                            </Route>
+                        </Routes>
                     </NotificationProvider>
                 </ToastProvider>
             </AuthProvider>

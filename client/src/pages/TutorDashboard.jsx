@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { checkTutorProfileComplete } from '../utils/profileUtils';
@@ -32,16 +33,16 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import AnalyticsChart from '../components/AnalyticsChart';
 
 const TutorDashboard = () => {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
     const [stats, setStats] = useState(null);
-    const [tutorProfile, setTutorProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [currentStudents, setCurrentStudents] = useState([]);
     const [pendingBookings, setPendingBookings] = useState([]);
     const [upcomingBookings, setUpcomingBookings] = useState([]);
     const { user } = useAuth();
+    const { unreadCount, setIsOpen: setNotificationsOpen } = useNotifications();
 
     // Sync activeTab with URL search params
     useEffect(() => {
@@ -52,23 +53,25 @@ const TutorDashboard = () => {
     }, [searchParams]);
 
     useEffect(() => {
-        // Check profile completeness on mount (only if not already on complete-profile)
         const checkProfile = async () => {
             try {
                 const result = await checkTutorProfileComplete();
                 if (!result.isComplete) {
+                    // If tutor is on the profile tab, let them stay to complete the 5-step form
+                    const tabFromUrl = searchParams.get('tab');
+                    if (tabFromUrl === 'profile') return;
                     navigate('/complete-profile', { replace: true });
                     return;
                 }
             } catch (error) {
-                // If error, assume incomplete and redirect
                 console.error('Error checking profile:', error);
+                const tabFromUrl = searchParams.get('tab');
+                if (tabFromUrl === 'profile') return;
                 navigate('/complete-profile', { replace: true });
                 return;
             }
         };
 
-        // Only check if we're on dashboard, not if already redirected
         if (window.location.pathname === '/tutor-dashboard') {
             checkProfile();
         }
@@ -108,7 +111,6 @@ const TutorDashboard = () => {
             const reviews = reviewsRes.data;
             const students = studentsRes.data;
 
-            setTutorProfile(profile);
             setCurrentStudents(students);
 
             // Filter bookings
@@ -236,7 +238,7 @@ const TutorDashboard = () => {
                     </div>
                 );
 
-            case 'progress':
+            case 'progress': {
                 const studentId = searchParams.get('studentId');
                 if (studentId) {
                     return (
@@ -263,6 +265,7 @@ const TutorDashboard = () => {
                         </div>
                     </div>
                 );
+            }
 
             case 'schedule':
                 return (
@@ -344,6 +347,22 @@ const TutorDashboard = () => {
                             {getApprovalBadge()}
                         </div>
 
+                        {/* Notifications bar - visible in main content */}
+                        {unreadCount > 0 && (
+                            <div className="flex items-center justify-between gap-4 py-3 px-4 bg-indigo-50 border border-indigo-100 rounded-lg">
+                                <p className="text-sm font-medium text-indigo-900">
+                                    You have {unreadCount} new notification{unreadCount !== 1 ? 's' : ''}
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setNotificationsOpen(true)}
+                                    className="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+                                >
+                                    View →
+                                </button>
+                            </div>
+                        )}
+
                         {/* Status Alert */}
                         {stats && stats.approvalStatus === 'pending' && (
                             <div className="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-lg">
@@ -380,7 +399,7 @@ const TutorDashboard = () => {
                                         style={{ animationDelay: `${index * 100}ms` }}
                                         onClick={() => {
                                             if (stat.label === 'Pending Requests' && stats.pending > 0) {
-                                                handleTabChange('sessions');
+                                                document.getElementById('booking-requests')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                             }
                                         }}
                                     >
@@ -394,7 +413,7 @@ const TutorDashboard = () => {
                                             <p className="text-4xl font-bold text-gray-900 mb-2 leading-none transition-all duration-300">{stat.value}</p>
                                             <p className="text-sm font-medium text-gray-700">{stat.label}</p>
                                             {stat.label === 'Pending Requests' && stats.pending > 0 && (
-                                                <p className="text-xs text-indigo-600 mt-3 font-medium animate-pulse">Click to review →</p>
+                                                <p className="text-xs text-indigo-600 mt-3 font-medium">Review below ↓</p>
                                             )}
                                         </div>
                                     </div>
@@ -416,41 +435,6 @@ const TutorDashboard = () => {
                                     >
                                         Open Calendar →
                                     </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Pending Bookings - Needs Action */}
-                        {pendingBookings.length > 0 && (
-                            <div className="bg-white border-l-4 border-amber-500 rounded-lg p-6 shadow-sm animate-fade-in-up">
-                                <div className="flex items-center justify-between mb-5">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-900 mb-1">Action Needed</h3>
-                                        <p className="text-sm text-gray-600">You have {pendingBookings.length} booking request{pendingBookings.length !== 1 ? 's' : ''} waiting for your response</p>
-                                    </div>
-                                    <button
-                                        onClick={() => handleTabChange('sessions')}
-                                        className="px-4 py-2 bg-gray-900 text-white rounded-md text-sm font-semibold hover:bg-gray-800 transition-all duration-200 transform hover:scale-105 active:scale-95"
-                                    >
-                                        Review Now →
-                                    </button>
-                                </div>
-                                <div className="space-y-2">
-                                    {pendingBookings.slice(0, 3).map((booking, index) => (
-                                        <div 
-                                            key={booking._id} 
-                                            className="bg-white rounded-lg p-3 border border-amber-200 hover:border-amber-300 transition-all duration-200 animate-fade-in-up"
-                                            style={{ animationDelay: `${index * 100}ms` }}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="font-medium text-gray-900">{booking.studentId?.name || 'Student'}</p>
-                                                    <p className="text-sm text-gray-600">{booking.subject} • {booking.preferredSchedule}</p>
-                                                </div>
-                                                <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full font-medium animate-pulse">Needs Response</span>
-                                            </div>
-                                        </div>
-                                    ))}
                                 </div>
                             </div>
                         )}

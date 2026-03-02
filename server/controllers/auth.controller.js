@@ -55,8 +55,9 @@ const registerUser = async (req, res) => {
             if (user.role === 'tutor') {
                 await TutorProfile.create({
                     userId: user._id,
-                    hourlyRate: 0, // Default, needs update
-                    approvalStatus: 'pending' // Needs admin approval
+                    hourlyRate: 0,
+                    approvalStatus: 'pending',
+                    profileStatus: 'draft'
                 });
             }
 
@@ -87,12 +88,12 @@ const loginUser = async (req, res) => {
         const user = await User.findOne({ email });
 
         if (user && (await user.matchPassword(password))) {
+            const token = generateToken(user._id);
+            const fullUser = await User.findById(user._id).select('-password').lean();
             res.json({
+                ...fullUser,
                 _id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                token: generateToken(user._id),
+                token,
             });
         } else {
             res.status(401).json({ message: 'Invalid credentials' });
@@ -108,7 +109,7 @@ const loginUser = async (req, res) => {
 // @access  Private
 const getMe = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select('-password');
+        const user = await User.findById(req.user.id).select('-password').lean();
         res.status(200).json(user);
     } catch (error) {
         console.error(error);
@@ -233,6 +234,7 @@ const updateProfile = async (req, res) => {
                 relationship: emergencyContact.relationship || '',
                 phone: emergencyContact.phone || ''
             };
+            user.markModified('emergencyContact');
         }
 
         if (location) {
@@ -240,6 +242,7 @@ const updateProfile = async (req, res) => {
             if (location.area !== undefined) user.location.area = location.area;
             if (location.city !== undefined) user.location.city = location.city;
             if (location.pincode !== undefined) user.location.pincode = location.pincode;
+            user.markModified('location');
         }
 
         // If user becomes a tutor, create/update profile with all details
@@ -262,7 +265,8 @@ const updateProfile = async (req, res) => {
                     availableSlots: availableSlots || [],
                     education: education || {},
                     qualifications: qualifications || [],
-                    approvalStatus: 'pending' // This is just a status, not blocking - admin will review later
+                    approvalStatus: 'pending',
+                    profileStatus: 'draft'
                 });
                 console.log('Tutor profile created successfully:', newProfile._id);
             } else {

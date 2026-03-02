@@ -148,7 +148,6 @@ const TodaysSessions = () => {
                     <div className="space-y-4">
                         {sessionsWithDetails.map((session) => {
                             const feedback = session.feedback;
-                            const isToday = session.sessionDate?.split('T')[0] === new Date().toISOString().split('T')[0];
                             
                             return (
                                 <div

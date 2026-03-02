@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 
-const SessionTile = ({ session, onAction, actionLabel, isNext = false }) => {
+const SessionTile = ({ session, onAction, actionLabel }) => {
     const { user } = useAuth();
 
     // Determine status color
@@ -76,7 +76,7 @@ const SessionTile = ({ session, onAction, actionLabel, isNext = false }) => {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        onClick={(e) => {
+                        onClick={() => {
                             if (onAction) onAction(session, 'join');
                         }}
                     >

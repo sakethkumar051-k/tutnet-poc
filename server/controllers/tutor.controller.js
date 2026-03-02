@@ -1,16 +1,26 @@
 const TutorProfile = require('../models/TutorProfile');
 const User = require('../models/User');
 const { createNotification } = require('../utils/notificationHelper');
+const Favorite = require('../models/Favorite');
+const Booking = require('../models/Booking');
+const jwt = require('jsonwebtoken');
+const { computeProfileCompletion, validateStructuredFields } = require('../services/profileCompletion.service');
+const { BIO_MIN_LENGTH } = require('../constants/tutorProfile.constants');
 
-// @desc    Get all approved tutors with filters
+// @desc    Get all tutors with filters (approved only in production; all in dev or when ?all=true)
 // @route   GET /api/tutors
 // @access  Public
 const getTutors = async (req, res) => {
     try {
-        const { subject, class: studentClass, area, minRate, maxRate, mode, minExperience, minRating, verifiedOnly, limit } = req.query;
+        const { subject, class: studentClass, area, minRate, maxRate, mode, minExperience, minRating, verifiedOnly, limit, all } = req.query;
 
-        let query = {
-            approvalStatus: 'approved'
+        // Tutor not visible until profileStatus === 'approved'. Fallback to approvalStatus for legacy records.
+        const showAllTutors = process.env.NODE_ENV !== 'production' || all === 'true';
+        let query = showAllTutors ? {} : {
+            $or: [
+                { profileStatus: 'approved' },
+                { approvalStatus: 'approved', $or: [{ profileStatus: { $exists: false } }, { profileStatus: null }] }
+            ]
         };
 
         // Filter by subject
@@ -75,6 +85,99 @@ const getTutors = async (req, res) => {
             tutorsWithRating = tutorsWithRating.filter(t => t.averageRating >= Number(minRating));
         }
 
+        // Enrich with student-specific fields when a valid student token is present.
+        // Since this route is public, auth failures are swallowed and default values are used.
+        let studentUser = null;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            try {
+                const token = authHeader.split(' ')[1];
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                studentUser = await User.findById(decoded.id).select('role');
+            } catch (authError) {
+                studentUser = null;
+            }
+        }
+
+        if (studentUser?.role === 'student' && tutorsWithRating.length > 0) {
+            const tutorUserIds = tutorsWithRating
+                .map(t => t.userId?._id?.toString())
+                .filter(Boolean);
+
+            const [favoriteRows, trialRows, activeBookingTutorIds] = await Promise.all([
+                Favorite.find({
+                    studentId: studentUser._id,
+                    tutorId: { $in: tutorUserIds }
+                }).select('tutorId'),
+                Booking.find({
+                    studentId: studentUser._id,
+                    tutorId: { $in: tutorUserIds },
+                    bookingCategory: 'trial'
+                })
+                    .select('tutorId status subject preferredSchedule createdAt')
+                    .sort({ createdAt: -1 }),
+                Booking.find({
+                    studentId: studentUser._id,
+                    tutorId: { $in: tutorUserIds },
+                    status: { $in: ['pending', 'approved'] }
+                }).distinct('tutorId')
+            ]);
+
+            const favoritedTutorIds = new Set(
+                favoriteRows.map(row => row.tutorId.toString())
+            );
+            const hasActiveBookingSet = new Set(
+                activeBookingTutorIds.map(id => id.toString())
+            );
+
+            const trialSummaryByTutorId = {};
+            for (const trial of trialRows) {
+                const tutorId = trial.tutorId.toString();
+                if (!trialSummaryByTutorId[tutorId]) {
+                    trialSummaryByTutorId[tutorId] = {
+                        status: trial.status,
+                        count: 1,
+                        maxReached: false,
+                        hasTriedTutor: true,
+                        latestTrial: {
+                            _id: trial._id,
+                            status: trial.status,
+                            subject: trial.subject,
+                            preferredSchedule: trial.preferredSchedule,
+                            createdAt: trial.createdAt
+                        }
+                    };
+                } else {
+                    trialSummaryByTutorId[tutorId].count += 1;
+                }
+            }
+
+            Object.values(trialSummaryByTutorId).forEach(summary => {
+                summary.maxReached = summary.count >= 2;
+            });
+
+            tutorsWithRating = tutorsWithRating.map(tutor => {
+                const tutorUserId = tutor.userId?._id?.toString();
+                const trialStatus = tutorUserId && trialSummaryByTutorId[tutorUserId]
+                    ? trialSummaryByTutorId[tutorUserId]
+                    : { status: null, count: 0, maxReached: false, hasTriedTutor: false };
+
+                return {
+                    ...tutor,
+                    isFavorited: tutorUserId ? favoritedTutorIds.has(tutorUserId) : false,
+                    trialStatus,
+                    hasActiveBooking: tutorUserId ? hasActiveBookingSet.has(tutorUserId) : false
+                };
+            });
+        } else {
+            tutorsWithRating = tutorsWithRating.map(tutor => ({
+                ...tutor,
+                isFavorited: false,
+                trialStatus: { status: null, count: 0, maxReached: false, hasTriedTutor: false },
+                hasActiveBooking: false
+            }));
+        }
+
         res.json(tutorsWithRating);
     } catch (error) {
         console.error(error);
@@ -98,7 +201,7 @@ const getTutorProfileByUserId = async (req, res) => {
     }
 };
 
-// @desc    Get tutor profile by ID
+// @desc    Get tutor profile by ID. Tutor response includes trialBookings, sessionBookings, permanentBookings when requester is an authenticated student.
 // @route   GET /api/tutors/:id
 // @access  Public
 const getTutorById = async (req, res) => {
@@ -109,7 +212,31 @@ const getTutorById = async (req, res) => {
             return res.status(404).json({ message: 'Tutor not found' });
         }
 
-        res.json(tutor);
+        const tutorUserId = tutor.userId?._id || tutor.userId;
+        let trialBookings = [];
+        let sessionBookings = [];
+        let permanentBookings = [];
+
+        if (req.user?.role === 'student' && tutorUserId) {
+            const bookings = await Booking.find({
+                studentId: req.user.id,
+                tutorId: tutorUserId
+            })
+                .populate('studentId', 'name email')
+                .populate('tutorId', 'name email')
+                .sort({ createdAt: -1 })
+                .lean();
+            trialBookings = bookings.filter(b => b.bookingCategory === 'trial');
+            sessionBookings = bookings.filter(b => b.bookingCategory === 'session');
+            permanentBookings = bookings.filter(b => b.bookingCategory === 'permanent' || b.bookingCategory === 'dedicated');
+        }
+
+        res.json({
+            ...tutor.toObject(),
+            trialBookings,
+            sessionBookings,
+            permanentBookings
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
@@ -168,50 +295,50 @@ const checkProfileComplete = async (req, res) => {
         const tutor = await TutorProfile.findOne({ userId: req.user.id });
         console.log('Tutor profile found:', !!tutor);
 
-        // If profile doesn't exist yet, return incomplete status (not 404)
         if (!tutor) {
             return res.status(200).json({
                 isComplete: false,
-                missingFields: ['profile', 'subjects', 'classes', 'hourlyRate', 'experienceYears', 'bio', 'mode', 'languages'],
+                missingFields: ['profile'],
                 message: 'Tutor profile not found. Please complete your profile.',
-                profile: null
+                profile: null,
+                profileCompletionScore: 0
             });
         }
 
-        // Check if vital fields are present (less strict validation for redirects)
-        const requiredFields = {
-            subjects: tutor.subjects && tutor.subjects.length > 0,
-            classes: tutor.classes && tutor.classes.length > 0,
-            hourlyRate: tutor.hourlyRate !== undefined && tutor.hourlyRate !== null,
-            experienceYears: tutor.experienceYears !== undefined && tutor.experienceYears !== null,
-            // Only require long bio if not previously approved, otherwise just existence
-            bio: tutor.bio && tutor.bio.trim().length > 0,
-            mode: tutor.mode,
-            languages: tutor.languages && tutor.languages.length > 0,
-            phone: user.phone && user.phone.trim().length > 0,
-            location: user.location && user.location.area && user.location.area.trim().length > 0
-        };
+        const { completionScore, errors, isValid } = computeProfileCompletion(tutor, user);
+        const missingFields = errors.map(e => e.field);
 
-        const missingFields = Object.keys(requiredFields).filter(key => !requiredFields[key]);
-        const isComplete = missingFields.length === 0;
-
-        // If profile is already approved or pending, consider it complete to avoid loop
-        if (tutor.approvalStatus === 'approved' || tutor.approvalStatus === 'pending') {
-            // Only force update if ABSOLUTELY critical fields are missing (like subjects)
-            // Otherwise let them in
-            if (missingFields.length === 0) {
+        // If profile is already approved or pending, consider it complete to avoid redirect loop if score is high enough
+        const status = tutor.profileStatus || tutor.approvalStatus;
+        if (status === 'approved' || status === 'pending') {
+            if (isValid || completionScore >= 80) {
                 return res.status(200).json({
                     isComplete: true,
                     missingFields: [],
-                    profile: tutor
+                    profile: tutor,
+                    profileCompletionScore: completionScore
                 });
             }
         }
 
+        // Allow tutor into dashboard if they have basic info (phone, area) so they can complete the 5-step form there
+        const hasBasicInfo = user?.phone?.trim() && user?.location?.area?.trim();
+        if (hasBasicInfo) {
+            return res.status(200).json({
+                isComplete: true,
+                missingFields: [],
+                profile: tutor,
+                profileCompletionScore: completionScore,
+                errors: errors
+            });
+        }
+
         res.status(200).json({
-            isComplete,
+            isComplete: false,
             missingFields,
-            profile: tutor
+            profile: tutor,
+            profileCompletionScore: completionScore,
+            errors: errors
         });
     } catch (error) {
         console.error('Error in checkProfileComplete:', error);
@@ -233,75 +360,117 @@ const checkProfileComplete = async (req, res) => {
 // @access  Private (Tutor only)
 const updateTutorProfile = async (req, res) => {
     try {
-        const { subjects, classes, hourlyRate, experienceYears, bio, availableSlots, mode, languages, profilePicture, education, qualifications } = req.body;
+        const {
+            subjects, classes, hourlyRate, experienceYears, bio, availableSlots, mode, languages,
+            profilePicture, education, qualifications, strengthTags, travelRadius, availabilityMode,
+            weeklyAvailability, noticePeriodHours, maxSessionsPerDay,
+            phone, location
+        } = req.body;
 
         const tutor = await TutorProfile.findOne({ userId: req.user.id });
-
         if (!tutor) {
             return res.status(404).json({ message: 'Tutor profile not found' });
         }
 
+        // Validate structured fields (predefined lists only)
+        const updatePayload = {
+            subjects: Array.isArray(subjects) ? subjects : (subjects ? [subjects] : undefined),
+            classes: Array.isArray(classes) ? classes : (classes ? [classes] : undefined),
+            strengthTags: Array.isArray(strengthTags) ? strengthTags : (strengthTags ? [strengthTags] : undefined),
+            qualifications: Array.isArray(qualifications) ? qualifications : (qualifications ? [qualifications] : undefined)
+        };
+        const structErrors = validateStructuredFields({
+            ...tutor.toObject(),
+            ...updatePayload,
+            subjects: updatePayload.subjects || tutor.subjects,
+            classes: updatePayload.classes || tutor.classes,
+            strengthTags: updatePayload.strengthTags || tutor.strengthTags,
+            qualifications: updatePayload.qualifications || tutor.qualifications
+        });
+        if (structErrors.length > 0) {
+            return res.status(400).json({
+                message: structErrors[0].message,
+                code: 'VALIDATION_ERROR',
+                errors: structErrors
+            });
+        }
+
+        // Bio min length
+        if (bio !== undefined && bio.trim && bio.trim().length > 0 && bio.trim().length < BIO_MIN_LENGTH) {
+            return res.status(400).json({
+                message: `Bio must be at least ${BIO_MIN_LENGTH} characters`,
+                code: 'VALIDATION_ERROR'
+            });
+        }
+
         let requiresApproval = false;
+        const wasApproved = tutor.approvalStatus === 'approved' || tutor.profileStatus === 'approved';
 
-        // IMPORTANT: Only require approval for changes AFTER the profile has been approved once
-        // Initial profile setup does NOT require approval - just save the data
-        const wasApproved = tutor.approvalStatus === 'approved';
-
-        // Check for critical changes that require re-approval (ONLY if profile was previously approved)
         if (wasApproved) {
-            // 1. Profile Picture
             if (profilePicture !== undefined) {
-                // Fetch user to check current picture
                 const user = await User.findById(req.user.id);
-                if (user.profilePicture !== profilePicture) {
+                if (user && user.profilePicture !== profilePicture) {
                     requiresApproval = true;
                     user.profilePicture = profilePicture;
                     await user.save();
                 }
             }
-
-            // Helper to compare arrays (simple sort and stringify)
             const arraysEqual = (a, b) => {
                 if (!a || !b) return a === b;
-                return JSON.stringify(a.sort()) === JSON.stringify(b.sort());
+                return JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
             };
-
-            // 2. Subjects - only require approval if profile was approved
-            if (subjects && !arraysEqual(tutor.subjects, subjects)) {
+            if (subjects && !arraysEqual(tutor.subjects, Array.isArray(subjects) ? subjects : [subjects])) {
                 requiresApproval = true;
-                tutor.subjects = subjects;
             }
-
-            // 3. Classes - only require approval if profile was approved
-            if (classes && !arraysEqual(tutor.classes, classes)) {
+            if (classes && !arraysEqual(tutor.classes, Array.isArray(classes) ? classes : [classes])) {
                 requiresApproval = true;
-                tutor.classes = classes;
             }
         } else {
-            // Initial setup or pending profile - update all fields without approval requirement
             if (profilePicture !== undefined) {
                 const user = await User.findById(req.user.id);
-                user.profilePicture = profilePicture;
-                await user.save();
+                if (user) {
+                    user.profilePicture = profilePicture;
+                    await user.save();
+                }
             }
-            if (subjects) tutor.subjects = subjects;
-            if (classes) tutor.classes = classes;
         }
 
-        // Update non-critical fields (always update, no approval needed)
-        if (hourlyRate !== undefined) tutor.hourlyRate = hourlyRate;
-        if (experienceYears !== undefined) tutor.experienceYears = experienceYears;
-        if (bio) tutor.bio = bio;
-        if (availableSlots) tutor.availableSlots = availableSlots;
-        if (mode) tutor.mode = mode;
-        if (languages) tutor.languages = languages;
-        if (education) tutor.education = education;
-        if (qualifications) tutor.qualifications = qualifications;
+        // Apply updates
+        if (subjects !== undefined) tutor.subjects = Array.isArray(subjects) ? subjects : (subjects ? [subjects] : tutor.subjects);
+        if (classes !== undefined) tutor.classes = Array.isArray(classes) ? classes : (classes ? [classes] : tutor.classes);
+        if (hourlyRate !== undefined) tutor.hourlyRate = Number(hourlyRate);
+        if (experienceYears !== undefined) tutor.experienceYears = Number(experienceYears);
+        if (bio !== undefined) tutor.bio = bio;
+        if (availableSlots !== undefined) tutor.availableSlots = Array.isArray(availableSlots) ? availableSlots : availableSlots;
+        if (mode !== undefined) tutor.mode = mode;
+        if (languages !== undefined) tutor.languages = Array.isArray(languages) ? languages : (languages ? [languages] : tutor.languages);
+        if (education !== undefined) tutor.education = education;
+        if (qualifications !== undefined) tutor.qualifications = Array.isArray(qualifications) ? qualifications : (qualifications ? [qualifications] : []);
+        if (strengthTags !== undefined) tutor.strengthTags = Array.isArray(strengthTags) ? strengthTags : (strengthTags ? [strengthTags] : []);
+        if (travelRadius !== undefined) tutor.travelRadius = travelRadius === '' ? undefined : Number(travelRadius);
+        if (availabilityMode !== undefined) tutor.availabilityMode = availabilityMode;
+        if (Array.isArray(weeklyAvailability)) tutor.weeklyAvailability = weeklyAvailability;
+        if (noticePeriodHours !== undefined) tutor.noticePeriodHours = noticePeriodHours === '' ? undefined : Number(noticePeriodHours);
+        if (maxSessionsPerDay !== undefined) tutor.maxSessionsPerDay = maxSessionsPerDay === '' ? undefined : Number(maxSessionsPerDay);
 
-        // Only reset approval status if profile was approved and critical fields changed
+        let user = await User.findById(req.user.id);
+        if (user) {
+            if (phone !== undefined) user.phone = phone;
+            if (location && typeof location === 'object') {
+                if (!user.location) user.location = { city: 'Hyderabad', area: '', pincode: '' };
+                if (location.area !== undefined) user.location.area = location.area;
+                if (location.pincode !== undefined) user.location.pincode = location.pincode;
+                if (location.city !== undefined) user.location.city = location.city;
+                user.markModified('location');
+            }
+            await user.save();
+        }
+        const { completionScore } = computeProfileCompletion(tutor, user);
+        tutor.profileCompletionScore = completionScore;
+
         if (requiresApproval && wasApproved) {
             tutor.approvalStatus = 'pending';
-
+            tutor.profileStatus = 'pending';
             await createNotification({
                 userId: req.user.id,
                 type: 'system_alert',
@@ -315,7 +484,7 @@ const updateTutorProfile = async (req, res) => {
 
         res.json({
             ...tutor.toObject(),
-            _requiresApproval: requiresApproval // Flag to tell frontend if status changed
+            _requiresApproval: requiresApproval
         });
     } catch (error) {
         console.error(error);
@@ -329,13 +498,23 @@ const updateTutorProfile = async (req, res) => {
 const submitForApproval = async (req, res) => {
     try {
         const tutor = await TutorProfile.findOne({ userId: req.user.id });
-
         if (!tutor) {
             return res.status(404).json({ message: 'Tutor profile not found' });
         }
 
+        const user = await User.findById(req.user.id);
+        const { isValid, errors } = computeProfileCompletion(tutor, user);
+        if (!isValid) {
+            return res.status(400).json({
+                message: 'Complete all required fields before submitting.',
+                code: 'INCOMPLETE_PROFILE',
+                errors
+            });
+        }
+
         tutor.approvalStatus = 'pending';
-        tutor.rejectionReason = undefined; // Clear any previous rejection reason
+        tutor.profileStatus = 'pending';
+        tutor.rejectionReason = undefined;
         await tutor.save();
 
         await createNotification({
@@ -349,6 +528,36 @@ const submitForApproval = async (req, res) => {
         res.json(tutor);
     } catch (error) {
         console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc  Get predefined options for profile form (subjects, classes, strength tags, etc.)
+// @route GET /api/tutors/profile/options
+// @access Public (or Private - tutor only if you prefer)
+const getProfileOptions = async (req, res) => {
+    try {
+        const {
+            SUBJECTS,
+            CLASSES_GRADES,
+            STRENGTH_TAGS,
+            CERTIFICATIONS,
+            TEACHING_MODES,
+            NOTICE_PERIOD_OPTIONS,
+            DAYS_OF_WEEK,
+            BIO_MIN_LENGTH
+        } = require('../constants/tutorProfile.constants');
+        res.json({
+            subjects: SUBJECTS,
+            classes: CLASSES_GRADES,
+            strengthTags: STRENGTH_TAGS,
+            certifications: CERTIFICATIONS,
+            teachingModes: TEACHING_MODES,
+            noticePeriodOptions: NOTICE_PERIOD_OPTIONS,
+            daysOfWeek: DAYS_OF_WEEK,
+            bioMinLength: BIO_MIN_LENGTH
+        });
+    } catch (err) {
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -415,5 +624,6 @@ module.exports = {
     getMyProfile,
     submitForApproval,
     checkProfileComplete,
+    getProfileOptions,
     getRecommendations
 };

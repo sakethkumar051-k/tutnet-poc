@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
-import { useAuth } from '../context/AuthContext';
 
 const RequestDemoModal = ({ tutor, onClose, onSuccess }) => {
-    const { user } = useAuth();
     const { showSuccess, showError } = useToast();
     const [submitting, setSubmitting] = useState(false);
     const [demoInfo, setDemoInfo] = useState(null); // Track student's demo usage
@@ -68,7 +66,7 @@ const RequestDemoModal = ({ tutor, onClose, onSuccess }) => {
             if (errorCode === 'MAX_TRIALS_EXCEEDED') {
                 showError(errorMessage || 'You\'ve reached your active trial limit!');
             } else if (errorCode === 'TRIAL_EXISTS') {
-                showError(errorMessage || 'You already have a trial with this tutor. Book a regular session instead!');
+                showError(errorMessage || 'You already have a trial with this tutor. Book a one-time class instead!');
             } else {
                 showError(errorMessage || 'Failed to request trial. Please try again.');
             }
@@ -122,7 +120,7 @@ const RequestDemoModal = ({ tutor, onClose, onSuccess }) => {
                                     onClick={onClose}
                                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
                                 >
-                                    Book Regular Session Instead
+                                    Book a One-Time Class
                                 </button>
                             </div>
                         ) : (

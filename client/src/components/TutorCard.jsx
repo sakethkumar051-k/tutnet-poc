@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import RegularBookingModal from './RegularBookingModal';
+import DedicatedTutorModal from './DedicatedTutorModal';
 
 /* ── helpers ─────────────────────────────────────────────────────────────────*/
 const getInitials = (name) =>
@@ -32,65 +33,36 @@ const StarRow = ({ rating, count }) => {
 };
 
 /* ── main component ───────────────────────────────────────────────────────────*/
-const TutorCard = ({ tutor, onRequestDemo }) => {
-    const [isFavorite, setIsFavorite]                 = useState(false);
-    const [checkingFavorite, setCheckingFavorite]     = useState(true);
-    const [trialStatus, setTrialStatus]               = useState(null);
-    const [loadingTrialStatus, setLoadingTrialStatus] = useState(true);
+// All data (isFavorited, trialStatus) comes from props via single GET /api/tutors. No per-card API calls.
+const TutorCard = ({ tutor, onRequestDemo, onFavoriteChange, onBookingSuccess }) => {
     const [showRegularBooking, setShowRegularBooking] = useState(false);
-    const { user }                                    = useAuth();
-    const { showSuccess, showError }                  = useToast();
-    const navigate                                    = useNavigate();
+    const [showDedicatedModal, setShowDedicatedModal] = useState(false);
+    const { user } = useAuth();
+    const { showSuccess, showError } = useToast();
+    const navigate = useNavigate();
 
-    useEffect(() => {
-        if (user?.role === 'student' && tutor.userId?._id) {
-            checkFavorite();
-            checkTrialStatus();
-        } else {
-            setCheckingFavorite(false);
-            setLoadingTrialStatus(false);
-        }
-    }, [user, tutor]);
+    const isFavorite = tutor.isFavorited ?? false;
+    const trialStatus = tutor.trialStatus ?? { status: null, count: 0, maxReached: false, hasTriedTutor: false };
 
-    const checkTrialStatus = async () => {
-        try {
-            const { data } = await api.get(`/bookings/trial-status/${tutor.userId._id}`);
-            setTrialStatus(data);
-        } catch {
-            setTrialStatus(null);
-        } finally {
-            setLoadingTrialStatus(false);
-        }
-    };
-
-    const checkFavorite = async () => {
-        try {
-            const { data } = await api.get(`/favorites/check/${tutor.userId._id}`);
-            setIsFavorite(data.isFavorite);
-        } catch {
-            setIsFavorite(false);
-        } finally {
-            setCheckingFavorite(false);
-        }
-    };
-
-    const toggleFavorite = async (e) => {
+    const toggleFavorite = useCallback(async (e) => {
         e.stopPropagation();
         if (!user || user.role !== 'student') return;
+        const tutorUserId = tutor.userId?._id;
+        if (!tutorUserId) return;
         try {
             if (isFavorite) {
-                await api.delete(`/favorites/${tutor.userId._id}`);
-                setIsFavorite(false);
+                await api.delete(`/favorites/${tutorUserId}`);
                 showSuccess('Removed from favorites');
+                onFavoriteChange?.(tutorUserId, false);
             } else {
-                await api.post('/favorites', { tutorId: tutor.userId._id });
-                setIsFavorite(true);
+                await api.post('/favorites', { tutorId: tutorUserId });
                 showSuccess('Added to favorites');
+                onFavoriteChange?.(tutorUserId, true);
             }
         } catch {
             showError('Failed to update favorite');
         }
-    };
+    }, [user, isFavorite, tutor.userId?._id, onFavoriteChange, showSuccess, showError]);
 
     const avgRating   = tutor.averageRating || 0;
     const reviewCount = tutor.reviewCount   || 0;
@@ -105,7 +77,7 @@ const TutorCard = ({ tutor, onRequestDemo }) => {
                     : tutor.mode === 'home'   ? 'bg-green-50 text-green-700 border-green-100'
                     : 'bg-purple-50 text-purple-700 border-purple-100';
 
-    /* ── primary CTA logic (unchanged) ───────────────────────────────────────*/
+    /* ── Primary CTA: Request Dedicated Tutor (dominant). Demo is secondary. ── */
     const renderCTA = () => {
         if (!user || user.role !== 'student') {
             return (
@@ -115,41 +87,10 @@ const TutorCard = ({ tutor, onRequestDemo }) => {
                 </button>
             );
         }
-        if (loadingTrialStatus) {
-            return (
-                <button disabled className="w-full py-2.5 px-4 rounded-lg bg-gray-100 text-gray-400 text-sm font-semibold cursor-wait">
-                    Loading…
-                </button>
-            );
-        }
-        if (!trialStatus || !trialStatus.hasTriedTutor) {
-            return (
-                <button onClick={() => onRequestDemo(tutor)}
-                    className="w-full py-2.5 px-4 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm">
-                    Try Free Demo Class
-                </button>
-            );
-        }
-        if (trialStatus.status === 'pending') {
-            return (
-                <button disabled
-                    className="w-full py-2.5 px-4 rounded-lg bg-amber-50 text-amber-800 text-sm font-semibold cursor-not-allowed border border-amber-200">
-                    Free Demo Pending…
-                </button>
-            );
-        }
-        if (trialStatus.status === 'approved') {
-            return (
-                <button onClick={() => navigate('/student-dashboard?tab=sessions')}
-                    className="w-full py-2.5 px-4 rounded-lg bg-green-50 text-green-800 text-sm font-semibold hover:bg-green-100 transition border border-green-200">
-                    Demo Scheduled — View Details
-                </button>
-            );
-        }
         return (
-            <button onClick={() => setShowRegularBooking(true)}
-                className="w-full py-2.5 px-4 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm">
-                Book Paid Session
+            <button onClick={() => setShowDedicatedModal(true)}
+                    className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 text-white text-base font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-xl border-0">
+                Request Dedicated Tutor
             </button>
         );
     };
@@ -199,7 +140,7 @@ const TutorCard = ({ tutor, onRequestDemo }) => {
                                 )}
                             </div>
                             {/* Favorite */}
-                            {user?.role === 'student' && !checkingFavorite && (
+                            {user?.role === 'student' && (
                                 <button onClick={toggleFavorite}
                                     className="flex-shrink-0 mt-0.5 text-gray-300 hover:text-amber-400 transition-colors">
                                     <svg className={`w-5 h-5 ${isFavorite ? 'text-amber-400 fill-amber-400' : ''}`}
@@ -303,36 +244,47 @@ const TutorCard = ({ tutor, onRequestDemo }) => {
 
             {/* ── Actions ──────────────────────────────────────────────────── */}
             <div className="px-5 pb-5 pt-3 mt-auto border-t border-gray-100 space-y-2">
-                {/* Primary CTA */}
+                {/* Primary CTA: Dedicated Tutor (visually dominant) */}
                 {renderCTA()}
 
-                {/* Secondary CTAs */}
+                {/* Secondary: Book One-Time Class, Try Demo (smaller) */}
                 {user?.role === 'student' && (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <button onClick={() => navigate(`/tutor/${tutor._id}`)}
-                            className="flex-1 py-2 px-3 rounded-lg bg-gray-50 text-gray-700 text-xs font-semibold hover:bg-gray-100 transition border border-gray-200">
+                            className="flex-1 min-w-0 py-2 px-3 rounded-lg bg-gray-50 text-gray-600 text-xs font-medium hover:bg-gray-100 transition border border-gray-200">
                             View Profile
                         </button>
-                        {!loadingTrialStatus && (!trialStatus || !trialStatus.hasTriedTutor) && (
-                            <button onClick={() => setShowRegularBooking(true)}
-                                className="flex-1 py-2 px-3 rounded-lg bg-gray-50 text-gray-700 text-xs font-semibold hover:bg-gray-100 transition border border-gray-200">
-                                Book Session
+                        <button onClick={() => setShowRegularBooking(true)}
+                            className="flex-1 min-w-0 py-2 px-3 rounded-lg bg-gray-50 text-gray-600 text-xs font-medium hover:bg-gray-100 transition border border-gray-200">
+                            Book One-Time Class
+                        </button>
+                        {(!trialStatus || !trialStatus.hasTriedTutor) ? (
+                            <button onClick={() => onRequestDemo(tutor)}
+                                className="flex-1 min-w-0 py-2 px-3 rounded-lg bg-gray-50 text-gray-600 text-xs font-medium hover:bg-gray-100 transition border border-gray-200">
+                                Try Demo
                             </button>
-                        )}
+                        ) : trialStatus.status === 'pending' ? (
+                            <span className="flex-1 min-w-0 py-2 px-3 rounded-lg bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200 text-center">
+                                Demo Pending
+                            </span>
+                        ) : trialStatus.status === 'approved' ? (
+                            <button onClick={() => navigate('/student-dashboard?tab=sessions')}
+                                className="flex-1 min-w-0 py-2 px-3 rounded-lg bg-green-50 text-green-700 text-xs font-medium hover:bg-green-100 border border-green-200">
+                                Demo Scheduled
+                            </button>
+                        ) : null}
                     </div>
                 )}
             </div>
 
-            {/* Booking modal */}
             {showRegularBooking && (
-                <RegularBookingModal
-                    tutor={tutor}
-                    onClose={() => setShowRegularBooking(false)}
-                    onSuccess={() => { setShowRegularBooking(false); checkTrialStatus(); }}
-                />
+                <RegularBookingModal tutor={tutor} onClose={() => setShowRegularBooking(false)} onSuccess={() => { setShowRegularBooking(false); onBookingSuccess?.(); }} />
+            )}
+            {showDedicatedModal && (
+                <DedicatedTutorModal tutor={tutor} onClose={() => setShowDedicatedModal(false)} onSuccess={() => { setShowDedicatedModal(false); onBookingSuccess?.(); }} />
             )}
         </div>
     );
 };
 
-export default TutorCard;
+export default React.memo(TutorCard);

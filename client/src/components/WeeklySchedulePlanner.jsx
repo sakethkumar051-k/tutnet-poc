@@ -9,12 +9,6 @@ const TIME_SLOTS = [
     '18:00–20:00', '20:00–22:00'
 ];
 
-// Convert "Mon 10:00–12:00" → { day, slot }
-const parseSlot = (str) => {
-    const parts = str.split(' ');
-    return { day: parts[0], slot: parts.slice(1).join(' ') };
-};
-
 const toKey = (day, slot) => `${day} ${slot}`;
 
 const WeeklySchedulePlanner = () => {

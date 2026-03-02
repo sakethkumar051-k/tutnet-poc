@@ -3,6 +3,7 @@ import api from '../utils/api';
 
 const AuthContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
@@ -44,7 +45,7 @@ export const AuthProvider = ({ children }) => {
                     throw error;
                 }
             } else {
-                // Standard credentials login
+                // Standard credentials login – response includes full user
                 const { data } = await api.post('/auth/login', credentialsOrToken);
                 localStorage.setItem('token', data.token);
                 setUser(data);
