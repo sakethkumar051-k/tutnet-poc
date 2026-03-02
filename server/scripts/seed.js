@@ -108,6 +108,7 @@ const seedData = async () => {
             tutorId: tutor1._id,
             subject: 'Maths',
             preferredSchedule: 'Mon 10-12',
+            bookingCategory: 'session',
             status: 'completed'
         });
 
@@ -116,6 +117,7 @@ const seedData = async () => {
             tutorId: tutor1._id,
             subject: 'Physics',
             preferredSchedule: 'Wed 14-16',
+            bookingCategory: 'session',
             status: 'pending'
         });
 

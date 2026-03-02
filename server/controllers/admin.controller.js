@@ -33,6 +33,7 @@ const approveTutor = async (req, res) => {
         }
 
         tutor.approvalStatus = 'approved';
+        tutor.profileStatus = 'approved';
 
         // Generate a human-readable tutorCode if not already assigned
         if (!tutor.tutorCode) {
@@ -79,6 +80,7 @@ const rejectTutor = async (req, res) => {
         }
 
         tutor.approvalStatus = 'rejected';
+        tutor.profileStatus = 'rejected';
         tutor.rejectionReason = req.body.reason || 'No reason provided';
 
         // Record rejection in history
@@ -171,6 +173,9 @@ const approveBooking = async (req, res) => {
         if (!booking) {
             return res.status(404).json({ message: 'Booking not found' });
         }
+        if (booking.status !== 'pending') {
+            return res.status(400).json({ message: 'Only pending bookings can be approved' });
+        }
 
         booking.status = 'approved';
         await booking.save();
@@ -191,6 +196,9 @@ const rejectBooking = async (req, res) => {
 
         if (!booking) {
             return res.status(404).json({ message: 'Booking not found' });
+        }
+        if (booking.status !== 'pending') {
+            return res.status(400).json({ message: 'Only pending bookings can be rejected' });
         }
 
         booking.status = 'rejected';

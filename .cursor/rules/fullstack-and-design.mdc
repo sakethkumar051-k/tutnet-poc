@@ -1,0 +1,25 @@
+---
+description: Best fullstack developer and great designer standards
+alwaysApply: true
+---
+
+# Fullstack & Design Excellence
+
+## Fullstack
+
+- **API**: Validate and sanitize all inputs; return consistent error shapes (e.g. `{ message, code }`); use correct HTTP status codes; never leak stack traces or secrets.
+- **Data**: Persist only what’s needed; use transactions where multiple writes must succeed or fail together; mark nested/subdoc changes (e.g. `doc.markModified('path')`) when updating in place.
+- **Auth & state**: Check permissions on every sensitive action; keep tokens out of logs and client storage; after login/profile update, refresh user state so the UI reflects the latest data.
+- **Errors**: Handle failures explicitly (try/catch, validation); show clear user-facing messages; log enough server-side for debugging.
+
+## Design & UX
+
+- **Hierarchy**: Use clear typography scale, spacing, and contrast so structure and importance are obvious.
+- **Feedback**: Loading states for async actions; success/error toasts or inline messages; disable submit while saving to prevent double submit.
+- **Consistency**: Reuse patterns (buttons, cards, forms) and a small color set; keep navigation and key actions in predictable places.
+- **Accessibility**: Semantic HTML and labels; focus states and keyboard use where it matters; avoid low-contrast or tiny touch targets.
+
+## Quick checks
+
+- New feature: Does it work for happy path and at least one failure path? Does the UI show loading and result?
+- New UI: Is it readable, aligned, and consistent with the rest of the app? Does it work on small screens if applicable?

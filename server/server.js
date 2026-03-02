@@ -20,6 +20,17 @@ app.use(cors({
 app.use(express.json());
 app.use(morgan('dev'));
 
+// Rate limit API to reduce abuse (booking create/approve, auth, etc.)
+const rateLimit = require('express-rate-limit');
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests. Please try again later.', code: 'RATE_LIMIT_EXCEEDED' }
+});
+app.use('/api', apiLimiter);
+
 // Session configuration
 const session = require('express-session');
 const passport = require('passport');
@@ -57,8 +68,12 @@ app.get('/', (req, res) => {
 });
 
 // Database Connection (non-blocking - server will start even if DB fails)
+const { startTrialExpiryJob } = require('./jobs/trialExpiry.job');
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('MongoDB Connected'))
+    .then(() => {
+        console.log('MongoDB Connected');
+        startTrialExpiryJob();
+    })
     .catch(err => {
         console.error('MongoDB Connection Error:', err);
         console.log('Server will continue without database connection');
@@ -69,12 +84,20 @@ try {
     app.use('/api/auth', require('./routes/auth.routes'));
     app.use('/api/admin', require('./routes/admin.routes'));
     app.use('/api/tutors', require('./routes/tutor.routes'));
+    // Split booking APIs by category while keeping the same Booking model/controller logic.
+    app.use('/api/trial-bookings', require('./routes/trialBooking.routes'));
+    app.use('/api/session-bookings', require('./routes/sessionBooking.routes'));
+    app.use('/api/permanent-bookings', require('./routes/permanentBooking.routes'));
+    app.use('/api/dedicated-bookings', require('./routes/dedicatedBooking.routes'));
+    // Legacy endpoint retained for backward compatibility.
     app.use('/api/bookings', require('./routes/booking.routes'));
+    app.use('/api/demos', require('./routes/demos.routes'));
     app.use('/api/reviews', require('./routes/review.routes'));
     app.use('/api/favorites', require('./routes/favorite.routes'));
     app.use('/api/progress-reports', require('./routes/progressReport.routes'));
     app.use('/api/attendance', require('./routes/attendance.routes'));
     app.use('/api/current-tutors', require('./routes/currentTutor.routes'));
+    app.use('/api/my-tutor', require('./routes/myTutor.routes'));
     app.use('/api/session-feedback', require('./routes/sessionFeedback.routes'));
     app.use('/api/study-materials', require('./routes/studyMaterial.routes'));
     app.use('/api/messages', require('./routes/message.routes'));
@@ -110,6 +133,10 @@ app.use((req, res, next) => {
         '/api/auth/forgot-password': 'POST',
         '/api/auth/reset-password': 'POST',
         '/api/auth/verify-admin': 'POST',
+        '/api/trial-bookings': 'POST',
+        '/api/session-bookings': 'POST',
+        '/api/permanent-bookings': 'POST',
+        '/api/dedicated-bookings': 'POST',
         '/api/bookings': 'POST',
         '/api/reviews': 'POST',
         '/api/current-tutors/student/my-tutors': 'GET',

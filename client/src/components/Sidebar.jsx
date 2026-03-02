@@ -1,6 +1,23 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import NotificationBell from './NotificationBell';
+import NotificationPanel from './NotificationPanel';
+import { useNotifications } from '../context/NotificationContext';
+import { useAuth } from '../context/AuthContext';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { cn } from '../lib/utils';
 
 const Sidebar = ({ user, activeTab, onTabChange }) => {
+    const { unreadCount } = useNotifications();
+    const { logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/');
+    };
+    const dashboardPath = user?.role === 'tutor' ? '/tutor-dashboard' : user?.role === 'admin' ? '/admin-dashboard' : '/student-dashboard';
     const Icon = ({ path, isActive }) => (
         <svg 
             className={`h-5 w-5 ${isActive ? 'text-indigo-600' : 'text-gray-500'}`} 
@@ -40,39 +57,70 @@ const Sidebar = ({ user, activeTab, onTabChange }) => {
     const navItems = user?.role === 'student' ? studentNav : tutorNav;
 
     return (
-        <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-full flex-shrink-0">
-            <div className="p-6 border-b border-gray-200">
-                {/* Logo removed - clean header */}
+        <div className="w-64 bg-card border-r flex flex-col h-full flex-shrink-0">
+            <div className="p-4 border-b flex flex-col gap-3">
+                <Link to={dashboardPath} className="flex items-center hover:opacity-90 transition-opacity">
+                    <img src="/tutnet-logo.png" alt="Tutnet" className="h-7" />
+                </Link>
+                <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">Notifications</span>
+                    <div className="relative flex items-center gap-1.5">
+                        {unreadCount > 0 && (
+                            <Badge variant="secondary" className="text-xs font-semibold text-amber-700 bg-amber-50 border-amber-100">
+                                {unreadCount}
+                            </Badge>
+                        )}
+                        <NotificationBell />
+                    </div>
+                    <NotificationPanel />
+                </div>
             </div>
 
             <nav className="flex-1 overflow-y-auto p-4 space-y-1">
                 {navItems.map((item) => {
                     const isActive = activeTab === item.id;
                     return (
-                        <button
+                        <Button
                             key={item.id}
                             onClick={() => onTabChange(item.id)}
-                            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-300 ease-in-out transform ${
+                            variant="ghost"
+                            className={cn(
+                                "w-full justify-start gap-3 px-4 py-2.5 h-auto rounded-lg transition-all duration-200",
                                 isActive
-                                    ? 'bg-indigo-50 text-indigo-700 font-semibold border-l-4 border-indigo-600 scale-[1.02] shadow-sm'
-                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium hover:scale-[1.01]'
-                            }`}
+                                    ? "bg-primary/10 text-primary font-semibold border-l-4 border-primary shadow-sm"
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground font-medium"
+                            )}
                         >
                             <Icon path={item.icon} isActive={isActive} />
                             <span className="transition-all duration-200">{item.label}</span>
-                        </button>
+                        </Button>
                     );
                 })}
             </nav>
 
-            <div className="p-4 border-t border-gray-200">
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-1">Need Help?</h4>
-                    <p className="text-xs text-gray-600 mb-3">Check our guide or contact support.</p>
-                    <button className="text-xs font-medium text-gray-700 hover:text-gray-900">
+            <div className="p-4 border-t space-y-3">
+                <Card className="shadow-none">
+                    <CardHeader className="p-4 pb-2">
+                        <CardTitle className="text-sm">Need Help?</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                        <p className="text-xs text-muted-foreground mb-3">Check our guide or contact support.</p>
+                        <Button variant="link" size="sm" className="h-auto px-0 text-xs">
                         View Documentation
-                    </button>
-                </div>
+                        </Button>
+                    </CardContent>
+                </Card>
+                <Button
+                    type="button"
+                    onClick={handleLogout}
+                    variant="destructive"
+                    className="w-full gap-2"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Log out
+                </Button>
             </div>
         </div>
     );

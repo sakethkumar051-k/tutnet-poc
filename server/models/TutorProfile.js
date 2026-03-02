@@ -40,11 +40,34 @@ const tutorProfileSchema = new mongoose.Schema({
         type: [String], // Legacy: simple strings e.g., "Mon 10-12"
         default: []
     },
-    // Structured weekly availability (new)
+    // "fixed" = only allow slots from weeklyAvailability; "flexible" = allow custom times (always pending until confirmed)
+    availabilityMode: {
+        type: String,
+        enum: ['fixed', 'flexible'],
+        default: 'flexible'
+    },
+    // Structured weekly availability: day + array of { start, end } time slots
     weeklyAvailability: [{
         day: { type: String, enum: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] },
         slots: [{ start: String, end: String }]
     }],
+    // For home/both mode: travel radius in km
+    travelRadius: {
+        type: Number,
+        min: 0,
+        max: 100
+    },
+    // Flexible availability: minimum notice in hours; max sessions per day
+    noticePeriodHours: {
+        type: Number,
+        min: 0,
+        max: 168
+    },
+    maxSessionsPerDay: {
+        type: Number,
+        min: 1,
+        max: 12
+    },
     education: {
         degree: {
             type: String,
@@ -63,6 +86,28 @@ const tutorProfileSchema = new mongoose.Schema({
         type: String,
         trim: true
     }],
+    // Predefined teaching strength tags (multi-select)
+    strengthTags: [{
+        type: String,
+        trim: true
+    }],
+    // Alias for approvalStatus; tutor visible only when profileStatus === 'approved'
+    profileStatus: {
+        type: String,
+        enum: ['draft', 'pending', 'approved', 'rejected'],
+        default: 'draft'
+    },
+    verificationLevel: {
+        type: String,
+        enum: ['none', 'phone', 'id', 'full'],
+        default: 'none'
+    },
+    profileCompletionScore: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 0
+    },
     approvalStatus: {
         type: String,
         enum: ['pending', 'approved', 'rejected'],

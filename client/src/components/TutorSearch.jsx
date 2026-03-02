@@ -35,8 +35,8 @@ const EMPTY = {
 /* ── SubjectSearch dropdown ───────────────────────────────────────────────── */
 const SubjectDropdown = ({ value, onChange }) => {
     const [open, setOpen]     = useState(false);
-    const [query, setQuery]   = useState(value || '');
     const ref                 = useRef(null);
+    const query               = value || '';
 
     useEffect(() => {
         const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -44,14 +44,12 @@ const SubjectDropdown = ({ value, onChange }) => {
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    useEffect(() => { setQuery(value || ''); }, [value]);
-
     const filtered = query
         ? COMMON_SUBJECTS.filter(s => s.toLowerCase().includes(query.toLowerCase()))
         : COMMON_SUBJECTS;
 
-    const select = (s) => { onChange(s); setQuery(s); setOpen(false); };
-    const clear  = ()  => { onChange(''); setQuery(''); setOpen(false); };
+    const select = (s) => { onChange(s); setOpen(false); };
+    const clear  = ()  => { onChange(''); setOpen(false); };
 
     return (
         <div ref={ref} className="relative">
@@ -63,7 +61,7 @@ const SubjectDropdown = ({ value, onChange }) => {
                     type="text"
                     value={query}
                     onFocus={() => setOpen(true)}
-                    onChange={e => { setQuery(e.target.value); onChange(e.target.value); setOpen(true); }}
+                    onChange={e => { onChange(e.target.value); setOpen(true); }}
                     placeholder="Subject"
                     className="w-full pl-9 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
                 />

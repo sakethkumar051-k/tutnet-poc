@@ -1,6 +1,7 @@
 const Attendance = require('../models/Attendance');
 const Booking = require('../models/Booking');
 const { createNotification } = require('../utils/notificationHelper');
+const { safe500, isValidObjectId } = require('../utils/responseHelpers');
 
 // @desc    Get attendance records
 // @route   GET /api/attendance
@@ -23,8 +24,7 @@ const getAttendance = async (req, res) => {
 
         res.json(attendance);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        return safe500(res, error, '[getAttendance]');
     }
 };
 
@@ -38,19 +38,30 @@ const markAttendance = async (req, res) => {
     try {
         const { bookingId, sessionDate, status, duration, notes } = req.body;
 
+        if (!bookingId || !isValidObjectId(bookingId)) {
+            return res.status(400).json({ message: 'Valid booking ID is required', code: 'INVALID_BOOKING_ID' });
+        }
+
         const booking = await Booking.findById(bookingId);
         if (!booking) {
-            return res.status(404).json({ message: 'Booking not found' });
+            return res.status(404).json({ message: 'Booking not found', code: 'BOOKING_NOT_FOUND' });
+        }
+
+        if (req.user.role !== 'admin' && booking.tutorId.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Not authorized to mark attendance for this booking', code: 'FORBIDDEN' });
         }
 
         if (booking.status !== 'approved' && booking.status !== 'completed') {
-            return res.status(400).json({ message: 'Attendance can only be marked for approved sessions' });
+            return res.status(400).json({ message: 'Attendance can only be marked for approved sessions', code: 'INVALID_BOOKING_STATUS' });
         }
 
         const sessionDt = new Date(sessionDate);
+        if (Number.isNaN(sessionDt.getTime())) {
+            return res.status(400).json({ message: 'Valid session date is required', code: 'INVALID_SESSION_DATE' });
+        }
         const now = new Date();
         if (sessionDt > now) {
-            return res.status(400).json({ message: 'Cannot mark attendance for upcoming sessions. Please mark after the session time.' });
+            return res.status(400).json({ message: 'Cannot mark attendance for upcoming sessions. Please mark after the session time.', code: 'UPCOMING_SESSION' });
         }
 
         const durationMin = duration || 60;
@@ -74,7 +85,7 @@ const markAttendance = async (req, res) => {
         });
 
         if (existing) {
-            return res.status(400).json({ message: 'Attendance already marked for this session' });
+            return res.status(400).json({ message: 'Attendance already marked for this session', code: 'ATTENDANCE_ALREADY_MARKED' });
         }
 
         const attendance = await Attendance.create({
@@ -90,6 +101,10 @@ const markAttendance = async (req, res) => {
             adminApproved: requestedAfterWindow && req.user.role === 'admin' ? true : undefined
         });
 
+        // Lifecycle rule: marking attendance (present or absent) completes the booking
+        booking.status = 'completed';
+        await booking.save();
+
         const populated = await Attendance.findById(attendance._id)
             .populate('bookingId')
             .populate('studentId', 'name email')
@@ -97,8 +112,7 @@ const markAttendance = async (req, res) => {
 
         res.status(201).json(populated);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        return safe500(res, error, '[markAttendance]');
     }
 };
 
@@ -128,8 +142,7 @@ const updateAttendance = async (req, res) => {
 
         res.json(updated);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        return safe500(res, error, '[updateAttendance]');
     }
 };
 
@@ -145,8 +158,7 @@ const getStudentAttendance = async (req, res) => {
 
         res.json(attendance);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        return safe500(res, error, '[getStudentAttendance]');
     }
 };
 
@@ -162,8 +174,7 @@ const getTutorAttendance = async (req, res) => {
 
         res.json(attendance);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        return safe500(res, error, '[getTutorAttendance]');
     }
 };
 
@@ -199,8 +210,7 @@ const getAttendanceStats = async (req, res) => {
             attendancePercentage: parseFloat(attendancePercentage)
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        return safe500(res, error, '[getAttendanceStats]');
     }
 };
 
@@ -268,8 +278,7 @@ const parentVerifyAttendance = async (req, res) => {
 
         res.json(populated);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        return safe500(res, error, '[parentVerifyAttendance]');
     }
 };
 

@@ -8,6 +8,7 @@ const {
     getMyProfile,
     submitForApproval,
     checkProfileComplete,
+    getProfileOptions,
     getRecommendations
 } = require('../controllers/tutor.controller');
 const { protect } = require('../middleware/auth.middleware');
@@ -19,6 +20,7 @@ router.get('/me', protect, authorize('tutor'), getMyProfile);
 router.get('/my-profile', protect, authorize('tutor'), getMyProfile); // Alias for frontend compatibility
 // Allow profile/complete for any authenticated user (role might not be set yet during onboarding)
 router.get('/profile/complete', protect, checkProfileComplete);
+router.get('/profile/options', getProfileOptions);
 router.get('/recommendations', protect, authorize('student'), getRecommendations);
 router.get('/profile-by-user/:userId', getTutorProfileByUserId);
 router.put('/profile', protect, authorize('tutor'), updateTutorProfile);
@@ -26,16 +28,19 @@ router.patch('/profile/submit', protect, authorize('tutor'), submitForApproval);
 router.patch('/availability', protect, authorize('tutor'), async (req, res) => {
     try {
         const TutorProfile = require('../models/TutorProfile');
-        const { weeklyAvailability } = req.body;
-        if (!Array.isArray(weeklyAvailability))
-            return res.status(400).json({ message: 'weeklyAvailability must be an array' });
+        const { weeklyAvailability, availabilityMode } = req.body;
+        const update = {};
+        if (Array.isArray(weeklyAvailability)) update.weeklyAvailability = weeklyAvailability;
+        if (availabilityMode === 'fixed' || availabilityMode === 'flexible') update.availabilityMode = availabilityMode;
+        if (Object.keys(update).length === 0)
+            return res.status(400).json({ message: 'Provide weeklyAvailability and/or availabilityMode' });
         const profile = await TutorProfile.findOneAndUpdate(
             { userId: req.user.id },
-            { weeklyAvailability },
+            { $set: update },
             { new: true }
         );
         if (!profile) return res.status(404).json({ message: 'Tutor profile not found' });
-        res.json({ weeklyAvailability: profile.weeklyAvailability });
+        res.json({ weeklyAvailability: profile.weeklyAvailability, availabilityMode: profile.availabilityMode });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

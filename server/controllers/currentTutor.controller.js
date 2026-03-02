@@ -36,6 +36,59 @@ const getCurrentTutors = async (req, res) => {
     }
 };
 
+// @desc    Get finalized tutor(s) for student — GET /api/my-tutor/student
+// @returns  Array of { tutorId, subjects, startDate, monthsCommitted, status }
+// @access  Private (Student)
+const getMyTutorForStudent = async (req, res) => {
+    try {
+        const currentTutors = await CurrentTutor.find({
+            studentId: req.user.id,
+            isActive: true
+        })
+            .populate('tutorId', 'name email')
+            .sort({ relationshipStartDate: -1 })
+            .lean();
+
+        const tutorIds = currentTutors.map(ct => ct.tutorId._id);
+        const permanentBookings = await Booking.find({
+            studentId: req.user.id,
+            tutorId: { $in: tutorIds },
+            bookingCategory: { $in: ['permanent', 'dedicated'] },
+            status: 'approved'
+        })
+            .select('tutorId monthsCommitted subjects subject')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        const monthsByTutor = {};
+        const subjectsByTutor = {};
+        for (const b of permanentBookings) {
+            const tid = b.tutorId.toString();
+            if (monthsByTutor[tid] == null && b.monthsCommitted != null) monthsByTutor[tid] = b.monthsCommitted;
+            if (subjectsByTutor[tid] == null && (b.subjects?.length || b.subject)) {
+                subjectsByTutor[tid] = Array.isArray(b.subjects) && b.subjects.length ? b.subjects : [b.subject].filter(Boolean);
+            }
+        }
+
+        const result = currentTutors.map(ct => {
+            const tutorId = ct.tutorId._id;
+            const tidStr = tutorId.toString();
+            return {
+                tutorId,
+                subjects: subjectsByTutor[tidStr] || (ct.subject ? [ct.subject] : []),
+                startDate: ct.relationshipStartDate,
+                monthsCommitted: monthsByTutor[tidStr] ?? null,
+                status: ct.status
+            };
+        });
+
+        res.json(result);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 // @desc    Get current students for tutor
 // @route   GET /api/current-tutors/tutor/my-students
 // @access  Private (Tutor)
@@ -189,7 +242,7 @@ const getTodaysSessions = async (req, res) => {
         tomorrow.setDate(tomorrow.getDate() + 1);
 
         let filter = {
-            status: { $in: ['approved', 'scheduled'] },
+            status: { $in: ['approved'] },
             $or: [
                 { sessionDate: { $gte: today, $lt: tomorrow } },
                 { preferredSchedule: { $regex: today.toISOString().split('T')[0] } }
@@ -257,7 +310,7 @@ const getProgressAnalytics = async (req, res) => {
         // Calculate analytics
         const totalSessions = bookings.length;
         const completedSessions = bookings.filter(b => b.status === 'completed').length;
-        const scheduledSessions = bookings.filter(b => b.status === 'scheduled' || b.status === 'approved').length;
+        const approvedSessions = bookings.filter(b => b.status === 'approved').length;
 
         // Attendance stats
         const totalAttendance = attendance.length;
@@ -329,7 +382,7 @@ const getProgressAnalytics = async (req, res) => {
             sessions: {
                 total: totalSessions,
                 completed: completedSessions,
-                scheduled: scheduledSessions,
+                approved: approvedSessions,
                 cancelled: bookings.filter(b => b.status === 'cancelled').length
             },
             attendance: {
@@ -371,6 +424,7 @@ const getProgressAnalytics = async (req, res) => {
 
 module.exports = {
     getCurrentTutors,
+    getMyTutorForStudent,
     getCurrentStudents,
     getCurrentTutorDetails,
     endRelationship,

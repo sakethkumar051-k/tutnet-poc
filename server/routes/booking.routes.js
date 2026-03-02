@@ -13,7 +13,7 @@ const {
     respondReschedule,
     tutorRequestChange,
     respondTutorChange
-} = require('../controllers/booking.controller');
+} = require('../controllers/bookingLegacy.controller');
 const { protect } = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/role.middleware');
 
@@ -22,7 +22,8 @@ router.use(protect);
 // Trial status check
 router.get('/trial-status/:tutorId', authorize('student'), getTrialStatus);
 
-// Allow both students and tutors to create bookings
+// DEPRECATED compatibility surface.
+// Internally dispatches to scoped controllers: /trial-bookings, /session-bookings, /permanent-bookings.
 router.post('/', authorize('student', 'tutor'), createBooking);
 router.get('/mine', getMyBookings);
 router.get('/requests', getBookingRequests);

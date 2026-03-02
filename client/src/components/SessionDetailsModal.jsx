@@ -4,11 +4,6 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 
 const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
-    // Early return check must be BEFORE all hooks to follow Rules of Hooks
-    if (!session || !session._id) {
-        return null;
-    }
-
     const [feedback, setFeedback] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('details');
@@ -161,7 +156,8 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
             }
             
             // Remove file object before sending
-            const { file, ...materialPayload } = materialData;
+            const materialPayload = { ...materialData };
+            delete materialPayload.file;
             
             await api.post(`/session-feedback/booking/${session._id}/study-material`, materialPayload);
             showSuccess('Study material added');
@@ -259,6 +255,10 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
         document.addEventListener('keydown', handleEscape);
         return () => document.removeEventListener('keydown', handleEscape);
     }, [onClose]);
+
+    if (!session || !session._id) {
+        return null;
+    }
 
     if (loading) {
         return (

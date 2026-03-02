@@ -1,6 +1,22 @@
 import { useState } from 'react';
 import { useToast } from '../context/ToastContext';
 import api from '../utils/api';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card, CardContent } from './ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from './ui/select';
+import { Textarea } from './ui/textarea';
 
 const RegularBookingModal = ({ tutor, onClose, onSuccess }) => {
     const { showSuccess, showError } = useToast();
@@ -39,187 +55,141 @@ const RegularBookingModal = ({ tutor, onClose, onSuccess }) => {
                 notes: formData.notes
             });
 
-            showSuccess('✅ Regular session booked! The tutor will confirm your booking soon.');
+            showSuccess('Your class request has been sent. The tutor will confirm your booking soon.');
             if (onSuccess) onSuccess();
             onClose();
         } catch (err) {
             console.error('Regular booking error:', err);
-            showError(err.response?.data?.message || 'Failed to book session');
+            showError(err.response?.data?.message || 'We couldn’t send your request. Please try again.');
         } finally {
             setSubmitting(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 rounded-t-2xl">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h2 className="text-2xl font-bold text-white mb-1">
-                                Book Regular Session
-                            </h2>
-                            <p className="text-indigo-100">
-                                with {tutor.name || tutor.userId?.name}
-                            </p>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="text-white/80 hover:text-white"
-                        >
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
+        <Dialog open onOpenChange={(isOpen) => !isOpen && onClose()}>
+            <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+                <DialogHeader className="p-6 border-b">
+                    <DialogTitle>Book a One-Time Class</DialogTitle>
+                    <DialogDescription>
+                        with {tutor.name || tutor.userId?.name}
+                    </DialogDescription>
+                </DialogHeader>
 
-                {/* Pricing Info */}
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 m-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-blue-800">Session Fee</p>
-                            <p className="text-2xl font-bold text-blue-900">
-                                ₹{tutor.hourlyRate || 500}/hour
-                            </p>
-                        </div>
-                        <div className="text-right">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                💰 Pay after session
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                <div className="p-6 space-y-5">
+                    <Card className="border-primary/20 bg-primary/5 shadow-none">
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">Session Fee</p>
+                                <p className="text-2xl font-bold">
+                                    ₹{tutor.hourlyRate || 500}/hour
+                                </p>
+                            </div>
+                            <Badge variant="secondary">Pay after session</Badge>
+                        </CardContent>
+                    </Card>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                    {/* Subject */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Subject *
-                        </label>
-                        <select
-                            name="subject"
-                            value={formData.subject}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        >
-                            {tutor.subjects?.map(subject => (
-                                <option key={subject} value={subject}>{subject}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Date and Time */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Preferred Date *
-                            </label>
-                            <input
-                                type="date"
-                                name="preferredDate"
-                                value={formData.preferredDate}
-                                onChange={handleChange}
-                                min={today}
-                                max={maxDateStr}
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="space-y-2">
+                            <Label htmlFor="regular-subject">Subject *</Label>
+                            <Select
+                                value={formData.subject}
+                                onValueChange={(value) => setFormData({ ...formData, subject: value })}
                                 required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                                <SelectTrigger id="regular-subject">
+                                    <SelectValue placeholder="Select subject" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {tutor.subjects?.map(subject => (
+                                        <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="regular-date">Preferred Date *</Label>
+                                <Input
+                                    id="regular-date"
+                                    type="date"
+                                    name="preferredDate"
+                                    value={formData.preferredDate}
+                                    onChange={handleChange}
+                                    min={today}
+                                    max={maxDateStr}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="regular-time">Time *</Label>
+                                <Select
+                                    value={formData.preferredTime}
+                                    onValueChange={(value) => setFormData({ ...formData, preferredTime: value })}
+                                    required
+                                >
+                                    <SelectTrigger id="regular-time">
+                                        <SelectValue placeholder="Select time" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'].map(time => (
+                                            <SelectItem key={time} value={time}>{time}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <Label>Session Mode *</Label>
+                            <RadioGroup
+                                value={formData.mode}
+                                onValueChange={(value) => setFormData({ ...formData, mode: value })}
+                                className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                            >
+                                <label htmlFor="mode-online" className="flex items-center gap-2 rounded-md border p-3">
+                                    <RadioGroupItem id="mode-online" value="online" />
+                                    <span className="text-sm">Online</span>
+                                </label>
+                                <label htmlFor="mode-offline" className="flex items-center gap-2 rounded-md border p-3">
+                                    <RadioGroupItem id="mode-offline" value="offline" />
+                                    <span className="text-sm">In-Person</span>
+                                </label>
+                            </RadioGroup>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="regular-notes">Additional Notes (Optional)</Label>
+                            <Textarea
+                                id="regular-notes"
+                                name="notes"
+                                value={formData.notes}
+                                onChange={handleChange}
+                                rows={3}
+                                placeholder="Any specific topics or requirements..."
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Time *
-                            </label>
-                            <select
-                                name="preferredTime"
-                                value={formData.preferredTime}
-                                onChange={handleChange}
-                                required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            >
-                                {['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'].map(time => (
-                                    <option key={time} value={time}>{time}</option>
-                                ))}
-                            </select>
+
+                        <Alert>
+                            <AlertTitle>What happens next?</AlertTitle>
+                            <AlertDescription>
+                                The tutor will review your request and confirm. You will be notified once approved.
+                            </AlertDescription>
+                        </Alert>
+
+                        <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                            <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" className="flex-1" disabled={submitting}>
+                                {submitting ? 'Sending…' : 'Request Class'}
+                            </Button>
                         </div>
-                    </div>
-
-                    {/* Mode */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Session Mode *
-                        </label>
-                        <div className="flex gap-4">
-                            <label className="flex items-center">
-                                <input
-                                    type="radio"
-                                    name="mode"
-                                    value="online"
-                                    checked={formData.mode === 'online'}
-                                    onChange={handleChange}
-                                    className="mr-2"
-                                />
-                                <span className="text-sm">🌐 Online</span>
-                            </label>
-                            <label className="flex items-center">
-                                <input
-                                    type="radio"
-                                    name="mode"
-                                    value="offline"
-                                    checked={formData.mode === 'offline'}
-                                    onChange={handleChange}
-                                    className="mr-2"
-                                />
-                                <span className="text-sm">🏠 In-Person</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Notes */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Additional Notes (Optional)
-                        </label>
-                        <textarea
-                            name="notes"
-                            value={formData.notes}
-                            onChange={handleChange}
-                            rows="2"
-                            placeholder="Any specific topics or requirements..."
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                    </div>
-
-                    {/* Info Banner */}
-                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3">
-                        <p className="text-sm text-yellow-800">
-                            💡 <strong>Note:</strong> Tutor will review and confirm your booking. You'll be notified once approved.
-                        </p>
-                    </div>
-
-                    {/* Buttons */}
-                    <div className="flex gap-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={submitting}
-                            className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition shadow-lg hover:shadow-xl"
-                        >
-                            {submitting ? 'Booking...' : '✨ Book Session'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                    </form>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 };
 

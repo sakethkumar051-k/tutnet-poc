@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
-import { useAuth } from '../context/AuthContext';
 import LoadingSkeleton from './LoadingSkeleton';
 import EmptyState from './EmptyState';
 
@@ -11,7 +10,6 @@ const MyCurrentTutors = () => {
     const [loading, setLoading] = useState(true);
     const [selectedTutor, setSelectedTutor] = useState(null);
     const [showEndModal, setShowEndModal] = useState(false);
-    const { user } = useAuth();
     const { showSuccess, showError } = useToast();
     const navigate = useNavigate();
 
@@ -83,7 +81,6 @@ const MyCurrentTutors = () => {
                     {currentTutors.map((tutor) => {
                         const relationship = tutor;
                         const tutorInfo = tutor.tutorId;
-                        const profile = tutor.tutorProfile;
                         const attendancePercentage = calculateAttendancePercentage(relationship);
 
                         return (

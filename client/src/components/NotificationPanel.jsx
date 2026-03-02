@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { useNotifications } from '../context/NotificationContext';
 import { useRef, useEffect } from 'react';
 
@@ -166,12 +167,12 @@ const NotificationPanel = () => {
         return date.toLocaleDateString();
     };
 
-    return (
+    const panel = (
         <>
             <div className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[1px]" aria-hidden="true" />
             <div
                 ref={panelRef}
-                className="absolute right-0 top-12 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden ring-1 ring-black ring-opacity-5 animate-fade-in-up origin-top-right"
+                className="fixed top-4 right-4 w-96 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden ring-1 ring-black ring-opacity-5"
             >
                 {/* Header */}
                 <div className="px-4 py-3 border-b border-gray-100 bg-white flex justify-between items-center sticky top-0 z-10">
@@ -250,6 +251,8 @@ const NotificationPanel = () => {
             </div>
         </>
     );
+
+    return createPortal(panel, document.body);
 };
 
 export default NotificationPanel;

@@ -49,7 +49,7 @@ const SessionCalendar = ({ currentTutorId, tutorId, studentId, subject, onBookin
         daySlot.slots.forEach(({ start, end }) => {
             if (!start || !end) return;
             const [sh, sm] = start.split(':').map(Number);
-            const [eh, em] = end.split(':').map(Number);
+            const [eh] = end.split(':').map(Number);
             for (let h = sh; h < eh || (h === eh && sm === 0); h++) {
                 slots.push(`${h.toString().padStart(2, '0')}:00`);
             }
@@ -367,7 +367,7 @@ const SessionCalendar = ({ currentTutorId, tutorId, studentId, subject, onBookin
                             Booking...
                         </>
                     ) : (
-                        <span>Book Session for {selectedDate.toLocaleDateString()} at {selectedTime}</span>
+                        <span>Request Class for {selectedDate.toLocaleDateString()} at {selectedTime}</span>
                     )}
                 </button>
             )}

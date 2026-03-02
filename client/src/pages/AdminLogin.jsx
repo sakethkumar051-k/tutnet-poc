@@ -67,7 +67,12 @@ const AdminLogin = () => {
             if (err.response?.status === 404) {
                 setError('API endpoint not found. Please check backend configuration.');
             } else if (err.response?.status === 401) {
-                setError(err.response?.data?.message || 'Invalid credentials or admin secret');
+                const msg = err.response?.data?.message || '';
+                if (msg.toLowerCase().includes('credential')) {
+                    setError('Invalid email or password. If you just restored the DB, run in server folder: npm run create-admin — then use admin@example.com / password123. Admin Secret Key is in server .env (ADMIN_SECRET).');
+                } else {
+                    setError(msg || 'Invalid admin secret key. Check ADMIN_SECRET in server .env.');
+                }
             } else if (err.response?.status === 403) {
                 setError(err.response?.data?.message || 'Access denied');
             } else if (err.response?.data?.message) {
@@ -173,8 +178,9 @@ const AdminLogin = () => {
                         </button>
                     </div>
 
-                    <div className="text-sm text-center text-gray-600">
+                    <div className="text-sm text-center text-gray-600 space-y-1">
                         <p>⚠️ Authorized access only</p>
+                        <p className="text-xs text-gray-400">First-time setup: run <code className="bg-gray-100 px-1 rounded">npm run create-admin</code> in the server folder. Then log in with admin@example.com / password123 and use Admin Secret from server .env (ADMIN_SECRET).</p>
                     </div>
                 </form>
             </div>

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
-import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 
 // Small helper: count attendance records that still need parent verification
@@ -16,7 +15,6 @@ const StudentProgressDashboard = () => {
     const [reviews, setReviews] = useState([]);
     const [tutorProgress, setTutorProgress] = useState([]);
     const [loading, setLoading] = useState(true);
-    const { user } = useAuth();
     const { showError } = useToast();
     const navigate = useNavigate();
 

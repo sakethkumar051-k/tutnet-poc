@@ -22,21 +22,20 @@ const bookingSchema = new mongoose.Schema({
     sessionDate: {
         type: Date
     },
-    // UNIFIED MODEL: Category determines if this is a trial, regular session, or permanent engagement
+    // UNIFIED MODEL: Category determines if this is a trial, one-time session, or dedicated tutor engagement
     bookingCategory: {
         type: String,
-        enum: ['trial', 'session', 'permanent'],
+        enum: ['trial', 'session', 'permanent', 'dedicated'],
         required: true,
         default: 'session'
     },
+    // Canonical lifecycle status:
+    // pending -> approved -> completed
+    // pending -> rejected
+    // approved -> cancelled
     status: {
         type: String,
-        enum: ['pending', 'approved', 'rejected', 'completed', 'cancelled'],
-        default: 'pending'
-    },
-    attendanceStatus: {
-        type: String,
-        enum: ['pending', 'present', 'absent'],
+        enum: ['pending', 'approved', 'rejected', 'cancelled', 'completed'],
         default: 'pending'
     },
 
@@ -57,7 +56,10 @@ const bookingSchema = new mongoose.Schema({
         default: false
     },
 
-    // Legacy field (deprecated, will be removed after migration)
+    // DEPRECATED LEGACY FIELD:
+    // Use bookingCategory as the source of truth.
+    // Fallback mapping for legacy docs: demo -> trial, regular -> session.
+    // Keep temporarily for backward compatibility/migration only.
     bookingType: {
         type: String,
         enum: ['demo', 'regular']
@@ -95,27 +97,33 @@ const bookingSchema = new mongoose.Schema({
         requestedAt: { type: Date }
     },
 
-    // Permanent engagement fields (only when bookingCategory === 'permanent')
+    // Dedicated tutor engagement fields (bookingCategory === 'dedicated' or legacy 'permanent')
     preferredStartDate: { type: Date },
+    weeklySchedule: [{ day: { type: String, trim: true }, time: { type: String, trim: true } }],
+    monthsCommitted: { type: Number, min: 1 },
+    sessionsPerWeek: { type: Number, min: 1 },
     subjects: [{ type: String, trim: true }],
     frequency: { type: String, enum: ['weekly', 'biweekly', 'monthly'], default: 'weekly' },
-    durationCommitment: { type: String, trim: true }, // e.g. "3 months", "6 months"
+    durationCommitment: { type: String, trim: true },
     learningGoals: { type: String, trim: true },
     studyGoals: { type: String, trim: true },
     currentLevel: { type: String, trim: true },
     focusAreas: { type: String, trim: true },
     additionalNotes: { type: String, trim: true },
     termsAccepted: { type: Boolean, default: false },
-    parentBookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' } // For recurring sessions created from permanent
+    parentBookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' }
 }, {
     timestamps: true
 });
 
-// Indexes for performance
+// Indexes for performance and conflict queries
 bookingSchema.index({ studentId: 1, status: 1 });
 bookingSchema.index({ tutorId: 1, status: 1 });
+bookingSchema.index({ tutorId: 1, status: 1, sessionDate: 1 });
+bookingSchema.index({ studentId: 1, status: 1, sessionDate: 1 });
 bookingSchema.index({ bookingCategory: 1, status: 1 });
-bookingSchema.index({ trialExpiresAt: 1 }); // For auto-expiry queries
+bookingSchema.index({ trialExpiresAt: 1 });
+bookingSchema.index({ parentBookingId: 1 });
 
 // Virtual to check if trial is expired
 bookingSchema.virtual('isExpired').get(function () {

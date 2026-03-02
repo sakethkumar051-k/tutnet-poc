@@ -4,6 +4,7 @@ import ToastNotification from '../components/ToastNotification';
 
 const ToastContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useToast = () => {
     const context = useContext(ToastContext);
     if (!context) {
@@ -17,6 +18,10 @@ export const ToastProvider = ({ children }) => {
     const [oldStyleToasts, setOldStyleToasts] = useState([]);
     const navigate = useNavigate();
 
+    const removeToast = useCallback((id) => {
+        setToasts(prev => prev.filter(toast => toast.id !== id));
+    }, []);
+
     // New: Show rich notification toast
     const showNotificationToast = useCallback((notification) => {
         const id = Date.now() + Math.random();
@@ -28,7 +33,7 @@ export const ToastProvider = ({ children }) => {
         setTimeout(() => {
             removeToast(id);
         }, 5100);
-    }, []);
+    }, [removeToast]);
 
     // Legacy: Simple text toasts
     const addToast = useCallback((message, type = 'info') => {
@@ -39,10 +44,6 @@ export const ToastProvider = ({ children }) => {
         setTimeout(() => {
             setOldStyleToasts(prev => prev.filter(toast => toast.id !== id));
         }, 5000);
-    }, []);
-
-    const removeToast = useCallback((id) => {
-        setToasts(prev => prev.filter(toast => toast.id !== id));
     }, []);
 
     const removeOldToast = useCallback((id) => {
@@ -91,7 +92,7 @@ export const ToastProvider = ({ children }) => {
 };
 
 // Legacy toast component (keep for backwards compatibility)
-const Toast = ({ id, message, type, onClose }) => {
+const Toast = ({ message, type, onClose }) => {
     const bgColors = {
         success: 'bg-green-500',
         error: 'bg-red-500',

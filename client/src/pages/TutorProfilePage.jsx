@@ -20,7 +20,7 @@ const TutorProfilePage = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [profileRes, reviewsRes] = await Promise.all([
+                const [profileRes] = await Promise.all([
                     api.get(`/tutors/${id}`),
                     api.get(`/reviews/tutor/${id}`) // Assuming review endpoint accepts tutorProfile or userId, verification needed. 
                     // Based on code, reviews might be by tutor userId. 

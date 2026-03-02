@@ -70,6 +70,22 @@ export default function StudentProfileForm() {
             if (data?.token) {
                 localStorage.setItem('token', data.token);
             }
+            // Update form immediately from response so saved data shows right away
+            setForm({
+                name: data.name || '',
+                phone: data.phone || '',
+                classGrade: data.classGrade || '',
+                location: {
+                    city: data.location?.city || 'Hyderabad',
+                    area: data.location?.area || '',
+                    pincode: data.location?.pincode || ''
+                },
+                emergencyContact: {
+                    name: data.emergencyContact?.name || '',
+                    relationship: data.emergencyContact?.relationship || '',
+                    phone: data.emergencyContact?.phone || ''
+                }
+            });
             await refreshUser();
             showSuccess('Profile updated successfully');
             setSaved(true);

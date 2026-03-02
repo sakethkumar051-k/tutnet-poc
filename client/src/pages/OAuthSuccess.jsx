@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const OAuthSuccess = () => {
@@ -41,6 +41,7 @@ const OAuthSuccess = () => {
                 }, 1500);
             } catch (err) {
                 console.error('Login/Decode failed:', err);
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setError('Authentication failed. Please try again.');
                 setTimeout(() => navigate('/login'), 3000);
             }
