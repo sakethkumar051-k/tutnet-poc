@@ -1,35 +1,68 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getBaseURL } from '../utils/api';
+
+// FIX: Rewrote OAuthSuccess to use the new one-time code exchange pattern (Fix #5).
+//
+// WHAT CHANGED ON THE BACKEND:
+//   Previously the backend redirected to: /oauth-success?token=JWT_HERE
+//   JWTs in URLs are dangerous — they appear in browser history, server logs,
+//   and Referer headers sent to third-party scripts.
+//
+//   The backend now redirects to: /oauth-success?code=SHORT_LIVED_CODE
+//   The code expires in 60 seconds and can only be used once.
+//
+// WHAT THIS PAGE NOW DOES:
+//   1. Reads the `code` param from the URL (not `token`)
+//   2. Calls GET /api/auth/oauth-token/:code to exchange it for a JWT
+//   3. Immediately removes the code from the URL bar (history.replaceState)
+//   4. Stores the JWT and logs in as normal
+//
+// WHY: The JWT never appears in any URL, log, or browser history entry.
 
 const OAuthSuccess = () => {
-    // const [searchParams] = useSearchParams(); // This will be replaced by direct URLSearchParams
     const navigate = useNavigate();
     const { login } = useAuth();
     const [error, setError] = useState('');
 
     useEffect(() => {
-        // Log the full current URL to debug
-        console.log('OAuthSuccess mounted, URL:', window.location.href);
+        const exchangeCodeForToken = async () => {
+            console.log('OAuthSuccess mounted, URL:', window.location.href);
 
-        const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
-        console.log('Token from URL:', token ? 'Found token' : 'No token found');
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
 
-        if (token) {
+            if (!code) {
+                console.error('No OAuth code found in URL params');
+                setError('No authentication code received. Please try signing in again.');
+                setTimeout(() => navigate('/login'), 3000);
+                return;
+            }
+
             try {
-                // Store token and redirect
+                // Exchange the short-lived code for a JWT via the backend
+                const baseURL = getBaseURL();
+                const response = await fetch(`${baseURL}/auth/oauth-token/${code}`);
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.message || 'Invalid or expired OAuth code');
+                }
+
+                const { token } = await response.json();
+
+                // Immediately scrub the code from the URL bar so it doesn't
+                // sit in browser history or get leaked via Referer headers
+                window.history.replaceState({}, '', window.location.pathname);
+
+                // Store token and fetch user data via AuthContext
                 localStorage.setItem('token', token);
-                login(token);
+                const userData = await login(token);
 
-                // Decode token to get role
-                // Basic decoding of JWT payload (2nd part)
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                const userRole = payload.role || 'student'; // Default fallback
+                const userRole = userData?.role || 'student';
+                console.log('OAuth login successful, role:', userRole);
 
-                console.log('Login successful, role:', userRole);
-
-                // Redirect based on decoded role
                 setTimeout(() => {
                     if (userRole === 'tutor') {
                         navigate('/tutor-dashboard');
@@ -39,18 +72,16 @@ const OAuthSuccess = () => {
                         navigate('/student-dashboard');
                     }
                 }, 1500);
+
             } catch (err) {
-                console.error('Login/Decode failed:', err);
-                // eslint-disable-next-line react-hooks/set-state-in-effect
-                setError('Authentication failed. Please try again.');
+                console.error('OAuth code exchange failed:', err);
+                setError(err.message || 'Authentication failed. Please try again.');
                 setTimeout(() => navigate('/login'), 3000);
             }
-        } else {
-            console.error('No token found in URL params');
-            setError('No token received from Google');
-            setTimeout(() => navigate('/login'), 3000);
-        }
-    }, [navigate, login]); // Removed searchParams from dependencies as it's no longer used directly
+        };
+
+        exchangeCodeForToken();
+    }, [navigate, login]);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">

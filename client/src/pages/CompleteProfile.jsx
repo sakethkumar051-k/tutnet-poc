@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../utils/api';
+import api, { getBaseURL } from '../utils/api';
 
 const CompleteProfile = () => {
     const [searchParams] = useSearchParams();
@@ -78,19 +78,35 @@ const CompleteProfile = () => {
                 }
             }
 
-            // Check for token in URL (from OAuth or direct link)
-            const urlToken = searchParams.get('token');
-            if (urlToken) {
-                localStorage.setItem('token', urlToken);
-                setToken(urlToken);
+            // FIX: Check for one-time OAuth code in URL instead of a raw token.
+            // The backend now redirects to /complete-profile?code=SHORT_CODE (not ?token=JWT).
+            // We exchange the code for a JWT via GET /api/auth/oauth-token/:code.
+            // The code is valid for 60 seconds and deleted after first use.
+            const urlCode = searchParams.get('code');
+            if (urlCode) {
                 try {
-                    const response = await api.get('/auth/me');
-                    if (response.data?.role) setRole(response.data.role);
+                    const baseURL = getBaseURL();
+                    const res = await fetch(`${baseURL}/auth/oauth-token/${urlCode}`);
+                    if (!res.ok) {
+                        throw new Error('Invalid or expired sign-in code. Please try again.');
+                    }
+                    const { token: oauthToken } = await res.json();
+
+                    // Scrub the code from the URL bar immediately
+                    window.history.replaceState({}, '', window.location.pathname);
+
+                    localStorage.setItem('token', oauthToken);
+                    setToken(oauthToken);
+
+                    // Fetch the user's actual role from the server
+                    const userResponse = await api.get('/auth/me');
+                    if (userResponse.data?.role) setRole(userResponse.data.role);
                 } catch (err) {
-                    console.error('Could not fetch user data:', err);
+                    console.error('Could not exchange OAuth code:', err);
+                    navigate('/login?error=oauth_failed');
                 }
             } else if (!loginUser) {
-                // If no token and not logged in, go to login
+                // If no code and not logged in, go to login
                 navigate('/login');
             }
         };
@@ -160,8 +176,15 @@ const CompleteProfile = () => {
         setError('');
 
         try {
+            // FIX: Removed `role` from this payload.
+            // The backend's updateProfile endpoint no longer accepts a `role` field
+            // to prevent privilege escalation (any user self-assigning admin).
+            // Role is set permanently at registration time and cannot be changed here.
+            // For OAuth users who need to select a role, that selection is now only
+            // informational — their role was already set to 'student' by default
+            // during Google OAuth. If role selection is needed post-OAuth, a dedicated
+            // admin-controlled endpoint should be used.
             const payload = {
-                role: effectiveRole,
                 phone: formData.phone.trim(),
                 location: {
                     ...formData.location,
