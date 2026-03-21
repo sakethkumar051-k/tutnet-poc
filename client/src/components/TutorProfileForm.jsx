@@ -208,42 +208,46 @@ const TutorProfileForm = () => {
         });
     };
 
-    const handleSave = async () => {
+    const buildPayload = () => ({
+        phone: formData.phone,
+        location: { area: formData.area, pincode: formData.pincode },
+        mode: formData.mode,
+        travelRadius: formData.travelRadius === '' ? undefined : Number(formData.travelRadius),
+        subjects: formData.subjects,
+        classes: formData.classes,
+        experienceYears: formData.experienceYears === '' ? undefined : Number(formData.experienceYears),
+        hourlyRate: formData.hourlyRate === '' ? undefined : Number(formData.hourlyRate),
+        availabilityMode: formData.availabilityMode,
+        weeklyAvailability: formData.weeklyAvailability,
+        noticePeriodHours: formData.noticePeriodHours,
+        maxSessionsPerDay: formData.maxSessionsPerDay,
+        education: {
+            degree: formData.degree,
+            institution: formData.institution,
+            year: formData.year
+        },
+        qualifications: formData.qualifications,
+        strengthTags: formData.strengthTags,
+        bio: formData.bio
+    });
+
+    // Returns true on success, throws on failure
+    const handleSave = async (silent = false) => {
         setSaving(true);
-        setMessage({ type: '', text: '' });
+        if (!silent) setMessage({ type: '', text: '' });
         try {
-            const payload = {
-                phone: formData.phone,
-                location: { area: formData.area, pincode: formData.pincode },
-                mode: formData.mode,
-                travelRadius: formData.travelRadius === '' ? undefined : Number(formData.travelRadius),
-                subjects: formData.subjects,
-                classes: formData.classes,
-                experienceYears: formData.experienceYears === '' ? undefined : Number(formData.experienceYears),
-                hourlyRate: formData.hourlyRate === '' ? undefined : Number(formData.hourlyRate),
-                availabilityMode: formData.availabilityMode,
-                weeklyAvailability: formData.weeklyAvailability,
-                noticePeriodHours: formData.noticePeriodHours,
-                maxSessionsPerDay: formData.maxSessionsPerDay,
-                education: {
-                    degree: formData.degree,
-                    institution: formData.institution,
-                    year: formData.year
-                },
-                qualifications: formData.qualifications,
-                strengthTags: formData.strengthTags,
-                bio: formData.bio
-            };
-            const { data } = await api.put('/tutors/profile', payload);
+            const { data } = await api.put('/tutors/profile', buildPayload());
             setProfileData(data);
             try {
                 const { data: me } = await api.get('/auth/me');
                 setUser(me);
             } catch (_) {}
-            setMessage({ type: 'success', text: 'Progress saved.' });
+            if (!silent) setMessage({ type: 'success', text: 'Progress saved.' });
+            return true;
         } catch (err) {
             const msg = err.response?.data?.message || err.response?.data?.errors?.[0]?.message || 'Failed to save';
             setMessage({ type: 'error', text: msg });
+            throw err; // re-throw so callers know it failed
         } finally {
             setSaving(false);
         }
@@ -251,17 +255,21 @@ const TutorProfileForm = () => {
 
     const handleSubmitForApproval = async () => {
         setMessage({ type: '', text: '' });
+        setSubmitting(true);
         try {
-            await handleSave();
-            setSubmitting(true);
+            // Save all form data first, then submit — ensures DB is up to date
+            await handleSave(true);
             const { data } = await api.patch('/tutors/profile/submit');
             setProfileData(data);
             setMessage({ type: 'success', text: 'Profile submitted for approval. An admin will review it soon.' });
         } catch (err) {
-            const msg = err.response?.data?.message || 'Failed to submit';
-            const errors = err.response?.data?.errors;
-            const detail = errors?.length ? errors.map(e => e.message).join('. ') : msg;
-            setMessage({ type: 'error', text: detail });
+            // If it was a save error, message is already set by handleSave
+            if (err.response?.data?.errors?.length) {
+                const detail = err.response.data.errors.map(e => e.message).join('. ');
+                setMessage({ type: 'error', text: detail });
+            } else if (err.response?.data?.message) {
+                setMessage({ type: 'error', text: err.response.data.message });
+            }
         } finally {
             setSubmitting(false);
         }

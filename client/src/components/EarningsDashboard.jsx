@@ -49,7 +49,7 @@ export default function EarningsDashboard() {
         if (!logForm.amount) return;
         setLogSubmitting(true);
         try {
-            await api.post('/payments', {
+            await api.post('/payments/manual', {
                 amount: Number(logForm.amount),
                 paymentMethod: logForm.paymentMethod,
                 notes: logForm.notes || undefined
@@ -68,13 +68,16 @@ export default function EarningsDashboard() {
     const monthly = data?.monthlyBreakdown || [];
     const maxEarning = monthly.length ? Math.max(...monthly.map(m => m.earnings), 1) : 1;
 
+    // Confirmed payments list: new field name with fallback for compatibility
+    const paymentsList = data?.confirmedPayments || [];
+
     return (
         <div className="space-y-6">
             {/* Header row */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                     <h2 className="text-lg font-bold text-gray-900">Earnings & Payments</h2>
-                    <p className="text-sm text-gray-500 mt-0.5">Estimated earnings from completed sessions</p>
+                    <p className="text-sm text-gray-500 mt-0.5">Confirmed Razorpay income + estimated from completed sessions</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex bg-gray-100 rounded-lg p-0.5">
@@ -92,7 +95,7 @@ export default function EarningsDashboard() {
                         onClick={() => setLogModal(true)}
                         className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
                     >
-                        + Log Payment
+                        + Log cash payment
                     </button>
                 </div>
             </div>
@@ -120,10 +123,27 @@ export default function EarningsDashboard() {
 
                     {/* Stat cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <StatCard label="Estimated Earnings" value={fmt(data?.estimatedEarnings)} sub={`@ ${fmt(data?.hourlyRate)}/hr`} accent />
-                        <StatCard label="Sessions Completed" value={data?.totalSessions ?? 0} sub="paid sessions" />
-                        <StatCard label="Payments Logged" value={fmt(data?.explicitPaid)} sub="manually recorded" />
-                        <StatCard label="Pending Amount" value={fmt(data?.explicitPending)} sub="not yet received" />
+                        <StatCard
+                            label="Confirmed Earnings"
+                            value={fmt(data?.confirmedEarnings)}
+                            sub="via Razorpay"
+                            accent
+                        />
+                        <StatCard
+                            label="Estimated Earnings"
+                            value={fmt(data?.estimatedEarnings)}
+                            sub={`@ ${fmt(data?.hourlyRate)}/hr`}
+                        />
+                        <StatCard
+                            label="Sessions Completed"
+                            value={data?.totalSessions ?? 0}
+                            sub="completed sessions"
+                        />
+                        <StatCard
+                            label="Pending"
+                            value={fmt(data?.pendingAmount)}
+                            sub="awaiting payment"
+                        />
                     </div>
 
                     {/* Monthly bar chart */}
@@ -150,7 +170,7 @@ export default function EarningsDashboard() {
                         </div>
                     )}
 
-                    {/* Recent Sessions */}
+                    {/* Recent Completed Sessions */}
                     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                         <div className="px-5 py-4 border-b border-gray-100">
                             <h3 className="text-sm font-semibold text-gray-800">Recent Completed Sessions</h3>
@@ -202,11 +222,12 @@ export default function EarningsDashboard() {
                         )}
                     </div>
 
-                    {/* Logged Payment Records */}
-                    {data?.paymentRecords?.length > 0 && (
+                    {/* Confirmed Razorpay Payments */}
+                    {paymentsList.length > 0 && (
                         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                            <div className="px-5 py-4 border-b border-gray-100">
-                                <h3 className="text-sm font-semibold text-gray-800">Manually Logged Payments</h3>
+                            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                                <h3 className="text-sm font-semibold text-gray-800">Confirmed Razorpay Payments</h3>
+                                <span className="text-xs text-gray-400">{paymentsList.length} records</span>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
@@ -214,23 +235,30 @@ export default function EarningsDashboard() {
                                         <tr className="border-b border-gray-100 bg-gray-50">
                                             <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Amount</th>
                                             <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Method</th>
-                                            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Notes</th>
+                                            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Booking</th>
                                             <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
                                             <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {data.paymentRecords.map(p => (
+                                        {paymentsList.map(p => (
                                             <tr key={p._id} className="hover:bg-gray-50">
                                                 <td className="px-5 py-3 font-semibold text-gray-900">{fmt(p.amount)}</td>
                                                 <td className="px-5 py-3 text-gray-600 capitalize">{p.paymentMethod}</td>
-                                                <td className="px-5 py-3 text-gray-500 max-w-xs truncate">{p.notes || '—'}</td>
+                                                <td className="px-5 py-3 text-gray-500 max-w-[160px] truncate">
+                                                    {p.bookingId?.subject || p.notes || '—'}
+                                                </td>
                                                 <td className="px-5 py-3 text-gray-500">
-                                                    {new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                    {new Date(p.paidAt || p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                 </td>
                                                 <td className="px-5 py-3">
-                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${p.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                                                        {p.status}
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                        p.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                        p.status === 'refunded' ? 'bg-red-100 text-red-700' :
+                                                        p.status === 'partially_refunded' ? 'bg-orange-100 text-orange-700' :
+                                                        'bg-amber-100 text-amber-700'
+                                                    }`}>
+                                                        {p.status === 'partially_refunded' ? 'Partial refund' : p.status}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -243,14 +271,14 @@ export default function EarningsDashboard() {
                 </>
             )}
 
-            {/* Log Payment Modal */}
+            {/* Log Cash Payment Modal */}
             {logModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
                         <div className="flex items-start justify-between mb-4">
                             <div>
-                                <h3 className="text-base font-bold text-gray-900">Log a Payment</h3>
-                                <p className="text-sm text-gray-500 mt-0.5">Record a payment you've received from a student.</p>
+                                <h3 className="text-base font-bold text-gray-900">Log a cash / offline payment</h3>
+                                <p className="text-sm text-gray-500 mt-0.5">Record a payment received outside Razorpay.</p>
                             </div>
                             <button onClick={() => setLogModal(false)} className="text-gray-400 hover:text-gray-600 ml-3">
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -280,7 +308,7 @@ export default function EarningsDashboard() {
                                 >
                                     <option value="cash">Cash</option>
                                     <option value="bank_transfer">Bank Transfer</option>
-                                    <option value="online">Online / UPI</option>
+                                    <option value="upi">UPI (offline)</option>
                                 </select>
                             </div>
                             <div>
@@ -307,7 +335,7 @@ export default function EarningsDashboard() {
                                     className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 flex items-center justify-center gap-2"
                                 >
                                     {logSubmitting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                                    Log Payment
+                                    Save payment
                                 </button>
                             </div>
                         </form>

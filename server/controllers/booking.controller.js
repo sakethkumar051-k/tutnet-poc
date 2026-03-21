@@ -448,6 +448,8 @@ const getMyBookings = async (req, res) => {
             query.studentId = req.user.id;
         } else if (req.user.role === 'tutor') {
             query.tutorId = req.user.id;
+        } else if (req.user.role === 'admin') {
+            // admin sees all bookings — no filter
         } else {
             return res.status(400).json({ message: 'Invalid role for this route' });
         }
@@ -473,6 +475,7 @@ const getBookingRequests = async (req, res) => {
         let query = {};
         if (role === 'student') query.studentId = userId;
         else if (role === 'tutor') query.tutorId = userId;
+        else if (role === 'admin') { /* admin sees all */ }
         else return res.status(400).json({ message: 'Invalid role' });
 
         const bookings = await Booking.find(query)
@@ -549,6 +552,46 @@ const cancelBooking = async (req, res) => {
             }
         }
 
+        // Auto-initiate Razorpay refund if booking was paid online
+        if (booking.isPaid) {
+            try {
+                const Payment = require('../models/Payment');
+                const crypto = require('crypto');
+                const Razorpay = require('razorpay');
+                const payment = await Payment.findOne({
+                    bookingId: booking._id,
+                    status: 'completed',
+                    refundStatus: 'none',
+                    razorpayPaymentId: { $exists: true, $ne: null }
+                });
+                if (payment && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+                    const rz = new Razorpay({
+                        key_id: process.env.RAZORPAY_KEY_ID,
+                        key_secret: process.env.RAZORPAY_KEY_SECRET
+                    });
+                    const refund = await rz.payments.refund(payment.razorpayPaymentId, {
+                        amount: Math.round(payment.amount * 100),
+                        notes: { reason: 'Booking cancelled by student' }
+                    });
+                    payment.refundId = refund.id;
+                    payment.refundStatus = 'initiated';
+                    payment.refundReason = 'Booking cancelled by student';
+                    await payment.save();
+                    await createNotification({
+                        userId: req.user.id,
+                        type: 'refund_initiated',
+                        title: 'Refund Initiated',
+                        message: `Your refund of ₹${payment.amount} has been initiated and will reflect in 5-7 business days.`,
+                        link: '/student-dashboard?tab=sessions',
+                        bookingId: booking._id
+                    });
+                }
+            } catch (refundErr) {
+                // Log but don't fail the cancellation
+                console.error('[cancelBooking] Refund initiation failed:', refundErr.message);
+            }
+        }
+
         res.json({ message: 'Booking cancelled', booking });
     } catch (error) {
         return safe500(res, error, '[cancelBooking]');
@@ -570,9 +613,12 @@ const approveBooking = async (req, res) => {
             return res.status(404).json({ message: 'Booking not found', code: 'BOOKING_NOT_FOUND' });
         }
 
-        // Ensure tutor owns the booking
+        if (req.user.role !== 'tutor') {
+            return res.status(403).json({ message: 'Only tutors can approve bookings', code: 'FORBIDDEN' });
+        }
+
         if (booking.tutorId.toString() !== req.user.id) {
-            return res.status(401).json({ message: 'Not authorized' });
+            return res.status(403).json({ message: 'Not authorized', code: 'FORBIDDEN' });
         }
 
         // Centralized lifecycle: only pending -> approved allowed
@@ -673,25 +719,33 @@ const approveBooking = async (req, res) => {
                 await b.save(opts);
             }
             let currentTutor = null;
+            const isDedicatedBooking = resolvedCategory === 'dedicated' || resolvedCategory === 'permanent';
             if (!isTrialBooking) {
                 const tutorProfile = await TutorProfile.findOne({ userId: b.tutorId });
+
+                // Resolve subject — dedicated bookings store subjects[] not subject
+                const effectiveSubject = b.subject ||
+                    (Array.isArray(b.subjects) && b.subjects[0]) ||
+                    'General';
+
                 currentTutor = await CurrentTutor.findOne({
                     studentId: b.studentId,
                     tutorId: b.tutorId,
-                    subject: b.subject,
+                    subject: effectiveSubject,
                     isActive: true
                 });
                 if (!currentTutor) {
-                    currentTutor = await CurrentTutor.create({
+                    currentTutor = await CurrentTutor.create([{
                         studentId: b.studentId,
                         tutorId: b.tutorId,
-                        subject: b.subject,
+                        subject: effectiveSubject,
                         classGrade: tutorProfile?.classes?.[0] || '',
                         relationshipStartDate: new Date(),
                         status: 'new',
                         totalSessionsBooked: 1,
                         isActive: true
-                    }, opts);
+                    }], opts);
+                    currentTutor = currentTutor[0]; // create() with array returns array
                 } else {
                     currentTutor.totalSessionsBooked += 1;
                     if (currentTutor.status === 'new' && currentTutor.totalSessionsBooked > 0) {
@@ -783,9 +837,12 @@ const rejectBooking = async (req, res) => {
             return res.status(404).json({ message: 'Booking not found' });
         }
 
-        // Ensure tutor owns the booking
+        if (req.user.role !== 'tutor') {
+            return res.status(403).json({ message: 'Only tutors can reject bookings', code: 'FORBIDDEN' });
+        }
+
         if (booking.tutorId.toString() !== req.user.id) {
-            return res.status(401).json({ message: 'Not authorized' });
+            return res.status(403).json({ message: 'Not authorized', code: 'FORBIDDEN' });
         }
 
         if (!canTransition(booking.status, 'rejected')) {

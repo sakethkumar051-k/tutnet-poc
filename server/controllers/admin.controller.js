@@ -23,6 +23,8 @@ const getPendingTutors = async (req, res) => {
 // @desc    Approve a tutor
 // @route   PATCH /api/admin/tutors/:id/approve
 // @access  Private/Admin
+const { invalidateTutorCache } = require('./tutor.controller');
+
 const approveTutor = async (req, res) => {
     try {
         const admin = await User.findById(req.user.id).select('name');
@@ -35,10 +37,23 @@ const approveTutor = async (req, res) => {
         tutor.approvalStatus = 'approved';
         tutor.profileStatus = 'approved';
 
-        // Generate a human-readable tutorCode if not already assigned
         if (!tutor.tutorCode) {
-            const count = await TutorProfile.countDocuments();
-            tutor.tutorCode = `TUT-${String(count).padStart(4, '0')}`;
+            let assigned = false;
+            let attempts = 0;
+            while (!assigned && attempts < 20) {
+                attempts++;
+                const count = await TutorProfile.countDocuments();
+                const candidate = `TUT-${String(count + attempts).padStart(4, '0')}`;
+                const exists = await TutorProfile.findOne({ tutorCode: candidate });
+                if (!exists) {
+                    tutor.tutorCode = candidate;
+                    assigned = true;
+                }
+            }
+            if (!assigned) {
+                // Last resort: use timestamp suffix
+                tutor.tutorCode = `TUT-${Date.now().toString().slice(-6)}`;
+            }
         }
 
         // Record approval in history
@@ -51,6 +66,7 @@ const approveTutor = async (req, res) => {
         });
 
         await tutor.save();
+        invalidateTutorCache();
 
         await createNotification({
             userId: tutor.userId,

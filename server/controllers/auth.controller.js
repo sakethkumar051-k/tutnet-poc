@@ -87,7 +87,19 @@ const loginUser = async (req, res) => {
         // Check for user email
         const user = await User.findOne({ email });
 
-        if (user && (await user.matchPassword(password))) {
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        // OAuth users have no password — tell them to use Google Sign-In
+        if (user.authProvider === 'google') {
+            return res.status(400).json({
+                message: 'This account uses Google Sign-In. Please click "Continue with Google" to log in.',
+                code: 'OAUTH_ACCOUNT'
+            });
+        }
+
+        if (await user.matchPassword(password)) {
             const token = generateToken(user._id);
             const fullUser = await User.findById(user._id).select('-password').lean();
             res.json({

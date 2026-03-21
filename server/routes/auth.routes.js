@@ -22,13 +22,46 @@ router.post('/reset-password', resetPassword);
 // Google OAuth Routes
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+
+// In-memory one-time code store { code -> { token, expiresAt } }
+// Simple and sufficient for a single-instance server.
+// For multi-instance deployments, replace with Redis.
+const oauthCodeStore = new Map();
+
+// Clean up expired codes every 5 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [code, val] of oauthCodeStore.entries()) {
+        if (val.expiresAt < now) oauthCodeStore.delete(code);
+    }
+}, 5 * 60 * 1000);
+
+// @desc    Exchange a one-time OAuth code for a JWT
+// @route   GET /api/auth/oauth-token/:code
+router.get('/oauth-token/:code', (req, res) => {
+    const { code } = req.params;
+    const entry = oauthCodeStore.get(code);
+
+    if (!entry) {
+        return res.status(400).json({ message: 'Invalid or expired sign-in code. Please try again.' });
+    }
+    if (entry.expiresAt < Date.now()) {
+        oauthCodeStore.delete(code);
+        return res.status(400).json({ message: 'Sign-in code has expired. Please try again.' });
+    }
+
+    // One-time use — delete immediately after first exchange
+    oauthCodeStore.delete(code);
+    return res.json({ token: entry.token });
+});
 
 // @desc    Initiate Google OAuth
 // @route   GET /api/auth/google
 router.get('/google',
     passport.authenticate('google', {
         scope: ['profile', 'email'],
-        prompt: 'select_account' // Force account picker
+        prompt: 'select_account'
     })
 );
 
@@ -41,31 +74,33 @@ router.get('/google/callback',
     },
     passport.authenticate('google', {
         failureRedirect: `${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=oauth_failed`,
-        session: false // We use JWT, so no session needed after auth
+        session: false
     }),
     async (req, res) => {
         console.log('Google Auth Successful, User:', req.user?._id);
         try {
-            // Generate JWT token
             const token = jwt.sign(
                 { id: req.user.id },
                 process.env.JWT_SECRET,
                 { expiresIn: '30d' }
             );
 
-            const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+            // Generate a short-lived one-time code so the JWT never appears in the URL
+            const code = crypto.randomBytes(32).toString('hex');
+            oauthCodeStore.set(code, { token, expiresAt: Date.now() + 60_000 }); // 60s TTL
 
-            // Check if user is new or missing required fields
-            // req.user.isNew is attached in passport config for new users
-            // Also check if phone or location is missing
-            const needsOnboarding = req.user.isNew || !req.user.phone || !req.user.location || !req.user.location.city;
+            const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+            const needsOnboarding = req.user.isNew ||
+                !req.user.phone ||
+                !req.user.location?.area ||
+                req.user.location?.area === 'Not specified';
 
             if (needsOnboarding) {
                 console.log('User needs onboarding, redirecting to complete profile...');
-                res.redirect(`${clientUrl}/complete-profile?token=${token}&isNew=true`);
+                res.redirect(`${clientUrl}/complete-profile?code=${code}`);
             } else {
-                console.log('User complete, redirecting to success...');
-                res.redirect(`${clientUrl}/oauth-success?token=${token}`);
+                console.log('User complete, redirecting to oauth-success...');
+                res.redirect(`${clientUrl}/oauth-success?code=${code}`);
             }
         } catch (error) {
             console.error('OAuth Callback Error:', error);

@@ -7,6 +7,17 @@ const jwt = require('jsonwebtoken');
 const { computeProfileCompletion, validateStructuredFields } = require('../services/profileCompletion.service');
 const { BIO_MIN_LENGTH } = require('../constants/tutorProfile.constants');
 
+const tutorListCache = new Map();
+const TUTOR_CACHE_TTL = 2 * 60 * 1000;
+
+function getTutorCacheKey(query) {
+    return JSON.stringify(query);
+}
+
+function invalidateTutorCache() {
+    tutorListCache.clear();
+}
+
 // @desc    Get all tutors with filters (approved only in production; all in dev or when ?all=true)
 // @route   GET /api/tutors
 // @access  Public
@@ -99,6 +110,15 @@ const getTutors = async (req, res) => {
             }
         }
 
+        if (!studentUser) {
+            res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=60');
+            const cacheKey = getTutorCacheKey(req.query);
+            const cached = tutorListCache.get(cacheKey);
+            if (cached && Date.now() - cached.ts < TUTOR_CACHE_TTL) {
+                return res.json(cached.data);
+            }
+        }
+
         if (studentUser?.role === 'student' && tutorsWithRating.length > 0) {
             const tutorUserIds = tutorsWithRating
                 .map(t => t.userId?._id?.toString())
@@ -176,6 +196,11 @@ const getTutors = async (req, res) => {
                 trialStatus: { status: null, count: 0, maxReached: false, hasTriedTutor: false },
                 hasActiveBooking: false
             }));
+        }
+
+        if (!studentUser) {
+            const cacheKey = getTutorCacheKey(req.query);
+            tutorListCache.set(cacheKey, { data: tutorsWithRating, ts: Date.now() });
         }
 
         res.json(tutorsWithRating);
@@ -481,6 +506,7 @@ const updateTutorProfile = async (req, res) => {
         }
 
         await tutor.save();
+        invalidateTutorCache();
 
         res.json({
             ...tutor.toObject(),
@@ -625,5 +651,6 @@ module.exports = {
     submitForApproval,
     checkProfileComplete,
     getProfileOptions,
-    getRecommendations
+    getRecommendations,
+    invalidateTutorCache
 };

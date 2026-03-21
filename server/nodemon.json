@@ -1,0 +1,23 @@
+{
+    "watch": [
+        "server.js",
+        "controllers",
+        "routes",
+        "models",
+        "middleware",
+        "services",
+        "utils",
+        "jobs",
+        "config",
+        "constants"
+    ],
+    "ignore": [
+        "node_modules",
+        "*.log",
+        "package-lock.json",
+        "scripts",
+        "tests"
+    ],
+    "ext": "js,json",
+    "delay": 500
+}
