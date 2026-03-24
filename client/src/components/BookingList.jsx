@@ -81,28 +81,10 @@ const BookingList = ({ role }) => {
 
     const handleComplete = (id) => {
         const booking = bookings.find(b => b._id === id);
-        setConfirmModal({
-            open: true,
-            action: async () => {
-                try {
-                    const { data: updatedBooking } = await api.patch(`/bookings/${id}/complete`);
-                    await fetchBookings();
-                    showSuccess('Booking marked as completed!');
-                    // Open session details modal after marking complete with updated booking
-                    setSelectedBooking({ ...booking, ...updatedBooking, status: 'completed' });
-                    setSessionDetailsModalOpen(true);
-                } catch (err) {
-                    console.error(err);
-                    showError('Failed to complete booking');
-                }
-            },
-            bookingId: id,
-            title: 'Mark as Completed',
-            message: 'Mark this booking as completed? You can then add attendance, feedback, and assign homework.',
-            confirmText: 'Mark Complete',
-            confirmColor: 'blue',
-            openSessionModal: true
-        });
+        // Direct to session details so tutor can mark attendance first
+        // (attendance is required before completing a booking)
+        setSelectedBooking(booking);
+        setSessionDetailsModalOpen(true);
     };
 
     const openSessionDetails = (booking) => {

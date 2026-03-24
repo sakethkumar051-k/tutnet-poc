@@ -95,6 +95,7 @@ async function getScopedBookingsForUser(user, routeCategory) {
     const query = { bookingCategory: routeCategory };
     if (user.role === 'student') query.studentId = user.id;
     else if (user.role === 'tutor') query.tutorId = user.id;
+    else if (user.role === 'admin') { /* admin sees all */ }
     else return null;
 
     return Booking.find(query)
@@ -107,6 +108,7 @@ async function getScopedPendingRequestsForUser(user, routeCategory) {
     const query = { status: 'pending', bookingCategory: routeCategory };
     if (user.role === 'student') query.studentId = user.id;
     else if (user.role === 'tutor') query.tutorId = user.id;
+    else if (user.role === 'admin') { /* admin sees all pending */ }
     else return null;
 
     const requests = await Booking.find(query)

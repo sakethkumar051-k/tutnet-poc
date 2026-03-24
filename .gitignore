@@ -13,6 +13,7 @@ yarn.lock
 # Logs
 logs
 *.log
+*.md
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

@@ -17,6 +17,14 @@ app.use(cors({
     ],
     credentials: true
 }));
+// Razorpay webhook needs the raw body for HMAC signature verification.
+// Capture raw bytes for /api/payments/webhook BEFORE express.json() parses it.
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }), (req, _res, next) => {
+    req.rawBody = req.body; // Buffer
+    try { req.body = JSON.parse(req.body.toString()); } catch (_) { req.body = {}; }
+    next();
+});
+
 app.use(express.json());
 app.use(morgan('dev'));
 

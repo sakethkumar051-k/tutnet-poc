@@ -1,47 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getBaseURL } from '../utils/api';
-
-// FIX: Rewrote OAuthSuccess to use the new one-time code exchange pattern (Fix #5).
-//
-// WHAT CHANGED ON THE BACKEND:
-//   Previously the backend redirected to: /oauth-success?token=JWT_HERE
-//   JWTs in URLs are dangerous — they appear in browser history, server logs,
-//   and Referer headers sent to third-party scripts.
-//
-//   The backend now redirects to: /oauth-success?code=SHORT_LIVED_CODE
-//   The code expires in 60 seconds and can only be used once.
-//
-// WHAT THIS PAGE NOW DOES:
-//   1. Reads the `code` param from the URL (not `token`)
-//   2. Calls GET /api/auth/oauth-token/:code to exchange it for a JWT
-//   3. Immediately removes the code from the URL bar (history.replaceState)
-//   4. Stores the JWT and logs in as normal
-//
-// WHY: The JWT never appears in any URL, log, or browser history entry.
 
 const OAuthSuccess = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
     const [error, setError] = useState('');
+    const exchangedRef = useRef(false);
 
     useEffect(() => {
         const exchangeCodeForToken = async () => {
-            console.log('OAuthSuccess mounted, URL:', window.location.href);
-
             const params = new URLSearchParams(window.location.search);
             const code = params.get('code');
 
             if (!code) {
-                console.error('No OAuth code found in URL params');
                 setError('No authentication code received. Please try signing in again.');
                 setTimeout(() => navigate('/login'), 3000);
                 return;
             }
 
+            if (exchangedRef.current) return;
+            exchangedRef.current = true;
+
+            window.history.replaceState({}, '', window.location.pathname);
+
             try {
-                // Exchange the short-lived code for a JWT via the backend
                 const baseURL = getBaseURL();
                 const response = await fetch(`${baseURL}/auth/oauth-token/${code}`);
 
@@ -51,27 +35,13 @@ const OAuthSuccess = () => {
                 }
 
                 const { token } = await response.json();
-
-                // Immediately scrub the code from the URL bar so it doesn't
-                // sit in browser history or get leaked via Referer headers
-                window.history.replaceState({}, '', window.location.pathname);
-
-                // Store token and fetch user data via AuthContext
                 localStorage.setItem('token', token);
                 const userData = await login(token);
-
                 const userRole = userData?.role || 'student';
-                console.log('OAuth login successful, role:', userRole);
 
-                setTimeout(() => {
-                    if (userRole === 'tutor') {
-                        navigate('/tutor-dashboard');
-                    } else if (userRole === 'admin') {
-                        navigate('/admin-dashboard');
-                    } else {
-                        navigate('/student-dashboard');
-                    }
-                }, 1500);
+                if (userRole === 'tutor') navigate('/tutor-dashboard');
+                else if (userRole === 'admin') navigate('/admin-dashboard');
+                else navigate('/student-dashboard');
 
             } catch (err) {
                 console.error('OAuth code exchange failed:', err);
@@ -81,7 +51,8 @@ const OAuthSuccess = () => {
         };
 
         exchangeCodeForToken();
-    }, [navigate, login]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">

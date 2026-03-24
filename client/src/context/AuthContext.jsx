@@ -3,8 +3,21 @@ import api from '../utils/api';
 
 const AuthContext = createContext();
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
+
+function decodeTokenPayload(token) {
+    try {
+        return JSON.parse(atob(token.split('.')[1]));
+    } catch {
+        return null;
+    }
+}
+
+function isTokenExpired(token) {
+    const payload = decodeTokenPayload(token);
+    if (!payload?.exp) return true;
+    return payload.exp * 1000 < Date.now() + 60_000;
+}
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -13,16 +26,33 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const checkLoggedIn = async () => {
             const token = localStorage.getItem('token');
-            if (token) {
-                try {
-                    const { data } = await api.get('/auth/me');
-                    setUser(data);
-                } catch (error) {
-                    console.error('Auth check failed:', error);
-                    localStorage.removeItem('token');
-                }
+
+            if (!token) {
+                setLoading(false);
+                return;
             }
-            setLoading(false);
+
+            if (isTokenExpired(token)) {
+                localStorage.removeItem('token');
+                setLoading(false);
+                return;
+            }
+
+            const payload = decodeTokenPayload(token);
+            if (payload?.id) {
+                setUser({ _id: payload.id, _tokenOnly: true });
+            }
+
+            try {
+                const { data } = await api.get('/auth/me');
+                setUser(data);
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                localStorage.removeItem('token');
+                setUser(null);
+            } finally {
+                setLoading(false);
+            }
         };
 
         checkLoggedIn();
@@ -30,11 +60,9 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (credentialsOrToken) => {
         try {
-            // If argument is a string, it's a token (from OAuth or Onboarding)
             if (typeof credentialsOrToken === 'string') {
                 const token = credentialsOrToken;
                 localStorage.setItem('token', token);
-                // Immediately fetch user data with this new token
                 try {
                     const { data } = await api.get('/auth/me');
                     setUser(data);
@@ -45,7 +73,6 @@ export const AuthProvider = ({ children }) => {
                     throw error;
                 }
             } else {
-                // Standard credentials login – response includes full user
                 const { data } = await api.post('/auth/login', credentialsOrToken);
                 localStorage.setItem('token', data.token);
                 setUser(data);
@@ -63,13 +90,11 @@ export const AuthProvider = ({ children }) => {
         try {
             const { data } = await api.post('/auth/register', userData);
             localStorage.setItem('token', data.token);
-            // Fetch full user data to get all fields including role
             try {
                 const { data: fullUserData } = await api.get('/auth/me');
                 setUser(fullUserData);
-                return { ...data, ...fullUserData }; // Return combined data with role
-            } catch (fetchError) {
-                // If fetch fails, use the registration response
+                return { ...data, ...fullUserData };
+            } catch {
                 setUser(data);
                 return data;
             }

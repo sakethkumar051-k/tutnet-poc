@@ -20,9 +20,27 @@ const Home = () => {
     }, []);
 
     const fetchFeaturedTutors = async () => {
+        // Serve from sessionStorage cache first so repeat visits are instant
+        const CACHE_KEY = 'home_featured_tutors';
+        const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+        try {
+            const cached = sessionStorage.getItem(CACHE_KEY);
+            if (cached) {
+                const { data, ts } = JSON.parse(cached);
+                if (Date.now() - ts < CACHE_TTL) {
+                    setFeaturedTutors(data);
+                    setLoadingTutors(false);
+                    return;
+                }
+            }
+        } catch { /* ignore parse errors */ }
+
         try {
             const { data } = await api.get('/tutors?limit=6');
             setFeaturedTutors(data);
+            try {
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+            } catch { /* storage full — ignore */ }
         } catch (err) {
             console.error('Error fetching tutors:', err);
         } finally {
