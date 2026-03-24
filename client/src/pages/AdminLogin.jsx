@@ -1,20 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 
 const AdminLogin = () => {
-    const [formData, setFormData] = useState({
-        email: '',
-        password: '',
-        adminSecret: ''
-    });
+    const [formData, setFormData] = useState({ email: '', password: '', adminSecret: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { login } = useAuth();
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -22,63 +18,54 @@ const AdminLogin = () => {
         setLoading(true);
 
         try {
-            // First, attempt to login
+            // Step 1: Login to get token
             const { data } = await api.post('/auth/login', {
                 email: formData.email,
                 password: formData.password
             });
 
-            // Verify it's an admin account
             if (data.role !== 'admin') {
                 setError('Access denied. This is not an admin account.');
                 setLoading(false);
                 return;
             }
 
-            // Store token temporarily for the verify-admin call
+            // Step 2: Store token so interceptor can attach it
             localStorage.setItem('token', data.token);
 
-            // Verify admin secret (token is now in localStorage, so interceptor will add it)
-            console.log('Calling verify-admin with token:', data.token ? 'Token present' : 'No token');
-            console.log('API base URL:', import.meta.env.VITE_API_URL);
-            
+            // Step 3: Verify admin secret
             const secretResponse = await api.post('/auth/verify-admin', {
                 adminSecret: formData.adminSecret
             });
-            
-            console.log('Verify-admin response:', secretResponse.data);
 
             if (!secretResponse.data.verified) {
-                // Remove token if verification fails
                 localStorage.removeItem('token');
-                setError('Invalid admin secret key');
+                setError('Invalid admin secret key.');
                 setLoading(false);
                 return;
             }
 
-            // Store user data and redirect
-            localStorage.setItem('user', JSON.stringify(data));
-            navigate('/admin-dashboard');
+            // Step 4: CRITICAL — update AuthContext so ProtectedRoute sees role: 'admin'
+            // login() with a token string calls /auth/me and sets the full user object
+            await login(data.token);
+
+            // Step 5: Navigate — ProtectedRoute will now see role: 'admin' correctly
+            navigate('/admin-dashboard', { replace: true });
         } catch (err) {
-            console.error('Admin login error:', err);
-            console.error('Error response:', err.response);
-            
-            // More detailed error messages
+            localStorage.removeItem('token');
             if (err.response?.status === 404) {
-                setError('API endpoint not found. Please check backend configuration.');
+                setError('API endpoint not found. Check backend configuration.');
             } else if (err.response?.status === 401) {
                 const msg = err.response?.data?.message || '';
-                if (msg.toLowerCase().includes('credential')) {
-                    setError('Invalid email or password. If you just restored the DB, run in server folder: npm run create-admin — then use admin@example.com / password123. Admin Secret Key is in server .env (ADMIN_SECRET).');
+                if (msg.toLowerCase().includes('google')) {
+                    setError(msg);
                 } else {
-                    setError(msg || 'Invalid admin secret key. Check ADMIN_SECRET in server .env.');
+                    setError('Invalid email or password.');
                 }
             } else if (err.response?.status === 403) {
-                setError(err.response?.data?.message || 'Access denied');
+                setError(err.response?.data?.message || 'Access denied.');
             } else if (err.response?.data?.message) {
                 setError(err.response.data.message);
-            } else if (err.message) {
-                setError(`Network error: ${err.message}`);
             } else {
                 setError('Admin login failed. Please try again.');
             }
@@ -98,69 +85,43 @@ const AdminLogin = () => {
                             </svg>
                         </div>
                     </div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                        Admin Access
-                    </h2>
-                    <p className="mt-2 text-center text-sm text-gray-600">
-                        Secure admin portal login
-                    </p>
+                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Admin Access</h2>
+                    <p className="mt-2 text-center text-sm text-gray-600">Secure admin portal login</p>
                 </div>
+
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     {error && (
                         <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
-                            <div className="flex">
-                                <div className="flex-shrink-0">
-                                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div className="ml-3">
-                                    <p className="text-sm text-red-700">{error}</p>
-                                </div>
-                            </div>
+                            <p className="text-sm text-red-700">{error}</p>
                         </div>
                     )}
-                    <div className="rounded-md shadow-sm space-y-4">
+
+                    <div className="space-y-4">
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                                Email Address
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                             <input
-                                id="email"
-                                name="email"
-                                type="email"
-                                required
-                                className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                                placeholder="admin@tutnet.com"
+                                name="email" type="email" required
+                                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                placeholder="admin@example.com"
                                 value={formData.email}
                                 onChange={handleChange}
                             />
                         </div>
                         <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                                Password
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                             <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                required
-                                className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                                name="password" type="password" required
+                                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 placeholder="••••••••"
                                 value={formData.password}
                                 onChange={handleChange}
                             />
                         </div>
                         <div>
-                            <label htmlFor="adminSecret" className="block text-sm font-medium text-gray-700 mb-1">
-                                Admin Secret Key
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Admin Secret Key</label>
                             <input
-                                id="adminSecret"
-                                name="adminSecret"
-                                type="password"
-                                required
-                                className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                                name="adminSecret" type="password" required
+                                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 placeholder="Enter secret key"
                                 value={formData.adminSecret}
                                 onChange={handleChange}
@@ -168,20 +129,16 @@ const AdminLogin = () => {
                         </div>
                     </div>
 
-                    <div>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02]"
-                        >
-                            {loading ? 'Verifying...' : 'Access Admin Panel'}
-                        </button>
-                    </div>
+                    <button
+                        type="submit" disabled={loading}
+                        className="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                        {loading ? 'Verifying...' : 'Access Admin Panel'}
+                    </button>
 
-                    <div className="text-sm text-center text-gray-600 space-y-1">
-                        <p>⚠️ Authorized access only</p>
-                        <p className="text-xs text-gray-400">First-time setup: run <code className="bg-gray-100 px-1 rounded">npm run create-admin</code> in the server folder. Then log in with admin@example.com / password123 and use Admin Secret from server .env (ADMIN_SECRET).</p>
-                    </div>
+                    <p className="text-xs text-center text-gray-400">
+                        Default: admin@example.com / password123 · Secret key in server .env (ADMIN_SECRET)
+                    </p>
                 </form>
             </div>
         </div>

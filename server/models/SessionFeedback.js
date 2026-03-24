@@ -10,7 +10,7 @@ const sessionFeedbackSchema = new mongoose.Schema({
     currentTutorId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'CurrentTutor',
-        required: true
+        required: false
     },
     studentId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -26,83 +26,32 @@ const sessionFeedbackSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
-    // Tutor feedback
-    tutorSummary: {
-        type: String
-    },
-    understandingScore: {
-        type: Number,
-        min: 1,
-        max: 5
-    },
+    tutorSummary: { type: String },
+    understandingScore: { type: Number, min: 1, max: 5 },
     topicsCovered: [String],
-    nextSteps: {
-        type: String
-    },
-    tutorSubmittedAt: {
-        type: Date
-    },
-    // Student feedback
-    studentRating: {
-        type: Number,
-        min: 1,
-        max: 5
-    },
-    studentComment: {
-        type: String
-    },
-    studentSubmittedAt: {
-        type: Date
-    },
-    duration: {
-        type: Number,
-        default: 60
-    },
-    attendanceNotes: {
-        type: String
-    },
-    // Study material and homework
+    nextSteps: { type: String },
+    tutorSubmittedAt: { type: Date },
+    studentRating: { type: Number, min: 1, max: 5 },
+    studentComment: { type: String },
+    studentSubmittedAt: { type: Date },
+    duration: { type: Number, default: 60 },
+    attendanceNotes: { type: String },
     studyMaterials: [{
-        type: {
-            type: String,
-            enum: ['link', 'file', 'topic'],
-            required: true
-        },
-        title: {
-            type: String,
-            required: true
-        },
+        type: { type: String, enum: ['link', 'file', 'topic'], required: true },
+        title: { type: String, required: true },
         url: String,
         description: String,
-        assignedAt: {
-            type: Date,
-            default: Date.now
-        }
+        assignedAt: { type: Date, default: Date.now }
     }],
     homework: [{
-        description: {
-            type: String,
-            required: true
-        },
-        dueDate: {
-            type: Date
-        },
-        status: {
-            type: String,
-            enum: ['assigned', 'in_progress', 'completed'],
-            default: 'assigned'
-        },
-        completedAt: {
-            type: Date
-        },
-        assignedAt: {
-            type: Date,
-            default: Date.now
-        }
+        description: { type: String, required: true },
+        dueDate: { type: Date },
+        status: { type: String, enum: ['assigned', 'in_progress', 'completed'], default: 'assigned' },
+        completedAt: { type: Date },
+        assignedAt: { type: Date, default: Date.now }
     }]
 }, {
     timestamps: true
 });
 
 module.exports = mongoose.model('SessionFeedback', sessionFeedbackSchema);
-

@@ -6,17 +6,12 @@ export const getBaseURL = () => {
     let baseURL;
 
     if (envURL) {
-        // If VITE_API_URL is provided, ensure it ends with /api
         baseURL = envURL.endsWith('/api') ? envURL : `${envURL.replace(/\/$/, '')}/api`;
     } else {
-        // Default to localhost for same-machine development (frontend + backend on one machine)
-        // For other devices on your network, create client/.env with VITE_API_URL=http://YOUR_IP:5001
         baseURL = 'http://localhost:5001/api';
     }
 
-    // Log to help debug (both dev and prod)
     console.log('API Base URL:', baseURL);
-
     return baseURL;
 };
 
@@ -29,14 +24,12 @@ const api = axios.create({
     },
 });
 
-// Request interceptor - combines logging and token injection
+// Request interceptor — injects Bearer token into every request
 api.interceptors.request.use(
     (config) => {
-        // Log the actual request URL (both dev and prod for debugging)
         const fullURL = config.baseURL + config.url;
         console.log('API Request:', config.method?.toUpperCase(), fullURL);
 
-        // Add authorization token if available
         const token = localStorage.getItem('token');
         console.log('Has token:', !!token);
         if (token) {
@@ -44,7 +37,36 @@ api.interceptors.request.use(
         }
         return config;
     },
+    (error) => Promise.reject(error)
+);
+
+// FIX: Added response interceptor to handle auth errors globally.
+//
+// 401 Unauthorized — token is missing, expired, or invalid.
+//   → Clear stored token and redirect to /login so the user re-authenticates.
+//   → Skip redirect if already on a public page to avoid redirect loops.
+//
+// 403 Forbidden — user IS authenticated but does not own the resource.
+//   → Do NOT redirect to login (they are logged in, just not authorized).
+//   → Let the individual component handle and show the error message.
+//   → Previously there was no interceptor at all, so 401s failed silently
+//     and stale tokens would never get cleared automatically.
+api.interceptors.response.use(
+    (response) => response,
     (error) => {
+        const status = error.response?.status;
+        const currentPath = window.location.pathname;
+        const publicPaths = ['/login', '/register', '/oauth-success', '/complete-profile', '/admin-login'];
+
+        if (status === 401) {
+            // Token expired or invalid — clear it and force re-login
+            localStorage.removeItem('token');
+            if (!publicPaths.includes(currentPath)) {
+                window.location.href = '/login';
+            }
+        }
+        // 403: don't redirect — components display their own permission error
+
         return Promise.reject(error);
     }
 );

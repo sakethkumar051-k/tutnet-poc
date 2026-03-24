@@ -21,7 +21,7 @@ function getBookingTypeLabel(booking) {
     return 'One-time';
 }
 
-function RequestCard({ request: b, isStudent, onApprove, onReject, onRescheduleRespond, onTutorChangeRespond }) {
+function RequestCard({ request: b, isStudent, isTutor, onApprove, onReject, onRescheduleRespond, onTutorChangeRespond }) {
     const [expanded, setExpanded] = useState(true);
     const isDemo = b.bookingCategory === 'trial';
     const isPermanent = b.bookingCategory === 'permanent' || b.bookingCategory === 'dedicated';
@@ -43,9 +43,10 @@ function RequestCard({ request: b, isStudent, onApprove, onReject, onRescheduleR
         b.learningGoals || b.studyGoals || b.currentLevel || b.focusAreas || b.additionalNotes ||
         (Array.isArray(b.weeklySchedule) && b.weeklySchedule.length > 0) || b.sessionsPerWeek || b.durationCommitment;
 
+    // Show approve/reject ONLY for tutors (never students, never unknown roles)
     const showRescheduleActions = isStudent && isReschedule && b.tutorChangeRequest?.status === 'pending';
-    const showBookingActions = !isStudent && b.status === 'pending' && !isReschedule;
-    const showRescheduleRespondActions = !isStudent && b.rescheduleRequest?.status === 'pending';
+    const showBookingActions = isTutor && b.status === 'pending' && !isReschedule;
+    const showRescheduleRespondActions = isTutor && b.rescheduleRequest?.status === 'pending';
 
     const primaryActions = showRescheduleActions ? (
         <>
@@ -275,7 +276,9 @@ export default function RequestsHub({ onNavigateToSessions, onRequestProcessed }
         );
     }
 
+    // Guard: if user role isn't loaded yet (token-only state), don't show any approve/reject actions
     const isStudent = user?.role === 'student';
+    const isTutor = user?.role === 'tutor';
     const demoRequests = toArray(data.demoRequests);
     const permanentRequests = toArray(data.permanentRequests);
     const rescheduleRequests = toArray(data.rescheduleRequests);
@@ -371,6 +374,7 @@ export default function RequestsHub({ onNavigateToSessions, onRequestProcessed }
                         key={b._id}
                         request={b}
                         isStudent={isStudent}
+                        isTutor={isTutor}
                         onApprove={handleApprove}
                         onReject={handleReject}
                         onRescheduleRespond={handleRescheduleRespond}

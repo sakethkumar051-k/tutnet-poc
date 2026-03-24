@@ -1,24 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../utils/api';
+import api, { getBaseURL } from '../utils/api';
 
 const CompleteProfile = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { login, user: loginUser } = useAuth();
+    const exchangedRef = useRef(false);
 
-    // Form state
     const [role, setRole] = useState('');
     const [formData, setFormData] = useState({
         phone: '',
-        location: {
-            area: '',
-            city: 'Hyderabad',
-            pincode: ''
-        },
-        classGrade: '', // For students
-        // Tutor specific fields
+        location: { area: '', city: 'Hyderabad', pincode: '' },
+        classGrade: '',
         subjects: '',
         classes: '',
         hourlyRate: '',
@@ -27,11 +22,7 @@ const CompleteProfile = () => {
         mode: 'home',
         languages: '',
         availableSlots: '',
-        education: {
-            degree: '',
-            institution: '',
-            year: ''
-        },
+        education: { degree: '', institution: '', year: '' },
         qualifications: ''
     });
 
@@ -42,79 +33,62 @@ const CompleteProfile = () => {
 
     useEffect(() => {
         const initializeProfile = async () => {
-            // If user is logged in, use their token and role
-            if (loginUser) {
-                const storedToken = localStorage.getItem('token');
-                if (storedToken) {
-                    setToken(storedToken);
-                    // Pre-fill role from user's actual role (tutor or student)
-                    if (loginUser.role) {
-                        setRole(loginUser.role);
-                    }
-                    // Pre-fill existing data if available
-                    if (loginUser.phone) {
-                        setFormData(prev => ({
-                            ...prev,
-                            phone: loginUser.phone
-                        }));
-                    }
-                    if (loginUser.location) {
-                        setFormData(prev => ({
-                            ...prev,
-                            location: {
-                                area: loginUser.location.area || '',
-                                city: loginUser.location.city || 'Hyderabad',
-                                pincode: loginUser.location.pincode || ''
-                            }
-                        }));
-                    }
-                    if (loginUser.classGrade) {
-                        setFormData(prev => ({
-                            ...prev,
-                            classGrade: loginUser.classGrade
-                        }));
-                    }
-                    return;
+            const urlCode = searchParams.get('code');
+
+            if (urlCode) {
+                if (exchangedRef.current) return;
+                exchangedRef.current = true;
+                window.history.replaceState({}, '', window.location.pathname);
+                try {
+                    const baseURL = getBaseURL();
+                    const res = await fetch(`${baseURL}/auth/oauth-token/${urlCode}`);
+                    if (!res.ok) throw new Error('Invalid or expired sign-in code. Please try again.');
+                    const { token: oauthToken } = await res.json();
+                    localStorage.setItem('token', oauthToken);
+                    setToken(oauthToken);
+                    const userResponse = await api.get('/auth/me');
+                    if (userResponse.data?.role) setRole(userResponse.data.role);
+                } catch (err) {
+                    console.error('Could not exchange OAuth code:', err);
+                    navigate('/login?error=oauth_failed');
                 }
+                return;
             }
 
-            // Check for token in URL (from OAuth or direct link)
-            const urlToken = searchParams.get('token');
-            if (urlToken) {
-                localStorage.setItem('token', urlToken);
-                setToken(urlToken);
-                try {
-                    const response = await api.get('/auth/me');
-                    if (response.data?.role) setRole(response.data.role);
-                } catch (err) {
-                    console.error('Could not fetch user data:', err);
+            if (loginUser) {
+                const storedToken = localStorage.getItem('token');
+                if (storedToken) setToken(storedToken);
+                if (loginUser.role) setRole(loginUser.role);
+                if (loginUser.phone) setFormData(prev => ({ ...prev, phone: loginUser.phone }));
+                if (loginUser.location) {
+                    setFormData(prev => ({
+                        ...prev,
+                        location: {
+                            area: loginUser.location.area || '',
+                            city: loginUser.location.city || 'Hyderabad',
+                            pincode: loginUser.location.pincode || ''
+                        }
+                    }));
                 }
-            } else if (!loginUser) {
-                // If no token and not logged in, go to login
-                navigate('/login');
+                if (loginUser.classGrade) setFormData(prev => ({ ...prev, classGrade: loginUser.classGrade }));
+                return;
             }
+
+            navigate('/login');
         };
 
         initializeProfile();
-    }, [searchParams, navigate, loginUser]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleChange = (e) => {
         if (e.target.name === 'area') {
-            setFormData({
-                ...formData,
-                location: { ...formData.location, area: e.target.value }
-            });
+            setFormData({ ...formData, location: { ...formData.location, area: e.target.value } });
         } else if (e.target.name === 'pincode') {
-            setFormData({
-                ...formData,
-                location: { ...formData.location, pincode: e.target.value }
-            });
+            setFormData({ ...formData, location: { ...formData.location, pincode: e.target.value } });
         } else if (e.target.name.startsWith('education.')) {
             const field = e.target.name.split('.')[1];
-            setFormData({
-                ...formData,
-                education: { ...formData.education, [field]: e.target.value }
-            });
+            setFormData({ ...formData, education: { ...formData.education, [field]: e.target.value } });
         } else {
             setFormData({ ...formData, [e.target.name]: e.target.value });
         }
@@ -124,44 +98,21 @@ const CompleteProfile = () => {
         e.preventDefault();
         setError('');
 
-        // Use role from state or fallback to current user (avoids race where state isn't updated yet)
         const effectiveRole = role || loginUser?.role;
-        if (!effectiveRole) {
-            setError('Role not detected. Please log in again.');
-            return;
-        }
-
-        if (!formData.phone?.trim() || !formData.location?.area?.trim()) {
-            setError('Please fill in phone and area/locality');
-            return;
-        }
-
-        // Student validation
-        if (effectiveRole === 'student' && !formData.classGrade) {
-            setError('Please select your class/grade');
-            return;
-        }
-
-        // Tutor: only basic info here; full profile is completed in 5-step form on dashboard
+        if (!effectiveRole) { setError('Role not detected. Please log in again.'); return; }
+        if (!formData.phone?.trim() || !formData.location?.area?.trim()) { setError('Please fill in phone and area/locality'); return; }
+        if (effectiveRole === 'student' && !formData.classGrade) { setError('Please select your class/grade'); return; }
         if (effectiveRole === 'tutor') {
             const pincode = formData.location?.pincode?.trim() || '';
-            if (pincode.length !== 6) {
-                setError('Please enter a valid 6-digit pincode');
-                return;
-            }
+            if (pincode.length !== 6) { setError('Please enter a valid 6-digit pincode'); return; }
         }
-
-        if (!localStorage.getItem('token')) {
-            setError('Session expired. Please log in again.');
-            return;
-        }
+        if (!localStorage.getItem('token')) { setError('Session expired. Please log in again.'); return; }
 
         setLoading(true);
         setError('');
 
         try {
             const payload = {
-                role: effectiveRole,
                 phone: formData.phone.trim(),
                 location: {
                     ...formData.location,
@@ -172,15 +123,13 @@ const CompleteProfile = () => {
             };
 
             const response = await api.put('/auth/profile', payload);
-
             const newToken = response.data?.token;
             if (newToken) {
                 localStorage.setItem('token', newToken);
                 login(newToken).catch(() => {});
                 setSuccess(true);
                 setLoading(false);
-                const isTutor = effectiveRole === 'tutor';
-                navigate(isTutor ? '/tutor-dashboard?tab=profile' : '/student-dashboard', { replace: true });
+                navigate(effectiveRole === 'tutor' ? '/tutor-dashboard?tab=profile' : '/student-dashboard', { replace: true });
             } else {
                 throw new Error('No token returned from update');
             }
@@ -200,8 +149,8 @@ const CompleteProfile = () => {
                     </div>
                     <h2 className="text-3xl font-bold text-gray-900">Complete Your Profile</h2>
                     <p className="mt-2 text-gray-600">
-                        {role === 'tutor' 
-                            ? 'Please provide all required details to start teaching on Tutnet. This information is essential for business development and student matching.'
+                        {role === 'tutor'
+                            ? 'Please provide all required details to start teaching on Tutnet.'
                             : 'Please provide a few more details to get started.'}
                     </p>
                 </div>
@@ -217,7 +166,7 @@ const CompleteProfile = () => {
                             </div>
                         </div>
                     )}
-                    
+
                     {success && (
                         <div className="bg-green-50 border border-green-200 text-green-600 p-4 rounded-lg text-sm">
                             <div className="flex items-center">
@@ -229,7 +178,6 @@ const CompleteProfile = () => {
                         </div>
                     )}
 
-                    {/* Role Display (not selection if already set) */}
                     {role && (
                         <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
                             <div className="flex items-center justify-between">
@@ -239,99 +187,52 @@ const CompleteProfile = () => {
                                         {role === 'tutor' ? '👨‍🏫 Tutor' : '👨‍🎓 Student'}
                                     </p>
                                 </div>
-                                <div className="text-xs text-indigo-600">
-                                    Set during registration
-                                </div>
+                                <div className="text-xs text-indigo-600">Set during registration</div>
                             </div>
                         </div>
                     )}
 
-                    {/* Role Selection - Only show if role is not set (for OAuth users who haven't selected) */}
                     {!role && (
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">I am a...</label>
                             <div className="grid grid-cols-2 gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setRole('student')}
-                                    className={`py-3 px-4 rounded-xl border-2 transition-all ${role === 'student'
-                                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold'
-                                        : 'border-gray-200 hover:border-indigo-200 text-gray-600'
-                                        }`}
-                                >
+                                <button type="button" onClick={() => setRole('student')}
+                                    className={`py-3 px-4 rounded-xl border-2 transition-all ${role === 'student' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold' : 'border-gray-200 hover:border-indigo-200 text-gray-600'}`}>
                                     Student
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setRole('tutor')}
-                                    className={`py-3 px-4 rounded-xl border-2 transition-all ${role === 'tutor'
-                                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold'
-                                        : 'border-gray-200 hover:border-indigo-200 text-gray-600'
-                                        }`}
-                                >
+                                <button type="button" onClick={() => setRole('tutor')}
+                                    className={`py-3 px-4 rounded-xl border-2 transition-all ${role === 'tutor' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold' : 'border-gray-200 hover:border-indigo-200 text-gray-600'}`}>
                                     Tutor
                                 </button>
                             </div>
                         </div>
                     )}
 
-                    {/* Common Fields */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Phone */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-                            <input
-                                name="phone"
-                                type="tel"
-                                placeholder="+91 98765 43210"
-                                required
-                                value={formData.phone}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                            />
+                            <input name="phone" type="tel" placeholder="+91 98765 43210" required value={formData.phone} onChange={handleChange}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
                         </div>
-
-                        {/* Location Area */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Area / Locality *</label>
-                            <input
-                                name="area"
-                                type="text"
-                                placeholder="e.g. Banjara Hills"
-                                required
-                                value={formData.location.area}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                            />
+                            <input name="area" type="text" placeholder="e.g. Banjara Hills" required value={formData.location.area} onChange={handleChange}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
                         </div>
                     </div>
 
-                    {/* Pincode */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Pincode {role === 'tutor' ? '*' : '(Optional)'}</label>
-                        <input
-                            name="pincode"
-                            type="text"
-                            placeholder="500001"
-                            value={formData.location.pincode}
-                            onChange={handleChange}
-                            required={role === 'tutor'}
-                            maxLength={6}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                        />
+                        <input name="pincode" type="text" placeholder="500001" value={formData.location.pincode} onChange={handleChange}
+                            required={role === 'tutor'} maxLength={6}
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
                     </div>
 
-                    {/* Student Specific: Class/Grade */}
                     {role === 'student' && (
                         <div className="animate-fade-in border-t pt-6">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Class / Grade *</label>
-                            <select
-                                name="classGrade"
-                                required
-                                value={formData.classGrade}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
-                            >
+                            <select name="classGrade" required value={formData.classGrade} onChange={handleChange}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none appearance-none">
                                 <option value="">Select your class</option>
                                 {[...Array(12)].map((_, i) => (
                                     <option key={i} value={`Class ${i + 1}`}>Class {i + 1}</option>
@@ -342,23 +243,16 @@ const CompleteProfile = () => {
                         </div>
                     )}
 
-                    {/* Tutor: basic info only; full profile in 5-step form on dashboard */}
                     {role === 'tutor' && (
                         <div className="animate-fade-in border-t pt-6">
                             <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-sm text-indigo-800">
-                                After saving phone and location, you will complete your tutor profile in a short 5-step form (subjects, availability, bio, etc.) on your dashboard.
+                                After saving phone and location, you will complete your tutor profile in a short 5-step form on your dashboard.
                             </div>
                         </div>
                     )}
 
-                    {/* Tutor long form removed; full profile completed in 5-step form on dashboard */}
-
-                    <button
-                        type="button"
-                        disabled={loading}
-                        onClick={() => handleSubmit({ preventDefault: () => {} })}
-                        className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
+                    <button type="button" disabled={loading} onClick={() => handleSubmit({ preventDefault: () => {} })}
+                        className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed">
                         {loading ? 'Creating Profile...' : 'Complete Registration'}
                     </button>
                 </form>

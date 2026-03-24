@@ -215,6 +215,7 @@ const SessionsPage = () => {
                                     key={session._id}
                                     session={session}
                                     onAction={handleAction}
+                                    onRefresh={fetchSessions}
                                     actionLabel={activeTab === 'completed' ? 'View Report' : 'Details'}
                                 />
                             ))

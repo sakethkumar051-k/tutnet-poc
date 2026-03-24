@@ -11,11 +11,16 @@ const ReviewList = ({ tutorId, studentId }) => {
     }, [tutorId, studentId]);
 
     const fetchReviews = async () => {
+        // Don't fetch if neither tutorId nor studentId is provided
+        if (!tutorId && !studentId) {
+            setLoading(false);
+            return;
+        }
         try {
-            let endpoint = '/reviews';
+            let endpoint;
             if (tutorId) {
                 endpoint = `/reviews/tutor/${tutorId}`;
-            } else if (studentId) {
+            } else {
                 endpoint = `/reviews/student/${studentId}`;
             }
 

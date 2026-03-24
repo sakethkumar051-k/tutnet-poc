@@ -1,56 +1,58 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getBaseURL } from '../utils/api';
 
 const OAuthSuccess = () => {
-    // const [searchParams] = useSearchParams(); // This will be replaced by direct URLSearchParams
     const navigate = useNavigate();
     const { login } = useAuth();
     const [error, setError] = useState('');
+    const exchangedRef = useRef(false);
 
     useEffect(() => {
-        // Log the full current URL to debug
-        console.log('OAuthSuccess mounted, URL:', window.location.href);
+        const exchangeCodeForToken = async () => {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
 
-        const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
-        console.log('Token from URL:', token ? 'Found token' : 'No token found');
+            if (!code) {
+                setError('No authentication code received. Please try signing in again.');
+                setTimeout(() => navigate('/login'), 3000);
+                return;
+            }
 
-        if (token) {
+            if (exchangedRef.current) return;
+            exchangedRef.current = true;
+
+            window.history.replaceState({}, '', window.location.pathname);
+
             try {
-                // Store token and redirect
+                const baseURL = getBaseURL();
+                const response = await fetch(`${baseURL}/auth/oauth-token/${code}`);
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.message || 'Invalid or expired OAuth code');
+                }
+
+                const { token } = await response.json();
                 localStorage.setItem('token', token);
-                login(token);
+                const userData = await login(token);
+                const userRole = userData?.role || 'student';
 
-                // Decode token to get role
-                // Basic decoding of JWT payload (2nd part)
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                const userRole = payload.role || 'student'; // Default fallback
+                if (userRole === 'tutor') navigate('/tutor-dashboard');
+                else if (userRole === 'admin') navigate('/admin-dashboard');
+                else navigate('/student-dashboard');
 
-                console.log('Login successful, role:', userRole);
-
-                // Redirect based on decoded role
-                setTimeout(() => {
-                    if (userRole === 'tutor') {
-                        navigate('/tutor-dashboard');
-                    } else if (userRole === 'admin') {
-                        navigate('/admin-dashboard');
-                    } else {
-                        navigate('/student-dashboard');
-                    }
-                }, 1500);
             } catch (err) {
-                console.error('Login/Decode failed:', err);
-                // eslint-disable-next-line react-hooks/set-state-in-effect
-                setError('Authentication failed. Please try again.');
+                console.error('OAuth code exchange failed:', err);
+                setError(err.message || 'Authentication failed. Please try again.');
                 setTimeout(() => navigate('/login'), 3000);
             }
-        } else {
-            console.error('No token found in URL params');
-            setError('No token received from Google');
-            setTimeout(() => navigate('/login'), 3000);
-        }
-    }, [navigate, login]); // Removed searchParams from dependencies as it's no longer used directly
+        };
+
+        exchangeCodeForToken();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
