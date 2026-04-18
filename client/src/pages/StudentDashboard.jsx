@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuthStore } from '../stores/authStore';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
@@ -41,7 +41,7 @@ const StudentDashboard = () => {
     const [learningTimeMinutes, setLearningTimeMinutes] = useState(0);
     const [pendingTutorChangeBookings, setPendingTutorChangeBookings] = useState([]);
     const [lastCompletedBooking, setLastCompletedBooking] = useState(null);
-    const { user } = useAuth();
+    const user = useAuthStore((s) => s.user);
 
     // Sync activeTab with URL search params
     useEffect(() => {

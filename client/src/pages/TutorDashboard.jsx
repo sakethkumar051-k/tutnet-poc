@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNotifications } from '../context/NotificationContext';
+import { useAuthStore } from '../stores/authStore';
+import { useNotificationStore } from '../stores/notificationStore';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { checkTutorProfileComplete } from '../utils/profileUtils';
@@ -41,8 +41,9 @@ const TutorDashboard = () => {
     const [currentStudents, setCurrentStudents] = useState([]);
     const [pendingBookings, setPendingBookings] = useState([]);
     const [upcomingBookings, setUpcomingBookings] = useState([]);
-    const { user } = useAuth();
-    const { unreadCount, setIsOpen: setNotificationsOpen } = useNotifications();
+    const user = useAuthStore((s) => s.user);
+    const unreadCount = useNotificationStore((s) => s.unreadCount);
+    const setNotificationsOpen = useNotificationStore((s) => s.setIsOpen);
 
     // Sync activeTab with URL search params
     useEffect(() => {

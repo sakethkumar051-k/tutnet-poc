@@ -1,10 +1,12 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuthStore } from '../stores/authStore';
 import { useState, useEffect } from 'react';
 import { checkTutorProfileComplete, isUserProfileComplete } from '../utils/profileUtils';
+import LoadingSpinner from './LoadingSpinner';
 
 const ProtectedRoute = ({ allowedRoles = [] }) => {
-    const { user, loading } = useAuth();
+    const user = useAuthStore((s) => s.user);
+    const loading = useAuthStore((s) => s.loading);
     const location = useLocation();
     const [profileCheckLoading, setProfileCheckLoading] = useState(true);
     const [profileComplete, setProfileComplete] = useState(true);
@@ -36,8 +38,7 @@ const ProtectedRoute = ({ allowedRoles = [] }) => {
                     } else {
                         setProfileComplete(result.isComplete || false);
                     }
-                } catch (error) {
-                    console.error('Error checking profile:', error);
+                } catch {
                     setProfileComplete(false);
                 }
             } else {
@@ -53,7 +54,7 @@ const ProtectedRoute = ({ allowedRoles = [] }) => {
     if (loading || profileCheckLoading || user?._tokenOnly) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+                <LoadingSpinner size="lg" />
             </div>
         );
     }
