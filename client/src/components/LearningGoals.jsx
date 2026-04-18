@@ -4,8 +4,8 @@ import { useToast } from '../context/ToastContext';
 
 const STATUS_CONFIG = {
     not_started: { label: 'Not Started', color: 'bg-gray-100 text-gray-600 border-gray-200' },
-    in_progress:  { label: 'In Progress', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-    achieved:     { label: 'Achieved ✓', color: 'bg-green-50 text-green-700 border-green-200' },
+    in_progress:  { label: 'In Progress', color: 'bg-royal/5 text-royal-dark border-royal/20' },
+    achieved:     { label: 'Achieved ✓', color: 'bg-lime/20 text-navy-950 border-lime/40' },
     dropped:      { label: 'Dropped',    color: 'bg-red-50 text-red-600 border-red-200' }
 };
 
@@ -13,7 +13,7 @@ function ProgressBar({ pct }) {
     return (
         <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
-                className="absolute left-0 top-0 h-full bg-indigo-500 rounded-full transition-all duration-500"
+                className="absolute left-0 top-0 h-full bg-royal/50 rounded-full transition-all duration-500"
                 style={{ width: `${pct}%` }}
             />
         </div>
@@ -94,7 +94,7 @@ export default function LearningGoals({ role = 'student' }) {
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900">
+                    <h2 className="text-xl font-bold text-navy-950">
                         {role === 'tutor' ? "Students' Learning Goals" : 'My Learning Goals'}
                     </h2>
                     <p className="text-sm text-gray-500 mt-0.5">
@@ -106,7 +106,7 @@ export default function LearningGoals({ role = 'student' }) {
                 {role === 'student' && (
                     <button
                         onClick={() => setShowForm(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                        className="flex items-center gap-2 px-4 py-2 bg-royal text-white text-sm font-semibold rounded-lg hover:bg-royal-dark transition-colors shadow-sm"
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -120,15 +120,15 @@ export default function LearningGoals({ role = 'student' }) {
             {goals.length > 0 && (
                 <div className="flex gap-3 flex-wrap">
                     <span className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">{goals.length} Total</span>
-                    <span className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-100">{inProgressCount} In Progress</span>
-                    <span className="px-3 py-1.5 bg-green-50 text-green-700 text-xs font-semibold rounded-full border border-green-100">{achievedCount} Achieved</span>
+                    <span className="px-3 py-1.5 bg-royal/5 text-royal-dark text-xs font-semibold rounded-full border border-royal/20">{inProgressCount} In Progress</span>
+                    <span className="px-3 py-1.5 bg-lime/20 text-navy-950 text-xs font-semibold rounded-full border border-green-100">{achievedCount} Achieved</span>
                 </div>
             )}
 
             {/* Goals list */}
             {loading ? (
                 <div className="flex items-center justify-center py-16">
-                    <div className="w-7 h-7 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-7 h-7 border-2 border-royal border-t-transparent rounded-full animate-spin" />
                 </div>
             ) : activeGoals.length === 0 ? (
                 <div className="text-center py-16 bg-gray-50 rounded-xl border border-gray-100">
@@ -141,7 +141,7 @@ export default function LearningGoals({ role = 'student' }) {
                     </p>
                     {role === 'student' && (
                         <button onClick={() => setShowForm(true)}
-                            className="mt-4 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+                            className="mt-4 px-4 py-2 bg-royal text-white text-sm font-semibold rounded-lg hover:bg-royal-dark transition-colors">
                             Add My First Goal
                         </button>
                     )}
@@ -157,7 +157,7 @@ export default function LearningGoals({ role = 'student' }) {
                             : null;
 
                         return (
-                            <div key={goal._id} className={`bg-white border rounded-xl shadow-sm overflow-hidden transition-all ${isOpen ? 'border-indigo-200' : 'border-gray-200 hover:border-indigo-100 hover:shadow-md'}`}>
+                            <div key={goal._id} className={`bg-white border rounded-xl shadow-sm overflow-hidden transition-all ${isOpen ? 'border-royal/30' : 'border-gray-200 hover:border-royal/20 hover:shadow-md'}`}>
                                 {/* Card header */}
                                 <div className="p-5">
                                     <div className="flex items-start gap-4">
@@ -178,9 +178,9 @@ export default function LearningGoals({ role = 'student' }) {
                                             <div className="flex items-start justify-between gap-2">
                                                 <div>
                                                     {role === 'tutor' && goal.studentId?.name && (
-                                                        <p className="text-xs font-medium text-indigo-600 mb-0.5">{goal.studentId.name}</p>
+                                                        <p className="text-xs font-medium text-royal mb-0.5">{goal.studentId.name}</p>
                                                     )}
-                                                    <p className="text-sm font-bold text-gray-900 leading-tight">{goal.title}</p>
+                                                    <p className="text-sm font-bold text-navy-950 leading-tight">{goal.title}</p>
                                                     <p className="text-xs text-gray-500 mt-0.5">{goal.subject}</p>
                                                 </div>
                                                 <div className="flex items-center gap-2 shrink-0">
@@ -203,7 +203,7 @@ export default function LearningGoals({ role = 'student' }) {
                                             </div>
 
                                             {daysLeft !== null && (
-                                                <p className={`text-xs mt-1.5 font-medium ${daysLeft < 0 ? 'text-red-500' : daysLeft < 7 ? 'text-amber-600' : 'text-gray-400'}`}>
+                                                <p className={`text-xs mt-1.5 font-medium ${daysLeft < 0 ? 'text-red-500' : daysLeft < 7 ? 'text-lime-dark' : 'text-gray-400'}`}>
                                                     {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Due today' : `${daysLeft}d left`}
                                                 </p>
                                             )}
@@ -227,9 +227,9 @@ export default function LearningGoals({ role = 'student' }) {
                                                     min="0" max="100"
                                                     value={progressInput[goal._id] ?? pct}
                                                     onChange={e => setProgressInput(p => ({ ...p, [goal._id]: Number(e.target.value) }))}
-                                                    className="flex-1 accent-indigo-600"
+                                                    className="flex-1 accent-royal"
                                                 />
-                                                <span className="text-sm font-bold text-indigo-600 w-10 text-right">
+                                                <span className="text-sm font-bold text-royal w-10 text-right">
                                                     {progressInput[goal._id] ?? pct}%
                                                 </span>
                                             </div>
@@ -243,7 +243,7 @@ export default function LearningGoals({ role = 'student' }) {
                                                     <button
                                                         key={k}
                                                         onClick={() => handleUpdate(goal._id, { status: k, percentComplete: progressInput[goal._id] ?? pct })}
-                                                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${goal.status === k ? v.color + ' font-semibold' : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-300'}`}
+                                                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${goal.status === k ? v.color + ' font-semibold' : 'bg-white text-gray-500 border-gray-200 hover:border-royal/40'}`}
                                                     >
                                                         {v.label}
                                                     </button>
@@ -260,12 +260,12 @@ export default function LearningGoals({ role = 'student' }) {
                                                     value={noteInput}
                                                     onChange={e => setNoteInput(e.target.value)}
                                                     placeholder="e.g. Completed chapter 5, ready for next topic"
-                                                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                                                 />
                                                 <button
                                                     onClick={() => handleUpdate(goal._id, { note: noteInput, percentComplete: progressInput[goal._id] ?? pct })}
                                                     disabled={!noteInput.trim()}
-                                                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+                                                    className="px-4 py-2 bg-royal text-white text-sm font-semibold rounded-lg hover:bg-royal-dark disabled:opacity-40 transition-colors"
                                                 >
                                                     Add
                                                 </button>
@@ -279,7 +279,7 @@ export default function LearningGoals({ role = 'student' }) {
                                                 <div className="space-y-2 max-h-36 overflow-y-auto">
                                                     {[...goal.progressNotes].reverse().map((n, i) => (
                                                         <div key={i} className="flex items-start gap-2 bg-white rounded-lg px-3 py-2 border border-gray-100">
-                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs flex-shrink-0 mt-0.5 ${n.addedByRole === 'tutor' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs flex-shrink-0 mt-0.5 ${n.addedByRole === 'tutor' ? 'bg-purple-100 text-purple-700' : 'bg-royal/10 text-royal-dark'}`}>
                                                                 {n.addedByRole === 'tutor' ? 'T' : 'S'}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
@@ -315,7 +315,7 @@ export default function LearningGoals({ role = 'student' }) {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
                         <div className="flex items-start justify-between mb-5">
                             <div>
-                                <h3 className="text-base font-bold text-gray-900">Add Learning Goal</h3>
+                                <h3 className="text-base font-bold text-navy-950">Add Learning Goal</h3>
                                 <p className="text-xs text-gray-500 mt-0.5">Set a clear target to keep yourself on track</p>
                             </div>
                             <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
@@ -330,27 +330,27 @@ export default function LearningGoals({ role = 'student' }) {
                                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">Subject *</label>
                                 <input type="text" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
                                     placeholder="e.g. Mathematics, Physics"
-                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                                     required />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">Goal Title *</label>
                                 <input type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                                     placeholder="e.g. Complete Class 10 Algebra syllabus"
-                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                                     required />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">Description</label>
                                 <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                                     rows={2} placeholder="What exactly do you want to achieve?"
-                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none" />
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40 resize-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">Target Date</label>
                                 <input type="date" value={form.targetDate} onChange={e => setForm(f => ({ ...f, targetDate: e.target.value }))}
                                     min={new Date().toISOString().split('T')[0]}
-                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40" />
                             </div>
                             <div className="flex gap-3 pt-1">
                                 <button type="button" onClick={() => setShowForm(false)}
@@ -358,7 +358,7 @@ export default function LearningGoals({ role = 'student' }) {
                                     Cancel
                                 </button>
                                 <button type="submit" disabled={submitting}
-                                    className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 flex items-center justify-center gap-2">
+                                    className="flex-1 px-4 py-2.5 bg-royal text-white rounded-lg text-sm font-semibold hover:bg-royal-dark disabled:opacity-60 flex items-center justify-center gap-2">
                                     {submitting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                                     Create Goal
                                 </button>

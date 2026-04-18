@@ -3,12 +3,12 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
 const SCORE_LABELS = { 1: 'Struggling', 2: 'Needs work', 3: 'Average', 4: 'Good', 5: 'Excellent' };
-const SCORE_COLORS = { 1: 'text-red-600 bg-red-50', 2: 'text-amber-600 bg-amber-50', 3: 'text-yellow-600 bg-yellow-50', 4: 'text-blue-600 bg-blue-50', 5: 'text-green-600 bg-green-50' };
+const SCORE_COLORS = { 1: 'text-red-600 bg-red-50', 2: 'text-lime-dark bg-lime/20', 3: 'text-yellow-600 bg-yellow-50', 4: 'text-royal bg-royal/5', 5: 'text-lime-dark bg-lime/20' };
 const ATTEND_STYLE = {
-    completed: 'bg-green-100 text-green-700',
+    completed: 'bg-lime/30 text-navy-950',
     student_absent: 'bg-red-100 text-red-700',
-    tutor_absent: 'bg-amber-100 text-amber-700',
-    rescheduled: 'bg-blue-100 text-blue-700',
+    tutor_absent: 'bg-lime/30 text-navy-950',
+    rescheduled: 'bg-royal/10 text-royal-dark',
     scheduled: 'bg-gray-100 text-gray-600'
 };
 const ATTEND_LABEL = {
@@ -20,7 +20,7 @@ const ATTEND_LABEL = {
 };
 
 const stars = (n) => Array.from({ length: 5 }, (_, i) => (
-    <span key={i} className={i < n ? 'text-amber-400' : 'text-gray-200'}>★</span>
+    <span key={i} className={i < n ? 'text-lime-dark' : 'text-gray-200'}>★</span>
 ));
 
 export default function WeeklyProgressReport({ preselectedStudentId = null }) {
@@ -80,17 +80,17 @@ export default function WeeklyProgressReport({ preselectedStudentId = null }) {
             {totalSessions > 0 && (
                 <div className="grid grid-cols-3 gap-4">
                     <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-                        <p className="text-2xl font-bold text-gray-900">{totalSessions}</p>
+                        <p className="text-2xl font-bold text-navy-950">{totalSessions}</p>
                         <p className="text-xs text-gray-500 mt-0.5">Total Sessions</p>
                     </div>
                     <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-                        <p className="text-2xl font-bold text-green-600">{totalPresent}</p>
+                        <p className="text-2xl font-bold text-lime-dark">{totalPresent}</p>
                         <p className="text-xs text-gray-500 mt-0.5">
                             Attended ({totalSessions > 0 ? Math.round((totalPresent / totalSessions) * 100) : 0}%)
                         </p>
                     </div>
                     <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-                        <p className="text-2xl font-bold text-indigo-600">{avgScore ?? '—'}</p>
+                        <p className="text-2xl font-bold text-royal">{avgScore ?? '—'}</p>
                         <p className="text-xs text-gray-500 mt-0.5">Avg. Understanding</p>
                     </div>
                 </div>
@@ -106,7 +106,7 @@ export default function WeeklyProgressReport({ preselectedStudentId = null }) {
                     <button
                         key={f.value}
                         onClick={() => setFilter(f.value)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${filter === f.value ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${filter === f.value ? 'bg-royal text-white border-royal' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
                     >
                         {f.label}
                     </button>
@@ -149,12 +149,12 @@ export default function WeeklyProgressReport({ preselectedStudentId = null }) {
                                     {/* Date block */}
                                     <div className="w-14 flex-shrink-0 text-center">
                                         <p className="text-xs text-gray-400">{new Date(r.sessionDate || r.createdAt).toLocaleString('default', { month: 'short' })}</p>
-                                        <p className="text-2xl font-bold text-gray-900 leading-none">{new Date(r.sessionDate || r.createdAt).getDate()}</p>
+                                        <p className="text-2xl font-bold text-navy-950 leading-none">{new Date(r.sessionDate || r.createdAt).getDate()}</p>
                                     </div>
 
                                     <div className="flex-1 min-w-0">
                                         <div className="flex flex-wrap items-center gap-2 mb-1">
-                                            <span className="text-sm font-semibold text-gray-900">{subject}</span>
+                                            <span className="text-sm font-semibold text-navy-950">{subject}</span>
                                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${attendStyle}`}>{attendLabel}</span>
                                             {r.understandingScore && (
                                                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${SCORE_COLORS[r.understandingScore]}`}>
@@ -170,7 +170,7 @@ export default function WeeklyProgressReport({ preselectedStudentId = null }) {
 
                                     <div className="flex items-center gap-3 flex-shrink-0">
                                         {r.homework?.length > 0 && (
-                                            <span className="text-xs text-indigo-600 font-medium">{r.homework.length} HW</span>
+                                            <span className="text-xs text-royal font-medium">{r.homework.length} HW</span>
                                         )}
                                         <svg className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -210,7 +210,7 @@ export default function WeeklyProgressReport({ preselectedStudentId = null }) {
                                                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Topics Covered</p>
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {r.topicsCovered.map((t, i) => (
-                                                        <span key={i} className="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-100">{t}</span>
+                                                        <span key={i} className="px-2.5 py-1 bg-royal/5 text-royal-dark text-xs font-medium rounded-full border border-royal/20">{t}</span>
                                                     ))}
                                                 </div>
                                             </div>
@@ -220,7 +220,7 @@ export default function WeeklyProgressReport({ preselectedStudentId = null }) {
                                         {r.nextSteps && (
                                             <div>
                                                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Next Steps</p>
-                                                <p className="text-sm text-gray-700 bg-blue-50 border border-blue-100 rounded-lg p-3">{r.nextSteps}</p>
+                                                <p className="text-sm text-gray-700 bg-royal/5 border border-royal/20 rounded-lg p-3">{r.nextSteps}</p>
                                             </div>
                                         )}
 
@@ -231,14 +231,14 @@ export default function WeeklyProgressReport({ preselectedStudentId = null }) {
                                                 <div className="space-y-2">
                                                     {r.homework.map((hw, i) => (
                                                         <div key={i} className="flex items-start gap-2.5 text-sm">
-                                                            <span className={`mt-0.5 w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-xs ${hw.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                            <span className={`mt-0.5 w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-xs ${hw.status === 'completed' ? 'bg-lime/30 text-lime-dark' : 'bg-gray-100 text-gray-500'}`}>
                                                                 {hw.status === 'completed' ? '✓' : '○'}
                                                             </span>
                                                             <div className="flex-1">
                                                                 <p className={`text-sm ${hw.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-700'}`}>{hw.description}</p>
                                                                 {hw.dueDate && <p className="text-xs text-gray-400 mt-0.5">Due: {new Date(hw.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>}
                                                             </div>
-                                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${hw.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${hw.status === 'completed' ? 'bg-lime/30 text-navy-950' : 'bg-gray-100 text-gray-500'}`}>
                                                                 {hw.status.replace('_', ' ')}
                                                             </span>
                                                         </div>
@@ -254,11 +254,11 @@ export default function WeeklyProgressReport({ preselectedStudentId = null }) {
                                                 <div className="space-y-1.5">
                                                     {r.studyMaterials.map((m, i) => (
                                                         <div key={i} className="flex items-center gap-2 text-sm">
-                                                            <span className="w-5 h-5 rounded bg-indigo-50 flex items-center justify-center text-indigo-500 text-xs flex-shrink-0">
+                                                            <span className="w-5 h-5 rounded bg-royal/5 flex items-center justify-center text-royal/50 text-xs flex-shrink-0">
                                                                 {m.type === 'link' ? '🔗' : m.type === 'file' ? '📄' : '📖'}
                                                             </span>
                                                             {m.url ? (
-                                                                <a href={m.url} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">{m.title}</a>
+                                                                <a href={m.url} target="_blank" rel="noreferrer" className="text-royal hover:underline">{m.title}</a>
                                                             ) : (
                                                                 <span className="text-gray-700">{m.title}</span>
                                                             )}

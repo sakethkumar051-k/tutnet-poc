@@ -14,9 +14,9 @@ const ESCALATION_TYPES = [
 ];
 
 const STATUS_COLORS = {
-    open: 'bg-amber-50 text-amber-700 border-amber-200',
-    under_review: 'bg-blue-50 text-blue-700 border-blue-200',
-    resolved: 'bg-green-50 text-green-700 border-green-200',
+    open: 'bg-lime/20 text-navy-950 border-lime/40',
+    under_review: 'bg-royal/5 text-royal-dark border-royal/20',
+    resolved: 'bg-lime/20 text-navy-950 border-lime/40',
     dismissed: 'bg-gray-100 text-gray-500 border-gray-200'
 };
 
@@ -86,7 +86,7 @@ export default function SafetyPanel({ role = 'tutor' }) {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900">Safety & Protection</h2>
+                    <h2 className="text-xl font-bold text-navy-950">Safety & Protection</h2>
                     <p className="text-sm text-gray-500 mt-0.5">
                         Your safety is our priority. Use this panel to report concerns and review conduct guidelines.
                     </p>
@@ -105,26 +105,26 @@ export default function SafetyPanel({ role = 'tutor' }) {
             {/* Emergency contact (student/parent) */}
             {role === 'student' && user?.emergencyContact && (
                 <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                    <h3 className="text-base font-bold text-gray-900 mb-3">Emergency contact</h3>
+                    <h3 className="text-base font-bold text-navy-950 mb-3">Emergency contact</h3>
                     <p className="text-sm text-gray-500 mb-3">In case of emergency, this person will be contacted.</p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                         <div>
                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Name</p>
-                            <p className="text-sm font-medium text-gray-900">{user.emergencyContact?.name || '—'}</p>
+                            <p className="text-sm font-medium text-navy-950">{user.emergencyContact?.name || '—'}</p>
                         </div>
                         <div>
                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Relationship</p>
-                            <p className="text-sm font-medium text-gray-900">{user.emergencyContact?.relationship || '—'}</p>
+                            <p className="text-sm font-medium text-navy-950">{user.emergencyContact?.relationship || '—'}</p>
                         </div>
                         <div>
                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone</p>
-                            <p className="text-sm font-medium text-gray-900">{user.emergencyContact?.phone || '—'}</p>
+                            <p className="text-sm font-medium text-navy-950">{user.emergencyContact?.phone || '—'}</p>
                         </div>
                     </div>
                     <button
                         type="button"
                         onClick={() => navigate('/student-dashboard?tab=profile')}
-                        className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+                        className="text-sm font-semibold text-royal hover:text-royal-dark"
                     >
                         Edit in Profile →
                     </button>
@@ -132,13 +132,13 @@ export default function SafetyPanel({ role = 'tutor' }) {
             )}
 
             {role === 'student' && (!user?.emergencyContact || (!user.emergencyContact?.name && !user.emergencyContact?.phone)) && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
-                    <h3 className="text-base font-bold text-gray-900 mb-2">Emergency contact</h3>
+                <div className="bg-lime/20 border border-lime/40 rounded-xl p-5">
+                    <h3 className="text-base font-bold text-navy-950 mb-2">Emergency contact</h3>
                     <p className="text-sm text-gray-600 mb-3">Add an emergency contact so we can reach someone if needed.</p>
                     <button
                         type="button"
                         onClick={() => navigate('/student-dashboard?tab=profile')}
-                        className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+                        className="text-sm font-semibold text-royal hover:text-royal-dark"
                     >
                         Add in Profile →
                     </button>
@@ -151,7 +151,7 @@ export default function SafetyPanel({ role = 'tutor' }) {
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === tab.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === tab.id ? 'bg-white text-navy-950 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         {tab.label}
                     </button>
@@ -163,7 +163,7 @@ export default function SafetyPanel({ role = 'tutor' }) {
                 <div className="space-y-4">
                     {loading ? (
                         <div className="flex items-center justify-center py-16">
-                            <div className="w-7 h-7 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                            <div className="w-7 h-7 border-2 border-royal border-t-transparent rounded-full animate-spin" />
                         </div>
                     ) : escalations.length === 0 ? (
                         <div className="text-center py-16 bg-gray-50 rounded-xl border border-gray-100">
@@ -179,7 +179,7 @@ export default function SafetyPanel({ role = 'tutor' }) {
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-1">
-                                            <span className="text-sm font-semibold text-gray-900 capitalize">
+                                            <span className="text-sm font-semibold text-navy-950 capitalize">
                                                 {e.type.replace(/_/g, ' ')}
                                             </span>
                                             <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border capitalize ${STATUS_COLORS[e.status]}`}>
@@ -188,9 +188,9 @@ export default function SafetyPanel({ role = 'tutor' }) {
                                         </div>
                                         <p className="text-sm text-gray-600 leading-relaxed">{e.description}</p>
                                         {e.adminNotes && (
-                                            <div className="mt-3 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
-                                                <p className="text-xs font-semibold text-blue-700 mb-0.5">Admin Response</p>
-                                                <p className="text-xs text-blue-600">{e.adminNotes}</p>
+                                            <div className="mt-3 bg-royal/5 border border-royal/20 rounded-lg px-3 py-2">
+                                                <p className="text-xs font-semibold text-royal-dark mb-0.5">Admin Response</p>
+                                                <p className="text-xs text-royal">{e.adminNotes}</p>
                                             </div>
                                         )}
                                     </div>
@@ -207,9 +207,9 @@ export default function SafetyPanel({ role = 'tutor' }) {
             {/* Conduct Guidelines Tab */}
             {activeTab === 'conduct' && (
                 <div className="space-y-3">
-                    <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-5 py-4 mb-2">
-                        <p className="text-sm font-semibold text-indigo-900 mb-1">TutNet Code of Conduct</p>
-                        <p className="text-xs text-indigo-700">
+                    <div className="bg-royal/5 border border-royal/20 rounded-xl px-5 py-4 mb-2">
+                        <p className="text-sm font-semibold text-navy-950 mb-1">TutNet Code of Conduct</p>
+                        <p className="text-xs text-royal-dark">
                             All tutors on TutNet are held to high professional standards. Violations of these guidelines may result in account suspension or removal.
                         </p>
                     </div>
@@ -218,7 +218,7 @@ export default function SafetyPanel({ role = 'tutor' }) {
                             <div key={i} className="bg-white border border-gray-100 rounded-xl px-5 py-4 flex gap-4 shadow-sm">
                                 <span className="text-2xl">{rule.icon}</span>
                                 <div>
-                                    <p className="text-sm font-semibold text-gray-900 mb-0.5">{rule.title}</p>
+                                    <p className="text-sm font-semibold text-navy-950 mb-0.5">{rule.title}</p>
                                     <p className="text-sm text-gray-500 leading-relaxed">{rule.desc}</p>
                                 </div>
                             </div>
@@ -243,7 +243,7 @@ export default function SafetyPanel({ role = 'tutor' }) {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
                         <div className="flex items-start justify-between mb-5">
                             <div>
-                                <h3 className="text-base font-bold text-gray-900">Report an Issue</h3>
+                                <h3 className="text-base font-bold text-navy-950">Report an Issue</h3>
                                 <p className="text-xs text-gray-500 mt-0.5">All reports are reviewed by the admin team within 24 hours</p>
                             </div>
                             <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
@@ -282,8 +282,8 @@ export default function SafetyPanel({ role = 'tutor' }) {
                                 />
                             </div>
 
-                            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                                <p className="text-xs text-amber-700">
+                            <div className="bg-lime/20 border border-lime/40 rounded-lg px-3 py-2">
+                                <p className="text-xs text-navy-950">
                                     Your identity will be known to the admin team but kept confidential from the reported party.
                                 </p>
                             </div>

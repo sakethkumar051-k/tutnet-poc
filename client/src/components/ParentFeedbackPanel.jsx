@@ -57,17 +57,17 @@ export default function ParentFeedbackPanel({ currentTutors = [] }) {
     };
 
     if (submitted) return (
-        <div className="bg-white rounded-xl border border-green-200 p-8 text-center">
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="bg-white rounded-xl border border-lime/40 p-8 text-center">
+            <div className="w-12 h-12 rounded-full bg-lime/30 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-lime-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
             </div>
-            <h3 className="text-base font-bold text-gray-900 mb-1">Thank you for your feedback</h3>
+            <h3 className="text-base font-bold text-navy-950 mb-1">Thank you for your feedback</h3>
             <p className="text-sm text-gray-500">Your input helps us improve the quality of tutoring on TutNet.</p>
             <button
                 onClick={() => { setSubmitted(false); setForm(f => ({ ...f, comment: '', rating: 0, changeReason: '', requestTutorChange: false })); }}
-                className="mt-4 px-4 py-2 text-sm text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors"
+                className="mt-4 px-4 py-2 text-sm text-royal border border-royal/30 rounded-lg hover:bg-royal/5 transition-colors"
             >
                 Submit Another
             </button>
@@ -83,7 +83,7 @@ export default function ParentFeedbackPanel({ currentTutors = [] }) {
     return (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-100">
-                <h3 className="text-base font-bold text-gray-900">Share Feedback</h3>
+                <h3 className="text-base font-bold text-navy-950">Share Feedback</h3>
                 <p className="text-sm text-gray-500 mt-0.5">Rate your experience and help improve the quality of tutoring</p>
             </div>
             <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
@@ -94,7 +94,7 @@ export default function ParentFeedbackPanel({ currentTutors = [] }) {
                         <select
                             value={form.tutorId}
                             onChange={e => setForm(v => ({ ...v, tutorId: e.target.value }))}
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                         >
                             {currentTutors.map(t => (
                                 <option key={t._id} value={t.tutorId?._id}>{t.tutorId?.name} — {t.subject}</option>
@@ -112,7 +112,7 @@ export default function ParentFeedbackPanel({ currentTutors = [] }) {
                                 key={c.value}
                                 type="button"
                                 onClick={() => setForm(v => ({ ...v, category: c.value }))}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${form.category === c.value ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'}`}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${form.category === c.value ? 'bg-royal text-white border-royal' : 'bg-white text-gray-600 border-gray-200 hover:border-royal/40'}`}
                             >
                                 {c.label}
                             </button>
@@ -133,7 +133,7 @@ export default function ParentFeedbackPanel({ currentTutors = [] }) {
                                 onMouseLeave={() => setHover(0)}
                                 className="text-2xl transition-transform hover:scale-110"
                             >
-                                <span className={(hover || form.rating) >= star ? 'text-amber-400' : 'text-gray-200'}>★</span>
+                                <span className={(hover || form.rating) >= star ? 'text-lime-dark' : 'text-gray-200'}>★</span>
                             </button>
                         ))}
                         {form.rating > 0 && (
@@ -152,7 +152,7 @@ export default function ParentFeedbackPanel({ currentTutors = [] }) {
                         onChange={e => setForm(v => ({ ...v, comment: e.target.value }))}
                         rows={3}
                         placeholder="Share specific observations about your child's sessions, tutor's teaching style, areas of improvement…"
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40 resize-none"
                         required
                     />
                 </div>
@@ -187,7 +187,7 @@ export default function ParentFeedbackPanel({ currentTutors = [] }) {
                 <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
+                    className="w-full py-2.5 bg-royal text-white rounded-lg text-sm font-semibold hover:bg-royal-dark disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
                 >
                     {submitting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                     Submit Feedback

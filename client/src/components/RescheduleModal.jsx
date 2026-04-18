@@ -39,7 +39,7 @@ export default function RescheduleModal({ booking, onClose, onSuccess }) {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
                 <div className="flex items-start justify-between mb-4">
                     <div>
-                        <h3 className="text-base font-bold text-gray-900">Request Reschedule</h3>
+                        <h3 className="text-base font-bold text-navy-950">Request Reschedule</h3>
                         <p className="text-sm text-gray-500 mt-0.5">
                             {booking.subject} session with{' '}
                             <span className="font-medium text-gray-700">{booking.tutorId?.name}</span>
@@ -70,7 +70,7 @@ export default function RescheduleModal({ booking, onClose, onSuccess }) {
                             value={form.proposedDate}
                             onChange={e => setForm(v => ({ ...v, proposedDate: e.target.value }))}
                             min={new Date().toISOString().split('T')[0]}
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                         />
                     </div>
                     <div>
@@ -82,7 +82,7 @@ export default function RescheduleModal({ booking, onClose, onSuccess }) {
                             value={form.proposedSchedule}
                             onChange={e => setForm(v => ({ ...v, proposedSchedule: e.target.value }))}
                             placeholder="e.g. Saturday 4:00 PM – 5:00 PM"
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                         />
                     </div>
                     <div>
@@ -94,7 +94,7 @@ export default function RescheduleModal({ booking, onClose, onSuccess }) {
                             onChange={e => setForm(v => ({ ...v, reason: e.target.value }))}
                             rows={2}
                             placeholder="e.g. Family event, exam preparation shift…"
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40 resize-none"
                         />
                     </div>
                     <div className="flex gap-3 pt-1">
@@ -108,7 +108,7 @@ export default function RescheduleModal({ booking, onClose, onSuccess }) {
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 flex items-center justify-center gap-2"
+                            className="flex-1 px-4 py-2.5 bg-royal text-white rounded-lg text-sm font-semibold hover:bg-royal-dark disabled:opacity-60 flex items-center justify-center gap-2"
                         >
                             {submitting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                             Send Request

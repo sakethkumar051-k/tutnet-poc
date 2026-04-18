@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNotifications } from '../context/NotificationContext';
+import { useAuthStore } from '../stores/authStore';
+import { useNotificationStore } from '../stores/notificationStore';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { checkTutorProfileComplete } from '../utils/profileUtils';
@@ -41,8 +41,9 @@ const TutorDashboard = () => {
     const [currentStudents, setCurrentStudents] = useState([]);
     const [pendingBookings, setPendingBookings] = useState([]);
     const [upcomingBookings, setUpcomingBookings] = useState([]);
-    const { user } = useAuth();
-    const { unreadCount, setIsOpen: setNotificationsOpen } = useNotifications();
+    const user = useAuthStore((s) => s.user);
+    const unreadCount = useNotificationStore((s) => s.unreadCount);
+    const setNotificationsOpen = useNotificationStore((s) => s.setIsOpen);
 
     // Sync activeTab with URL search params
     useEffect(() => {
@@ -156,15 +157,15 @@ const TutorDashboard = () => {
             label: 'Upcoming Sessions',
             value: stats.approved,
             icon: '📅',
-            bgColor: 'bg-indigo-50',
-            iconColor: 'text-indigo-600'
+            bgColor: 'bg-royal/5',
+            iconColor: 'text-royal'
         },
         {
             label: 'Pending Requests',
             value: stats.pending,
             icon: '⏳',
-            bgColor: 'bg-amber-50',
-            iconColor: 'text-amber-600'
+            bgColor: 'bg-lime/20',
+            iconColor: 'text-lime-dark'
         },
         {
             label: 'Rating',
@@ -178,8 +179,8 @@ const TutorDashboard = () => {
             label: 'Completed',
             value: stats.completed,
             icon: '✅',
-            bgColor: 'bg-emerald-50',
-            iconColor: 'text-emerald-600'
+            bgColor: 'bg-lime/20',
+            iconColor: 'text-lime-dark'
         }
     ] : [];
 
@@ -188,8 +189,8 @@ const TutorDashboard = () => {
 
         const statusConfig = {
             approved: {
-                bg: 'bg-green-100',
-                text: 'text-green-800',
+                bg: 'bg-lime/30',
+                text: 'text-navy-950',
                 label: '✓ Approved'
             },
             pending: {
@@ -222,7 +223,7 @@ const TutorDashboard = () => {
                 return (
                     <div className="space-y-6">
                         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                            <h2 className="text-xl font-bold text-gray-900 mb-6 pb-4 border-b border-gray-200">My Students</h2>
+                            <h2 className="text-xl font-bold text-navy-950 mb-6 pb-4 border-b border-gray-200">My Students</h2>
                             <MyCurrentStudents />
                         </div>
                     </div>
@@ -232,7 +233,7 @@ const TutorDashboard = () => {
                 return (
                     <div className="space-y-6">
                         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                            <h2 className="text-xl font-bold text-gray-900 mb-6 pb-4 border-b border-gray-200">My Materials</h2>
+                            <h2 className="text-xl font-bold text-navy-950 mb-6 pb-4 border-b border-gray-200">My Materials</h2>
                             <StudyMaterials />
                         </div>
                     </div>
@@ -245,7 +246,7 @@ const TutorDashboard = () => {
                         <div className="space-y-6">
                             <ProgressAnalytics />
                             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                                <h2 className="text-lg font-bold text-gray-900 mb-1">Session Progress Log</h2>
+                                <h2 className="text-lg font-bold text-navy-950 mb-1">Session Progress Log</h2>
                                 <p className="text-sm text-gray-500 mb-5">All session summaries, topics, and homework for this student</p>
                                 <WeeklyProgressReport preselectedStudentId={studentId} />
                             </div>
@@ -259,7 +260,7 @@ const TutorDashboard = () => {
                             <LearningGoals role="tutor" />
                         </div>
                         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                            <h2 className="text-lg font-bold text-gray-900 mb-1">Session Progress Log</h2>
+                            <h2 className="text-lg font-bold text-navy-950 mb-1">Session Progress Log</h2>
                             <p className="text-sm text-gray-500 mb-5">Session-by-session summaries and student progress across all students</p>
                             <WeeklyProgressReport />
                         </div>
@@ -271,7 +272,7 @@ const TutorDashboard = () => {
                 return (
                     <div className="space-y-6">
                         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                            <h2 className="text-xl font-bold text-gray-900 mb-1">Weekly Schedule</h2>
+                            <h2 className="text-xl font-bold text-navy-950 mb-1">Weekly Schedule</h2>
                             <p className="text-sm text-gray-500 mb-6">Set your available teaching slots so students can see when you're free.</p>
                             <WeeklySchedulePlanner />
                         </div>
@@ -285,7 +286,7 @@ const TutorDashboard = () => {
                 return (
                     <div className="space-y-6">
                         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                            <h2 className="text-xl font-bold text-gray-900 mb-1">Class History & Earnings</h2>
+                            <h2 className="text-xl font-bold text-navy-950 mb-1">Class History & Earnings</h2>
                             <p className="text-sm text-gray-500 mb-6">Track your sessions and estimated income over time.</p>
                             <ClassHistoryTracker />
                         </div>
@@ -304,7 +305,7 @@ const TutorDashboard = () => {
                 return (
                     <div className="space-y-4">
                         <div>
-                            <h2 className="text-lg font-bold text-gray-900">Messages</h2>
+                            <h2 className="text-lg font-bold text-navy-950">Messages</h2>
                             <p className="text-sm text-gray-500 mt-0.5">Chat with your students</p>
                         </div>
                         <MessagingPanel />
@@ -319,7 +320,7 @@ const TutorDashboard = () => {
                     <div className="space-y-6">
                         <TutorCredibilityPanel />
                         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                            <h2 className="text-xl font-bold text-gray-900 mb-6 pb-4 border-b border-gray-200">Edit Profile</h2>
+                            <h2 className="text-xl font-bold text-navy-950 mb-6 pb-4 border-b border-gray-200">Edit Profile</h2>
                             <TutorProfileForm />
                         </div>
                         <TutorProgressDashboard />
@@ -333,7 +334,7 @@ const TutorDashboard = () => {
                         {/* Welcome Header */}
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-6 border-b border-gray-200 animate-fade-in-up">
                             <div>
-                                <h1 className="text-4xl font-bold text-gray-900 tracking-tight mb-2">
+                                <h1 className="text-4xl font-bold text-navy-950 tracking-tight mb-2">
                                     Welcome back, {user?.name?.split(' ')[0]}
                                 </h1>
                                 <p className="text-gray-600 text-base">
@@ -349,14 +350,14 @@ const TutorDashboard = () => {
 
                         {/* Notifications bar - visible in main content */}
                         {unreadCount > 0 && (
-                            <div className="flex items-center justify-between gap-4 py-3 px-4 bg-indigo-50 border border-indigo-100 rounded-lg">
-                                <p className="text-sm font-medium text-indigo-900">
+                            <div className="flex items-center justify-between gap-4 py-3 px-4 bg-royal/5 border border-royal/20 rounded-lg">
+                                <p className="text-sm font-medium text-navy-950">
                                     You have {unreadCount} new notification{unreadCount !== 1 ? 's' : ''}
                                 </p>
                                 <button
                                     type="button"
                                     onClick={() => setNotificationsOpen(true)}
-                                    className="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+                                    className="text-sm font-semibold text-royal hover:text-navy-900"
                                 >
                                     View →
                                 </button>
@@ -365,8 +366,8 @@ const TutorDashboard = () => {
 
                         {/* Status Alert */}
                         {stats && stats.approvalStatus === 'pending' && (
-                            <div className="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-lg">
-                                <p className="text-sm font-semibold text-gray-900 mb-1">Your Profile is Being Reviewed</p>
+                            <div className="bg-lime/20 border-l-4 border-amber-500 p-5 rounded-r-lg">
+                                <p className="text-sm font-semibold text-navy-950 mb-1">Your Profile is Being Reviewed</p>
                                 <p className="text-sm text-gray-700">
                                     An admin is reviewing your profile. You'll be able to teach students once it's approved.
                                 </p>
@@ -395,7 +396,7 @@ const TutorDashboard = () => {
                                 {dashboardStats.map((stat, index) => (
                                     <div 
                                         key={index} 
-                                        className="bg-white p-6 rounded-lg border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:scale-[1.02] animate-fade-in-up"
+                                        className="bg-white p-6 rounded-lg border border-gray-200 hover:border-royal/40 hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:scale-[1.02] animate-fade-in-up"
                                         style={{ animationDelay: `${index * 100}ms` }}
                                         onClick={() => {
                                             if (stat.label === 'Pending Requests' && stats.pending > 0) {
@@ -410,10 +411,10 @@ const TutorDashboard = () => {
                                             {stat.footer && <span className="text-xs text-gray-500 font-medium">{stat.footer}</span>}
                                         </div>
                                         <div>
-                                            <p className="text-4xl font-bold text-gray-900 mb-2 leading-none transition-all duration-300">{stat.value}</p>
+                                            <p className="text-4xl font-bold text-navy-950 mb-2 leading-none transition-all duration-300">{stat.value}</p>
                                             <p className="text-sm font-medium text-gray-700">{stat.label}</p>
                                             {stat.label === 'Pending Requests' && stats.pending > 0 && (
-                                                <p className="text-xs text-indigo-600 mt-3 font-medium">Review below ↓</p>
+                                                <p className="text-xs text-royal mt-3 font-medium">Review below ↓</p>
                                             )}
                                         </div>
                                     </div>
@@ -423,15 +424,15 @@ const TutorDashboard = () => {
 
                         {/* Book a Session - Calendar Access */}
                         {currentStudents.length > 0 && (
-                            <div className="bg-white border-l-4 border-indigo-500 rounded-lg p-6 shadow-sm animate-fade-in-up">
+                            <div className="bg-white border-l-4 border-royal rounded-lg p-6 shadow-sm animate-fade-in-up">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <h3 className="text-lg font-bold text-gray-900 mb-1">Book a Session</h3>
+                                        <h3 className="text-lg font-bold text-navy-950 mb-1">Book a Session</h3>
                                         <p className="text-sm text-gray-600">Schedule a new session with your students using the calendar</p>
                                     </div>
                                     <button
                                         onClick={() => handleTabChange('sessions')}
-                                        className="px-6 py-3 bg-indigo-600 text-white rounded-md text-sm font-semibold hover:bg-indigo-700 transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-sm hover:shadow-md"
+                                        className="px-6 py-3 bg-royal text-white rounded-md text-sm font-semibold hover:bg-royal-dark transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-sm hover:shadow-md"
                                     >
                                         Open Calendar →
                                     </button>
@@ -444,7 +445,7 @@ const TutorDashboard = () => {
                             <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm animate-fade-in-up">
                                 <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-200">
                                     <div>
-                                        <h3 className="text-lg font-bold text-gray-900 mb-1">Your Matched Students</h3>
+                                        <h3 className="text-lg font-bold text-navy-950 mb-1">Your Matched Students</h3>
                                         <p className="text-sm text-gray-600">You have {currentStudents.length} student{currentStudents.length !== 1 ? 's' : ''} ready to learn with you</p>
                                     </div>
                                     <button
@@ -458,26 +459,26 @@ const TutorDashboard = () => {
                                     {currentStudents.slice(0, 2).map((student) => {
                                         const hasNoSessions = student.totalSessionsBooked === 0;
                                         return (
-                                            <div key={student._id} className="bg-white rounded-lg p-4 border border-indigo-200">
+                                            <div key={student._id} className="bg-white rounded-lg p-4 border border-royal/30">
                                                 <div className="flex items-start justify-between mb-3">
                                                     <div>
-                                                        <p className="font-bold text-gray-900 text-lg">{student.studentId?.name}</p>
+                                                        <p className="font-bold text-navy-950 text-lg">{student.studentId?.name}</p>
                                                         <p className="text-sm text-gray-600 mt-1">📚 {student.subject}</p>
                                                         {student.classGrade && (
                                                             <p className="text-xs text-gray-500 mt-1">Class: {student.classGrade}</p>
                                                         )}
                                                     </div>
                                                     {hasNoSessions && (
-                                                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">New Match!</span>
+                                                        <span className="text-xs bg-lime/30 text-navy-950 px-2 py-1 rounded-full font-medium">New Match!</span>
                                                     )}
                                                 </div>
                                                 {hasNoSessions ? (
-                                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                                    <div className="bg-lime/20 border border-lime/40 rounded-lg p-3">
                                                         <p className="text-sm font-semibold text-green-900 mb-2">🎉 Ready to Start!</p>
-                                                        <p className="text-xs text-green-700 mb-3">Book your first session with {student.studentId?.name?.split(' ')[0]} to begin teaching.</p>
+                                                        <p className="text-xs text-navy-950 mb-3">Book your first session with {student.studentId?.name?.split(' ')[0]} to begin teaching.</p>
                                                         <button
                                                             onClick={() => handleTabChange('sessions')}
-                                                            className="w-full px-3 py-2 bg-green-600 text-white rounded-md text-sm font-semibold hover:bg-green-700 transition-colors"
+                                                            className="w-full px-3 py-2 bg-lime text-navy-950 rounded-md text-sm font-semibold hover:bg-lime-light transition-colors"
                                                         >
                                                             📅 Book First Session
                                                         </button>
@@ -487,7 +488,7 @@ const TutorDashboard = () => {
                                                         <span className="text-gray-600">Sessions: {student.totalSessionsBooked}</span>
                                                         <button
                                                             onClick={() => handleTabChange('sessions')}
-                                                            className="text-indigo-600 hover:text-indigo-700 font-semibold"
+                                                            className="text-royal hover:text-royal-dark font-semibold"
                                                         >
                                                             Manage →
                                                         </button>
@@ -507,23 +508,23 @@ const TutorDashboard = () => {
 
                         {/* No Students Yet - Helpful Guide */}
                         {!loading && currentStudents.length === 0 && stats?.approvalStatus === 'approved' && (
-                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-8 text-center">
+                            <div className="bg-gradient-to-br from-royal/5 to-royal/10 border-2 border-royal/20 rounded-xl p-8 text-center">
                                 <div className="max-w-md mx-auto">
                                     <div className="text-6xl mb-4">🎓</div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">Ready to Teach?</h3>
+                                    <h3 className="text-xl font-bold text-navy-950 mb-2">Ready to Teach?</h3>
                                     <p className="text-gray-600 mb-6">
                                         Students are looking for great tutors like you! Make sure your profile is complete and engaging to attract students.
                                     </p>
                                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                                         <button
                                             onClick={() => handleTabChange('profile')}
-                                            className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-md"
+                                            className="px-6 py-3 bg-royal text-white rounded-lg font-semibold hover:bg-royal-dark transition-colors shadow-md"
                                         >
                                             ✏️ Complete Your Profile
                                         </button>
                                         <button
                                             onClick={() => navigate('/find-tutors')}
-                                            className="px-6 py-3 bg-white text-indigo-600 border-2 border-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition-colors"
+                                            className="px-6 py-3 bg-white text-royal border-2 border-royal rounded-lg font-semibold hover:bg-royal/5 transition-colors"
                                         >
                                             🔍 See How It Works
                                         </button>
@@ -536,12 +537,12 @@ const TutorDashboard = () => {
                         {upcomingBookings.length > 0 && (
                             <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
                                 <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-200">
-                                    <h3 className="text-base font-bold text-gray-900">
+                                    <h3 className="text-base font-bold text-navy-950">
                                         Your Next Sessions
                                     </h3>
                                     <button
                                         onClick={() => handleTabChange('sessions')}
-                                        className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+                                        className="text-sm text-gray-600 hover:text-navy-950 font-medium"
                                     >
                                         View All →
                                     </button>
@@ -550,19 +551,19 @@ const TutorDashboard = () => {
                                     {upcomingBookings.slice(0, 3).map((booking) => (
                                         <div key={booking._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
                                             <div className="flex items-center gap-4">
-                                                <div className="p-2 bg-indigo-100 rounded-lg">
-                                                    <span className="text-indigo-600 font-bold">
+                                                <div className="p-2 bg-royal/10 rounded-lg">
+                                                    <span className="text-royal font-bold">
                                                         {booking.sessionDate ? new Date(booking.sessionDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : 'TBD'}
                                                     </span>
                                                 </div>
                                                 <div>
-                                                    <p className="font-semibold text-gray-900">{booking.studentId?.name || 'Student'}</p>
+                                                    <p className="font-semibold text-navy-950">{booking.studentId?.name || 'Student'}</p>
                                                     <p className="text-sm text-gray-600">{booking.subject} • {booking.preferredSchedule}</p>
                                                 </div>
                                             </div>
                                             <button
                                                 onClick={() => handleTabChange('sessions')}
-                                                className="text-sm text-indigo-600 hover:text-indigo-700 font-semibold"
+                                                className="text-sm text-royal hover:text-royal-dark font-semibold"
                                             >
                                                 View Details →
                                             </button>
@@ -574,23 +575,23 @@ const TutorDashboard = () => {
 
                         {/* Helpful Tips for Young Students */}
                         <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                            <h3 className="text-base font-bold text-gray-900 mb-5 pb-4 border-b border-gray-200">
+                            <h3 className="text-base font-bold text-navy-950 mb-5 pb-4 border-b border-gray-200">
                                 Quick Tips for Success
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                                <div className="p-4 bg-royal/5 rounded-lg border border-royal/20">
                                     <div className="text-2xl mb-2">✅</div>
-                                    <p className="font-semibold text-gray-900 text-sm mb-1">Respond Quickly</p>
+                                    <p className="font-semibold text-navy-950 text-sm mb-1">Respond Quickly</p>
                                     <p className="text-xs text-gray-600">When students request sessions, approve or respond within 24 hours. This helps you get more students!</p>
                                 </div>
-                                <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+                                <div className="p-4 bg-lime/20 rounded-lg border border-green-100">
                                     <div className="text-2xl mb-2">⭐</div>
-                                    <p className="font-semibold text-gray-900 text-sm mb-1">Get Great Reviews</p>
+                                    <p className="font-semibold text-navy-950 text-sm mb-1">Get Great Reviews</p>
                                     <p className="text-xs text-gray-600">After each session, ask students for feedback. Good reviews help more students find you!</p>
                                 </div>
-                                <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
+                                <div className="p-4 bg-royal/10 rounded-lg border border-purple-100">
                                     <div className="text-2xl mb-2">📚</div>
-                                    <p className="font-semibold text-gray-900 text-sm mb-1">Share Materials</p>
+                                    <p className="font-semibold text-navy-950 text-sm mb-1">Share Materials</p>
                                     <p className="text-xs text-gray-600">Upload study materials and homework. This helps students learn better and makes you stand out!</p>
                                 </div>
                             </div>
@@ -601,12 +602,12 @@ const TutorDashboard = () => {
                             {/* Recent Student Progress */}
                             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
                                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-                                    <h3 className="text-base font-bold text-gray-900">
+                                    <h3 className="text-base font-bold text-navy-950">
                                         Student Progress
                                     </h3>
                                     <button
                                         onClick={() => handleTabChange('students')}
-                                        className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+                                        className="text-sm text-gray-600 hover:text-navy-950 font-medium"
                                     >
                                         View All →
                                     </button>
@@ -626,20 +627,20 @@ const TutorDashboard = () => {
 
                             {/* Quick Actions */}
                             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm animate-fade-in-up">
-                                <h3 className="text-base font-bold text-gray-900 mb-6 pb-4 border-b border-gray-200">
+                                <h3 className="text-base font-bold text-navy-950 mb-6 pb-4 border-b border-gray-200">
                                     Quick Actions
                                 </h3>
                                 <div className="space-y-3">
                                     <button
                                         onClick={() => handleTabChange('sessions')}
-                                        className="w-full p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 text-left transition-all duration-200 transform hover:scale-[1.02] hover:shadow-sm"
+                                        className="w-full p-4 bg-royal/5 hover:bg-royal/10 rounded-lg border border-royal/30 text-left transition-all duration-200 transform hover:scale-[1.02] hover:shadow-sm"
                                     >
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="font-semibold text-gray-900">Book a Session</p>
+                                                <p className="font-semibold text-navy-950">Book a Session</p>
                                                 <p className="text-xs text-gray-600 mt-1">Use calendar to schedule sessions with students</p>
                                             </div>
-                                            <span className="text-indigo-600 transition-transform duration-200 group-hover:translate-x-1">→</span>
+                                            <span className="text-royal transition-transform duration-200 group-hover:translate-x-1">→</span>
                                         </div>
                                     </button>
                                     <button
@@ -648,7 +649,7 @@ const TutorDashboard = () => {
                                     >
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="font-semibold text-gray-900">Manage Sessions</p>
+                                                <p className="font-semibold text-navy-950">Manage Sessions</p>
                                                 <p className="text-xs text-gray-600 mt-1">View and manage all your sessions</p>
                                             </div>
                                             <span className="text-gray-600 transition-transform duration-200 group-hover:translate-x-1">→</span>
@@ -656,62 +657,62 @@ const TutorDashboard = () => {
                                     </button>
                                     <button
                                         onClick={() => handleTabChange('students')}
-                                        className="w-full p-4 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 text-left transition-colors"
+                                        className="w-full p-4 bg-lime/20 hover:bg-lime/30 rounded-lg border border-lime/40 text-left transition-colors"
                                     >
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="font-semibold text-gray-900">👨‍🎓 My Students</p>
+                                                <p className="font-semibold text-navy-950">👨‍🎓 My Students</p>
                                                 <p className="text-xs text-gray-600 mt-1">See all your students and their progress</p>
                                             </div>
-                                            <span className="text-green-600">→</span>
+                                            <span className="text-lime-dark">→</span>
                                         </div>
                                     </button>
                                     <button
                                         onClick={() => handleTabChange('resources')}
-                                        className="w-full p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 text-left transition-colors"
+                                        className="w-full p-4 bg-royal/10 hover:bg-purple-100 rounded-lg border border-royal/20 text-left transition-colors"
                                     >
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="font-semibold text-gray-900">📚 Study Materials</p>
+                                                <p className="font-semibold text-navy-950">📚 Study Materials</p>
                                                 <p className="text-xs text-gray-600 mt-1">Share materials with your students</p>
                                             </div>
-                                            <span className="text-purple-600">→</span>
+                                            <span className="text-navy-900">→</span>
                                         </div>
                                     </button>
                                     <button
                                         onClick={() => handleTabChange('schedule')}
-                                        className="w-full p-4 bg-teal-50 hover:bg-teal-100 rounded-lg border border-teal-200 text-left transition-colors"
+                                        className="w-full p-4 bg-royal/5 hover:bg-royal/10 rounded-lg border border-royal/20 text-left transition-colors"
                                     >
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="font-semibold text-gray-900">🗓️ Weekly Schedule</p>
+                                                <p className="font-semibold text-navy-950">🗓️ Weekly Schedule</p>
                                                 <p className="text-xs text-gray-600 mt-1">Set your available teaching slots</p>
                                             </div>
-                                            <span className="text-teal-600">→</span>
+                                            <span className="text-royal">→</span>
                                         </div>
                                     </button>
                                     <button
                                         onClick={() => handleTabChange('history')}
-                                        className="w-full p-4 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 text-left transition-colors"
+                                        className="w-full p-4 bg-lime/20 hover:bg-lime/30 rounded-lg border border-lime/40 text-left transition-colors"
                                     >
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="font-semibold text-gray-900">💰 Class History & Earnings</p>
+                                                <p className="font-semibold text-navy-950">💰 Class History & Earnings</p>
                                                 <p className="text-xs text-gray-600 mt-1">Track sessions and estimated income</p>
                                             </div>
-                                            <span className="text-emerald-600">→</span>
+                                            <span className="text-lime-dark">→</span>
                                         </div>
                                     </button>
                                     <button
                                         onClick={() => handleTabChange('profile')}
-                                        className="w-full p-4 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200 text-left transition-colors"
+                                        className="w-full p-4 bg-lime/20 hover:bg-lime/30 rounded-lg border border-lime/40 text-left transition-colors"
                                     >
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="font-semibold text-gray-900">✏️ Profile & Credibility</p>
+                                                <p className="font-semibold text-navy-950">✏️ Profile & Credibility</p>
                                                 <p className="text-xs text-gray-600 mt-1">Update profile and track your credibility score</p>
                                             </div>
-                                            <span className="text-amber-600">→</span>
+                                            <span className="text-lime-dark">→</span>
                                         </div>
                                     </button>
                                 </div>
@@ -723,7 +724,7 @@ const TutorDashboard = () => {
     };
 
     return (
-        <div className="h-screen bg-gray-50 flex overflow-hidden font-sans">
+        <div className="h-full bg-gray-50 flex overflow-hidden font-sans">
             <Sidebar
                 user={user}
                 activeTab={activeTab}
@@ -732,7 +733,7 @@ const TutorDashboard = () => {
 
             {/* Main Content Area */}
             <div className="flex-1 overflow-y-auto">
-                <main className="px-4 sm:px-8 py-8 min-h-full">
+                <main className="px-4 sm:px-6 lg:px-8 py-6 min-h-full">
                     {renderContent()}
                 </main>
             </div>

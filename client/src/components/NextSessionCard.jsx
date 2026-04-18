@@ -9,7 +9,7 @@ const NextSessionCard = ({ session }) => {
                 <p className="text-gray-600 mb-6">Find a tutor and book your first session!</p>
                 <Link
                     to="/find-tutors"
-                    className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition shadow-lg hover:shadow-xl"
+                    className="inline-flex items-center px-6 py-3 bg-royal text-white font-medium rounded-lg hover:bg-royal-dark transition shadow-lg hover:shadow-xl"
                 >
                     Browse Tutors →
                 </Link>
@@ -22,7 +22,7 @@ const NextSessionCard = ({ session }) => {
     const timeUntil = getTimeUntil(sessionDate);
 
     return (
-        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-2xl">
+        <div className="bg-gradient-to-br from-royal to-navy-900 rounded-2xl p-6 text-white shadow-2xl">
             <div className="flex items-start justify-between mb-4">
                 <div>
                     <div className="flex items-center gap-2 mb-2">
@@ -35,7 +35,7 @@ const NextSessionCard = ({ session }) => {
                         </span>
                     )}
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${session.status === 'approved' ? 'bg-green-400/30 text-green-50' : 'bg-yellow-400/30 text-yellow-50'
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${session.status === 'approved' ? 'bg-lime/40 text-navy-950' : 'bg-lime/40 text-navy-950'
                     }`}>
                     {session.status === 'approved' ? 'Confirmed' : 'Pending'}
                 </span>
@@ -44,10 +44,10 @@ const NextSessionCard = ({ session }) => {
             <div className="space-y-3 mb-6">
                 <div>
                     <h4 className="text-2xl font-bold">{session.subject}</h4>
-                    <p className="text-indigo-100 text-lg">with {session.tutorId?.name || 'Tutor'}</p>
+                    <p className="text-royal text-lg">with {session.tutorId?.name || 'Tutor'}</p>
                 </div>
 
-                <div className="flex items-center gap-4 text-sm text-indigo-100">
+                <div className="flex items-center gap-4 text-sm text-royal">
                     <span className="flex items-center gap-1">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -65,7 +65,7 @@ const NextSessionCard = ({ session }) => {
 
             <div className="flex gap-3">
                 {session.status === 'approved' && isToday && (
-                    <button className="flex-1 bg-white text-indigo-600 font-semibold py-3 px-4 rounded-lg hover:bg-indigo-50 transition shadow-lg">
+                    <button className="flex-1 bg-white text-royal font-semibold py-3 px-4 rounded-lg hover:bg-royal/5 transition shadow-lg">
                         Join Session →
                     </button>
                 )}

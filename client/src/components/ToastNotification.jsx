@@ -41,7 +41,7 @@ const ToastNotification = ({ notification, onClose, onNavigate }) => {
     const getGradient = (type) => {
         // Success (green)
         if (type.includes('approved') || type.includes('accepted') || type.includes('payment')) {
-            return 'from-green-500 to-emerald-600';
+            return 'from-lime-dark to-lime-dark';
         }
         // Error/Rejection (red)
         if (type.includes('rejected') || type.includes('cancellation') || type.includes('unavailable')) {
@@ -49,10 +49,10 @@ const ToastNotification = ({ notification, onClose, onNavigate }) => {
         }
         // Session/Reminder (purple)
         if (type.includes('session') || type.includes('reminder') || type.includes('starting')) {
-            return 'from-purple-500 to-indigo-600';
+            return 'from-royal to-royal-dark';
         }
         // Info/Request (blue)
-        return 'from-blue-500 to-cyan-600';
+        return 'from-royal/50 to-cyan-600';
     };
 
     const handleClick = () => {

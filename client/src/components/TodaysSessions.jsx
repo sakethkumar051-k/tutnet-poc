@@ -117,8 +117,8 @@ const TodaysSessions = () => {
 
     const getStatusColor = (status) => {
         const colors = {
-            scheduled: 'bg-blue-100 text-blue-800',
-            approved: 'bg-green-100 text-green-800',
+            scheduled: 'bg-royal/10 text-royal-dark',
+            approved: 'bg-lime/30 text-navy-950',
             completed: 'bg-gray-100 text-gray-800',
             student_absent: 'bg-red-100 text-red-800',
             tutor_absent: 'bg-orange-100 text-orange-800',
@@ -136,7 +136,7 @@ const TodaysSessions = () => {
     return (
         <div className="space-y-4">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">{title}</h2>
+                <h2 className="text-xl font-semibold text-navy-950 mb-4">{title}</h2>
                 
                 {sessions.length === 0 ? (
                     <EmptyState
@@ -158,7 +158,7 @@ const TodaysSessions = () => {
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-2">
-                                                <h3 className="font-semibold text-gray-900 text-lg">
+                                                <h3 className="font-semibold text-navy-950 text-lg">
                                                     {user?.role === 'student' 
                                                         ? session.tutorId?.name 
                                                         : session.studentId?.name}
@@ -196,7 +196,7 @@ const TodaysSessions = () => {
                                                         setSelectedSession(session);
                                                     }
                                                 }}
-                                                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                                className="px-4 py-2 bg-royal text-white rounded-md hover:bg-royal-dark transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-royal focus:ring-offset-2"
                                                 aria-label="View session details"
                                             >
                                                 View Details
@@ -206,7 +206,7 @@ const TodaysSessions = () => {
                                                     href={session.onlineLink}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium text-center focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                                                    className="px-4 py-2 bg-lime text-navy-950 rounded-xl hover:bg-lime-light transition-colors text-sm font-medium text-center focus:outline-none focus:ring-2 focus:ring-royal/30 focus:ring-offset-2"
                                                     aria-label="Join online session"
                                                 >
                                                     Join Session
@@ -217,11 +217,11 @@ const TodaysSessions = () => {
 
                                     {/* Session Details Summary - Always visible for completed sessions */}
                                     {(session.status === 'completed' || session.status === 'approved' || feedback) && (
-                                        <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3 border-l-4 border-indigo-500">
+                                        <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3 border-l-4 border-royal">
                                             {/* Attendance Status */}
                                             {session.hasAttendance && feedback?.attendanceStatus && (
                                                 <div className="flex items-center gap-2 text-sm">
-                                                    <span className="text-green-600 font-semibold">✅</span>
+                                                    <span className="text-lime-dark font-semibold">✅</span>
                                                     <span className="text-gray-700">
                                                         Attendance: <span className="font-medium capitalize">{feedback.attendanceStatus}</span>
                                                     </span>
@@ -234,14 +234,14 @@ const TodaysSessions = () => {
                                                     <p className="text-gray-500 mb-1 font-medium">📝 Session Summary:</p>
                                                     <p className="text-gray-700 line-clamp-2">{feedback.tutorSummary}</p>
                                                     {feedback.understandingScore && (
-                                                        <p className="text-xs text-indigo-600 mt-1">
+                                                        <p className="text-xs text-royal mt-1">
                                                             Understanding Score: {feedback.understandingScore}/5
                                                         </p>
                                                     )}
                                                     {feedback.topicsCovered && feedback.topicsCovered.length > 0 && (
                                                         <div className="flex flex-wrap gap-1 mt-2">
                                                             {feedback.topicsCovered.slice(0, 3).map((topic, idx) => (
-                                                                <span key={idx} className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs">
+                                                                <span key={idx} className="px-2 py-1 bg-royal/10 text-royal-dark rounded text-xs">
                                                                     {topic}
                                                                 </span>
                                                             ))}
@@ -258,7 +258,7 @@ const TodaysSessions = () => {
                                             {/* Study Materials */}
                                             {session.hasMaterials && feedback?.studyMaterials && (
                                                 <div className="flex items-center gap-2 text-sm">
-                                                    <span className="text-blue-600 font-semibold">📚</span>
+                                                    <span className="text-royal font-semibold">📚</span>
                                                     <span className="text-gray-700">
                                                         {feedback.studyMaterials.length} study material(s) available
                                                     </span>
@@ -279,7 +279,7 @@ const TodaysSessions = () => {
                                                             • {hw.description.substring(0, 50)}
                                                             {hw.description.length > 50 ? '...' : ''}
                                                             <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${
-                                                                hw.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                                hw.status === 'completed' ? 'bg-lime/30 text-navy-950' :
                                                                 hw.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
                                                                 'bg-gray-100 text-gray-700'
                                                             }`}>

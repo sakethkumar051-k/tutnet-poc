@@ -78,10 +78,10 @@ const NotificationCenter = () => {
 
     const getNotificationColor = (type) => {
         const colors = {
-            booking: 'bg-blue-50 border-blue-200',
+            booking: 'bg-royal/5 border-royal/20',
             review: 'bg-yellow-50 border-yellow-200',
-            approval: 'bg-green-50 border-green-200',
-            message: 'bg-purple-50 border-purple-200',
+            approval: 'bg-lime/20 border-lime/40',
+            message: 'bg-royal/10 border-royal/20',
             reminder: 'bg-orange-50 border-orange-200',
             system: 'bg-gray-50 border-gray-200'
         };
@@ -92,7 +92,7 @@ const NotificationCenter = () => {
         <div className="relative">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg transition-colors"
+                className="relative p-2 text-gray-600 hover:text-navy-950 focus:outline-none focus:ring-2 focus:ring-royal rounded-lg transition-colors"
             >
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -111,12 +111,12 @@ const NotificationCenter = () => {
                         onClick={() => setIsOpen(false)}
                     />
                     <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-20 max-h-96 overflow-hidden flex flex-col">
-                        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-indigo-50">
-                            <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-royal/5">
+                            <h3 className="text-lg font-semibold text-navy-950">Notifications</h3>
                             {unreadCount > 0 && (
                                 <button
                                     onClick={markAllAsRead}
-                                    className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                                    className="text-sm text-royal hover:text-navy-900 font-medium"
                                 >
                                     Mark all as read
                                 </button>
@@ -135,13 +135,13 @@ const NotificationCenter = () => {
                                     {notifications.map((notification) => (
                                         <div
                                             key={notification._id}
-                                            className={`px-4 py-3 hover:bg-gray-50 transition-colors ${!notification.isRead ? 'bg-indigo-50' : ''} ${getNotificationColor(notification.type)}`}
+                                            className={`px-4 py-3 hover:bg-gray-50 transition-colors ${!notification.isRead ? 'bg-royal/5' : ''} ${getNotificationColor(notification.type)}`}
                                         >
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-xl">{getNotificationIcon(notification.type)}</span>
-                                                        <p className={`text-sm font-medium ${!notification.isRead ? 'text-gray-900' : 'text-gray-700'}`}>
+                                                        <p className={`text-sm font-medium ${!notification.isRead ? 'text-navy-950' : 'text-gray-700'}`}>
                                                             {notification.title}
                                                         </p>
                                                     </div>
@@ -156,7 +156,7 @@ const NotificationCenter = () => {
                                                     {!notification.isRead && (
                                                         <button
                                                             onClick={() => markAsRead(notification._id)}
-                                                            className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
+                                                            className="p-1 text-gray-400 hover:text-royal transition-colors"
                                                             title="Mark as read"
                                                         >
                                                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

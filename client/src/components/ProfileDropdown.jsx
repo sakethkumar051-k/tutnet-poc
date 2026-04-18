@@ -29,17 +29,8 @@ const ProfileDropdown = () => {
         navigate('/');
     };
 
-    const getDashboardLink = () => {
-        if (user?.role === 'admin') return '/admin-dashboard';
-        if (user?.role === 'tutor') return '/tutor-dashboard';
-        return '/student-dashboard';
-    };
-
-    const getProfileLink = () => {
-        if (user?.role === 'tutor') return '/tutor-dashboard?tab=profile';
-        if (user?.role === 'student') return '/student-dashboard?tab=profile';
-        return '/complete-profile';
-    };
+    const getDashboardLink = () => '/dashboard';
+    const getProfileLink = () => user?.role ? '/dashboard?tab=profile' : '/complete-profile';
 
     const getInitials = (name) => {
         return name
@@ -57,11 +48,11 @@ const ProfileDropdown = () => {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full border transition-all duration-200 ${isOpen
-                        ? 'bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100'
+                        ? 'bg-royal/5 border-royal/30 ring-2 ring-royal/20'
                         : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
             >
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-royal to-navy-900 flex items-center justify-center text-white text-xs font-bold shadow-sm">
                     {getInitials(user?.name)}
                 </div>
                 <div className="text-left hidden md:block">
@@ -81,7 +72,7 @@ const ProfileDropdown = () => {
             {isOpen && (
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden ring-1 ring-black ring-opacity-5 animate-scale-in origin-top-right">
                     <div className="p-4 bg-gray-50 border-b border-gray-100">
-                        <p className="text-sm font-bold text-gray-900 truncate">{user?.name}</p>
+                        <p className="text-sm font-bold text-navy-950 truncate">{user?.name}</p>
                         <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                     </div>
 
@@ -89,7 +80,7 @@ const ProfileDropdown = () => {
                         <Link
                             to={getDashboardLink()}
                             onClick={() => setIsOpen(false)}
-                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-50 hover:text-indigo-600 transition-colors"
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-50 hover:text-royal transition-colors"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -100,7 +91,7 @@ const ProfileDropdown = () => {
                         <Link
                             to={getProfileLink()}
                             onClick={() => setIsOpen(false)}
-                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-50 hover:text-indigo-600 transition-colors"
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-50 hover:text-royal transition-colors"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />

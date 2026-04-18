@@ -70,7 +70,7 @@ const AdminAnalytics = () => {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`${activeTab === tab.id
-                                    ? 'border-indigo-500 text-indigo-600'
+                                    ? 'border-royal text-royal'
                                     : 'border-transparent text-gray-500 hover:text-gray-700'
                                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
                         >
@@ -88,16 +88,16 @@ const AdminAnalytics = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                             <h3 className="text-sm font-medium text-gray-500 mb-2">Total Users</h3>
-                            <p className="text-3xl font-bold text-gray-900">{analytics.users.total}</p>
+                            <p className="text-3xl font-bold text-navy-950">{analytics.users.total}</p>
                             <p className="text-xs text-gray-400 mt-2">+{analytics.users.recent} new (30 days)</p>
                         </div>
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                             <h3 className="text-sm font-medium text-gray-500 mb-2">Students</h3>
-                            <p className="text-3xl font-bold text-blue-600">{analytics.users.students}</p>
+                            <p className="text-3xl font-bold text-royal">{analytics.users.students}</p>
                         </div>
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                             <h3 className="text-sm font-medium text-gray-500 mb-2">Tutors</h3>
-                            <p className="text-3xl font-bold text-indigo-600">{analytics.users.tutors}</p>
+                            <p className="text-3xl font-bold text-royal">{analytics.users.tutors}</p>
                             <p className="text-xs text-gray-400 mt-2">
                                 {analytics.users.approvedTutors} approved, {analytics.users.pendingTutors} pending
                             </p>
@@ -108,11 +108,11 @@ const AdminAnalytics = () => {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                             <h3 className="text-sm font-medium text-gray-500 mb-2">Total Bookings</h3>
-                            <p className="text-3xl font-bold text-gray-900">{analytics.bookings.total}</p>
+                            <p className="text-3xl font-bold text-navy-950">{analytics.bookings.total}</p>
                         </div>
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                             <h3 className="text-sm font-medium text-gray-500 mb-2">Completed</h3>
-                            <p className="text-3xl font-bold text-green-600">{analytics.bookings.completed}</p>
+                            <p className="text-3xl font-bold text-lime-dark">{analytics.bookings.completed}</p>
                         </div>
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                             <h3 className="text-sm font-medium text-gray-500 mb-2">Pending</h3>
@@ -120,7 +120,7 @@ const AdminAnalytics = () => {
                         </div>
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                             <h3 className="text-sm font-medium text-gray-500 mb-2">Recent (30d)</h3>
-                            <p className="text-3xl font-bold text-blue-600">{analytics.bookings.recent}</p>
+                            <p className="text-3xl font-bold text-royal">{analytics.bookings.recent}</p>
                         </div>
                     </div>
 
@@ -128,14 +128,14 @@ const AdminAnalytics = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                             <h3 className="text-sm font-medium text-gray-500 mb-2">Reviews</h3>
-                            <p className="text-3xl font-bold text-gray-900">{analytics.reviews.total}</p>
+                            <p className="text-3xl font-bold text-navy-950">{analytics.reviews.total}</p>
                             <p className="text-sm text-gray-600 mt-2">
                                 Average Rating: <span className="font-semibold">{analytics.reviews.averageRating} ⭐</span>
                             </p>
                         </div>
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                             <h3 className="text-sm font-medium text-gray-500 mb-2">Attendance</h3>
-                            <p className="text-3xl font-bold text-gray-900">{analytics.attendance.total}</p>
+                            <p className="text-3xl font-bold text-navy-950">{analytics.attendance.total}</p>
                             <p className="text-sm text-gray-600 mt-2">
                                 Rate: <span className="font-semibold">{analytics.attendance.rate}%</span>
                             </p>
@@ -160,7 +160,7 @@ const AdminAnalytics = () => {
                         </select>
                         <button
                             onClick={fetchReport}
-                            className="mt-2 md:mt-0 md:ml-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                            className="mt-2 md:mt-0 md:ml-2 px-4 py-2 bg-royal text-white rounded-md hover:bg-royal-dark"
                         >
                             Generate Report
                         </button>

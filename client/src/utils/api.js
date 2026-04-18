@@ -1,71 +1,59 @@
 import axios from 'axios';
 
-// Ensure baseURL always ends with /api
 export const getBaseURL = () => {
     const envURL = import.meta.env.VITE_API_URL;
-    let baseURL;
-
     if (envURL) {
-        baseURL = envURL.endsWith('/api') ? envURL : `${envURL.replace(/\/$/, '')}/api`;
-    } else {
-        baseURL = 'http://localhost:5001/api';
+        return envURL.endsWith('/api') ? envURL : `${envURL.replace(/\/$/, '')}/api`;
     }
-
-    console.log('API Base URL:', baseURL);
-    return baseURL;
+    return 'http://localhost:5001/api';
 };
 
-const baseURL = getBaseURL();
-
 const api = axios.create({
-    baseURL: baseURL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    baseURL: getBaseURL(),
+    timeout: 15_000,
+    headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor — injects Bearer token into every request
-api.interceptors.request.use(
-    (config) => {
-        const fullURL = config.baseURL + config.url;
-        console.log('API Request:', config.method?.toUpperCase(), fullURL);
+// Request interceptor — injects Bearer token
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
 
-        const token = localStorage.getItem('token');
-        console.log('Has token:', !!token);
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
+// Response interceptor — handle auth errors globally
+const PUBLIC_PATHS = ['/login', '/register', '/oauth-success', '/complete-profile', '/admin-login', '/'];
+const PUBLIC_PATH_PREFIXES = ['/find-tutors', '/tutor/', '/about', '/courses', '/contact', '/onboarding'];
 
-// FIX: Added response interceptor to handle auth errors globally.
-//
-// 401 Unauthorized — token is missing, expired, or invalid.
-//   → Clear stored token and redirect to /login so the user re-authenticates.
-//   → Skip redirect if already on a public page to avoid redirect loops.
-//
-// 403 Forbidden — user IS authenticated but does not own the resource.
-//   → Do NOT redirect to login (they are logged in, just not authorized).
-//   → Let the individual component handle and show the error message.
-//   → Previously there was no interceptor at all, so 401s failed silently
-//     and stale tokens would never get cleared automatically.
+const isPublicPath = (path) =>
+    PUBLIC_PATHS.includes(path) || PUBLIC_PATH_PREFIXES.some((p) => path.startsWith(p));
+
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
         const status = error.response?.status;
         const currentPath = window.location.pathname;
-        const publicPaths = ['/login', '/register', '/oauth-success', '/complete-profile', '/admin-login'];
+        const originalRequest = error.config;
 
         if (status === 401) {
-            // Token expired or invalid — clear it and force re-login
+            // Drop the stale token — it's no longer valid.
             localStorage.removeItem('token');
-            if (!publicPaths.includes(currentPath)) {
+
+            if (isPublicPath(currentPath)) {
+                // On public pages, retry the original request once as a guest
+                // (no Authorization header) so the UI can still render data.
+                if (originalRequest && !originalRequest._retriedAsGuest) {
+                    originalRequest._retriedAsGuest = true;
+                    if (originalRequest.headers) delete originalRequest.headers.Authorization;
+                    return api.request(originalRequest);
+                }
+            } else {
                 window.location.href = '/login';
             }
         }
-        // 403: don't redirect — components display their own permission error
+        // 403: let components handle permission errors
 
         return Promise.reject(error);
     }

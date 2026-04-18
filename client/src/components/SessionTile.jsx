@@ -8,8 +8,8 @@ const SessionTile = ({ session, onAction, actionLabel, onRefresh }) => {
 
     const getStatusColor = (status) => {
         const colors = {
-            scheduled: 'bg-blue-50 text-blue-700',
-            approved: 'bg-green-50 text-green-700',
+            scheduled: 'bg-royal/5 text-royal-dark',
+            approved: 'bg-lime/20 text-navy-950',
             completed: 'bg-gray-100 text-gray-600',
             pending: 'bg-yellow-50 text-yellow-700',
             cancelled: 'bg-red-50 text-red-700'
@@ -41,13 +41,13 @@ const SessionTile = ({ session, onAction, actionLabel, onRefresh }) => {
             <div className="group bg-white rounded-xl border border-gray-100 p-4 hover:shadow-sm transition-all duration-200 flex items-center justify-between gap-4">
                 {/* Left: Avatar & Info */}
                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-royal/5 text-royal flex items-center justify-center font-bold text-sm">
                         {targetInitial}
                     </div>
 
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5">
-                            <h3 className="text-gray-900 font-semibold truncate text-sm sm:text-base">
+                            <h3 className="text-navy-950 font-semibold truncate text-sm sm:text-base">
                                 {targetName}
                             </h3>
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 uppercase tracking-wide">
@@ -55,7 +55,7 @@ const SessionTile = ({ session, onAction, actionLabel, onRefresh }) => {
                             </span>
                             {/* Payment badge */}
                             {session.status !== 'pending' && session.bookingCategory !== 'trial' && (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${session.isPaid ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${session.isPaid ? 'bg-lime/20 text-navy-950' : 'bg-lime/20 text-navy-950'}`}>
                                     {session.isPaid ? '✓ Paid' : 'Unpaid'}
                                 </span>
                             )}
@@ -68,7 +68,7 @@ const SessionTile = ({ session, onAction, actionLabel, onRefresh }) => {
                                 </span>
                             )}
                             {session.attendanceStatus && (
-                                <span className="flex items-center gap-1 text-green-600 font-medium">
+                                <span className="flex items-center gap-1 text-lime-dark font-medium">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                     Present
                                 </span>
@@ -83,7 +83,7 @@ const SessionTile = ({ session, onAction, actionLabel, onRefresh }) => {
                     {showPayButton && (
                         <button
                             onClick={() => setShowCheckout(true)}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-royal text-white text-xs font-semibold rounded-lg hover:bg-royal-dark transition-colors shadow-sm"
                         >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                                 <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
@@ -97,7 +97,7 @@ const SessionTile = ({ session, onAction, actionLabel, onRefresh }) => {
                             href={session.onlineLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                            className="inline-flex items-center px-4 py-2 bg-royal text-white text-sm font-medium rounded-lg hover:bg-royal-dark transition-colors shadow-sm"
                             onClick={() => { if (onAction) onAction(session, 'join'); }}
                         >
                             Join
@@ -105,7 +105,7 @@ const SessionTile = ({ session, onAction, actionLabel, onRefresh }) => {
                     ) : (
                         <button
                             onClick={() => onAction && onAction(session, 'view')}
-                            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-indigo-600 hover:bg-gray-50 rounded-lg transition-colors"
+                            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-royal hover:bg-gray-50 rounded-lg transition-colors"
                         >
                             {actionLabel || 'Details'}
                         </button>

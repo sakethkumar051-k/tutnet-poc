@@ -224,16 +224,16 @@ const SessionCalendar = ({ currentTutorId, tutorId, studentId, subject, onBookin
     return (
         <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
             <div className="mb-5 pb-4 border-b border-gray-200">
-                <h3 className="text-base font-bold text-gray-900 mb-2">Book a Session</h3>
+                <h3 className="text-base font-bold text-navy-950 mb-2">Book a Session</h3>
                 {user?.role === 'student' && tutorName && (
                     <p className="text-sm text-gray-600">
-                        With <span className="font-semibold text-gray-900">{tutorName}</span>
+                        With <span className="font-semibold text-navy-950">{tutorName}</span>
                         {subject && <span> - {subject}</span>}
                     </p>
                 )}
                 {user?.role === 'tutor' && studentName && (
                     <p className="text-sm text-gray-600">
-                        With <span className="font-semibold text-gray-900">{studentName}</span>
+                        With <span className="font-semibold text-navy-950">{studentName}</span>
                         {subject && <span> - {subject}</span>}
                     </p>
                 )}
@@ -281,15 +281,15 @@ const SessionCalendar = ({ currentTutorId, tutorId, studentId, subject, onBookin
                         aria-label={day ? `Select ${new Date(year, month, day).toLocaleDateString()}` : undefined}
                         className={`
                             p-2 text-sm rounded-md transition-all duration-200
-                            ${!day ? 'cursor-default invisible' : past ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500'}
-                            ${day && !past && isToday(day) ? 'bg-blue-100 font-semibold ring-2 ring-blue-300' : ''}
-                            ${day && !past && isSelected(day) ? 'bg-indigo-600 text-white shadow-md' : ''}
+                            ${!day ? 'cursor-default invisible' : past ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-royal'}
+                            ${day && !past && isToday(day) ? 'bg-royal/10 font-semibold ring-2 ring-blue-300' : ''}
+                            ${day && !past && isSelected(day) ? 'bg-royal text-white shadow-md' : ''}
                             ${day && !past && hasBooking(day) ? 'ring-2 ring-green-500' : ''}
                         `}
                     >
                         {day}
                         {day && !past && hasBooking(day) && (
-                            <span className="block w-1 h-1 bg-green-500 rounded-full mx-auto mt-1" />
+                            <span className="block w-1 h-1 bg-lime rounded-full mx-auto mt-1" />
                         )}
                     </button>
                 );})}
@@ -332,8 +332,8 @@ const SessionCalendar = ({ currentTutorId, tutorId, studentId, subject, onBookin
                                         ${isBooked
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200'
                                             : selectedTime === slot
-                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-indigo-50 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500'
+                                                ? 'bg-royal text-white border-royal shadow-md'
+                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-royal/5 hover:border-royal/40 focus:outline-none focus:ring-2 focus:ring-royal'
                                         }
                                     `}
                                 >
@@ -356,7 +356,7 @@ const SessionCalendar = ({ currentTutorId, tutorId, studentId, subject, onBookin
                         }
                     }}
                     disabled={loading}
-                    className="w-full mt-4 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex items-center justify-center"
+                    className="w-full mt-4 px-4 py-2 bg-navy-950 text-white rounded-md hover:bg-navy-900 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex items-center justify-center"
                 >
                     {loading ? (
                         <>

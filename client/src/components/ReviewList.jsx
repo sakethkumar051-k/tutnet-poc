@@ -72,7 +72,7 @@ const ReviewList = ({ tutorId, studentId }) => {
 
     return (
         <div className="space-y-4">
-            <h3 className="text-base font-bold text-gray-900 mb-5 pb-3 border-b border-gray-200">
+            <h3 className="text-base font-bold text-navy-950 mb-5 pb-3 border-b border-gray-200">
                 Reviews ({reviews.length})
             </h3>
 
@@ -87,7 +87,7 @@ const ReviewList = ({ tutorId, studentId }) => {
                                         <span
                                             key={star}
                                             className={`text-xl ${star <= review.rating
-                                                    ? 'text-yellow-400'
+                                                    ? 'text-lime-dark'
                                                     : 'text-gray-300'
                                                 }`}
                                         >
@@ -95,13 +95,13 @@ const ReviewList = ({ tutorId, studentId }) => {
                                         </span>
                                     ))}
                                 </div>
-                                <span className="text-base font-semibold text-gray-900">
+                                <span className="text-base font-semibold text-navy-950">
                                     {review.rating}.0
                                 </span>
                             </div>
 
                             {/* Student Name */}
-                            <p className="font-semibold text-gray-900 mb-2 text-base">
+                            <p className="font-semibold text-navy-950 mb-2 text-base">
                                 {review.studentId?.name || 'Anonymous'}
                             </p>
 
@@ -122,7 +122,7 @@ const ReviewList = ({ tutorId, studentId }) => {
                         {studentId && review.tutorId && (
                             <div className="ml-6 text-right">
                                 <p className="text-xs text-gray-600 mb-1 font-medium">Tutor:</p>
-                                <p className="font-semibold text-indigo-600 text-base">
+                                <p className="font-semibold text-royal text-base">
                                     {review.tutorId.name}
                                 </p>
                             </div>

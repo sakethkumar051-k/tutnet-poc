@@ -64,7 +64,7 @@ const StudyMaterials = () => {
                         <select
                             value={filters.subject}
                             onChange={(e) => setFilters({ ...filters, subject: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-royal"
                         >
                             <option value="">All Subjects</option>
                             <option value="Mathematics">Mathematics</option>
@@ -79,7 +79,7 @@ const StudyMaterials = () => {
                         <select
                             value={filters.classGrade}
                             onChange={(e) => setFilters({ ...filters, classGrade: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-royal"
                         >
                             <option value="">All Classes</option>
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(grade => (
@@ -91,7 +91,7 @@ const StudyMaterials = () => {
                         <div className="flex items-end">
                             <button
                                 onClick={() => setShowUploadModal(true)}
-                                className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                                className="w-full px-4 py-2 bg-royal text-white rounded-md hover:bg-royal-dark transition-colors"
                             >
                                 + Upload Material
                             </button>
@@ -120,7 +120,7 @@ const StudyMaterials = () => {
                                 <div className="flex items-center gap-2">
                                     <span className="text-2xl">{getFileIcon(material.fileType)}</span>
                                     <div>
-                                        <h3 className="font-semibold text-gray-900">{material.title}</h3>
+                                        <h3 className="font-semibold text-navy-950">{material.title}</h3>
                                         <p className="text-xs text-gray-500">{material.subject} • {material.classGrade}</p>
                                     </div>
                                 </div>
@@ -140,7 +140,7 @@ const StudyMaterials = () => {
                                         handleDownload(material);
                                     }
                                 }}
-                                className="w-full px-4 py-2 bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full px-4 py-2 bg-royal/5 text-royal rounded-md hover:bg-royal/10 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-royal"
                                 aria-label={`Download ${material.title}`}
                             >
                                 Download / View

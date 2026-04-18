@@ -48,8 +48,8 @@ const NotificationPanel = () => {
             case 'booking_approved':
             case 'demo_accepted':
                 return (
-                    <div className="bg-green-100 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-lime/30 p-2 rounded-full">
+                        <svg className="w-5 h-5 text-lime-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
@@ -69,16 +69,16 @@ const NotificationPanel = () => {
             case 'demo_booking_created':
             case 'schedule_updated':
                 return (
-                    <div className="bg-indigo-100 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-royal/10 p-2 rounded-full">
+                        <svg className="w-5 h-5 text-royal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                     </div>
                 );
             case 'session_missed':
                 return (
-                    <div className="bg-amber-100 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-lime/30 p-2 rounded-full">
+                        <svg className="w-5 h-5 text-lime-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                     </div>
@@ -86,7 +86,7 @@ const NotificationPanel = () => {
             case 'admin_alert':
                 return (
                     <div className="bg-purple-100 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-navy-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
@@ -94,8 +94,8 @@ const NotificationPanel = () => {
             case 'session_reminder':
             case 'session_starting_soon':
                 return (
-                    <div className="bg-amber-100 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-lime/30 p-2 rounded-full">
+                        <svg className="w-5 h-5 text-lime-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
@@ -113,8 +113,8 @@ const NotificationPanel = () => {
             case 'homework_completed':
             case 'study_material_added':
                 return (
-                    <div className="bg-blue-100 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-royal/10 p-2 rounded-full">
+                        <svg className="w-5 h-5 text-royal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
                     </div>
@@ -122,8 +122,8 @@ const NotificationPanel = () => {
             case 'attendance_marked':
             case 'session_completed':
                 return (
-                    <div className="bg-green-100 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-lime/30 p-2 rounded-full">
+                        <svg className="w-5 h-5 text-lime-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                         </svg>
                     </div>
@@ -132,7 +132,7 @@ const NotificationPanel = () => {
             case 'tutor_verification_approved':
                 return (
                     <div className="bg-purple-100 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-navy-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
@@ -176,12 +176,12 @@ const NotificationPanel = () => {
             >
                 {/* Header */}
                 <div className="px-4 py-3 border-b border-gray-100 bg-white flex justify-between items-center sticky top-0 z-10">
-                    <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Notifications</h3>
+                    <h3 className="font-bold text-navy-950 text-sm uppercase tracking-wide">Notifications</h3>
                     <div className="flex items-center gap-3">
                         {notifications.length > 0 && (
                             <button
                                 onClick={markAllAsRead}
-                                className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+                                className="text-xs font-medium text-royal hover:text-navy-900 transition-colors"
                             >
                                 Mark all read
                             </button>
@@ -211,7 +211,7 @@ const NotificationPanel = () => {
                             <div className="bg-gray-50 p-4 rounded-full mb-3">
                                 <span className="text-2xl">🎉</span>
                             </div>
-                            <h4 className="text-gray-900 font-medium mb-1">You're all caught up!</h4>
+                            <h4 className="text-navy-950 font-medium mb-1">You're all caught up!</h4>
                             <p className="text-gray-500 text-sm">No new notifications at the moment.</p>
                         </div>
                     ) : (
@@ -220,7 +220,7 @@ const NotificationPanel = () => {
                                 <li
                                     key={notification._id}
                                     onClick={() => handleClick(notification)}
-                                    className={`relative p-4 hover:bg-gray-50 transition-colors cursor-pointer group ${!notification.isRead ? 'bg-indigo-50/40' : 'bg-white'}`}
+                                    className={`relative p-4 hover:bg-gray-50 transition-colors cursor-pointer group ${!notification.isRead ? 'bg-royal/5/40' : 'bg-white'}`}
                                 >
                                     <div className="flex gap-3 items-start">
                                         <div className="flex-shrink-0 mt-0.5 transition-transform group-hover:scale-110 duration-200">
@@ -228,7 +228,7 @@ const NotificationPanel = () => {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-start gap-2">
-                                                <p className={`text-sm ${!notification.isRead ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                                                <p className={`text-sm ${!notification.isRead ? 'font-bold text-navy-950' : 'font-medium text-gray-700'}`}>
                                                     {notification.title}
                                                 </p>
                                                 <span className="text-[10px] text-gray-400 whitespace-nowrap flex-shrink-0 pt-0.5">
@@ -240,7 +240,7 @@ const NotificationPanel = () => {
                                             </p>
                                         </div>
                                         {!notification.isRead && (
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 bg-indigo-500 rounded-full ring-4 ring-indigo-50/50"></div>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 bg-royal/50 rounded-full ring-4 ring-royal/10/50"></div>
                                         )}
                                     </div>
                                 </li>

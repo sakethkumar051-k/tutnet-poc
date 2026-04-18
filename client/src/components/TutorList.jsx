@@ -3,46 +3,30 @@ import api from '../utils/api';
 import TutorCard from './TutorCard';
 import RequestDemoModal from './RequestDemoModal';
 import TutorSearch from './TutorSearch';
-import LoadingSkeleton from './LoadingSkeleton';
 
-/* ── Filter chip ─────────────────────────────────────────────────────────── */
-const FilterChip = ({ label, onRemove }) => (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full text-xs font-semibold">
-        {label}
-        <button onClick={onRemove} className="ml-0.5 hover:text-indigo-900 transition-colors">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
-    </span>
-);
-
-/* ── Card skeleton ───────────────────────────────────────────────────────── */
 const CardSkeleton = () => (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4 animate-pulse">
-        <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-xl bg-gray-100 flex-shrink-0" />
-            <div className="flex-1 space-y-2">
-                <div className="h-4 bg-gray-100 rounded w-3/4" />
-                <div className="h-3 bg-gray-100 rounded w-1/2" />
-                <div className="h-3 bg-gray-100 rounded w-1/3" />
+    <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden animate-pulse">
+        <div className="h-24 bg-gradient-to-br from-gray-200 to-gray-100" />
+        <div className="pt-8 px-5 pb-5 space-y-2.5">
+            <div className="h-4 bg-gray-100 rounded w-3/5" />
+            <div className="h-3 bg-gray-50 rounded w-4/5" />
+            <div className="flex gap-1 pt-0.5">
+                {[1,2].map(i => <div key={i} className="h-5 w-16 bg-gray-50 rounded-md" />)}
+            </div>
+            <div className="flex gap-2 pt-1">
+                <div className="flex-1 h-9 bg-gray-100 rounded-lg" />
+                <div className="h-9 w-20 bg-gray-100 rounded-lg" />
             </div>
         </div>
-        <div className="flex gap-2">
-            {[1,2,3].map(i => <div key={i} className="h-6 w-20 bg-gray-100 rounded-md" />)}
-        </div>
-        <div className="h-14 bg-gray-50 rounded-xl" />
-        <div className="h-9 bg-gray-100 rounded-lg" />
     </div>
 );
 
-/* ── Main component ──────────────────────────────────────────────────────── */
 const SORT_OPTIONS = [
     { label: 'Best Match',       value: 'match' },
     { label: 'Highest Rated',    value: 'rating' },
     { label: 'Most Experienced', value: 'experience' },
-    { label: 'Lowest Price',     value: 'price_asc' },
-    { label: 'Highest Price',    value: 'price_desc' },
+    { label: 'Price: Low → High', value: 'price_asc' },
+    { label: 'Price: High → Low', value: 'price_desc' },
 ];
 
 const EMPTY_FILTERS = {
@@ -53,6 +37,7 @@ const EMPTY_FILTERS = {
 const TutorList = () => {
     const [tutors, setTutors] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(null);
     const [selectedTutor, setSelectedTutor] = useState(null);
     const [sort, setSort] = useState('match');
     const [activeFilters, setActiveFilters] = useState(EMPTY_FILTERS);
@@ -60,6 +45,7 @@ const TutorList = () => {
 
     const fetchTutors = useCallback(async (filters = EMPTY_FILTERS) => {
         setLoading(true);
+        setFetchError(null);
         try {
             const params = new URLSearchParams();
             if (filters.subject)       params.append('subject',       filters.subject);
@@ -79,6 +65,11 @@ const TutorList = () => {
             setActiveFilters(filters);
         } catch (err) {
             console.error('Error fetching tutors:', err);
+            const msg = err?.response?.data?.message
+                || err?.message
+                || 'Could not load tutors. Check your connection and try again.';
+            setFetchError(msg);
+            setTutors([]);
         } finally {
             setLoading(false);
         }
@@ -90,36 +81,14 @@ const TutorList = () => {
         fetchTutors();
     }, [fetchTutors]);
 
-    // Client-side sort
     const sorted = useMemo(() => {
         const arr = [...tutors];
         if (sort === 'rating')      return arr.sort((a,b) => (b.averageRating||0) - (a.averageRating||0));
         if (sort === 'experience')  return arr.sort((a,b) => (b.experienceYears||0) - (a.experienceYears||0));
         if (sort === 'price_asc')   return arr.sort((a,b) => (a.hourlyRate||0) - (b.hourlyRate||0));
         if (sort === 'price_desc')  return arr.sort((a,b) => (b.hourlyRate||0) - (a.hourlyRate||0));
-        return arr; // match = API order
+        return arr;
     }, [tutors, sort]);
-
-    // Build active filter chips
-    const chips = useMemo(() => {
-        const list = [];
-        if (activeFilters.subject)       list.push({ key: 'subject',       label: activeFilters.subject });
-        if (activeFilters.class)         list.push({ key: 'class',         label: activeFilters.class });
-        if (activeFilters.area)          list.push({ key: 'area',          label: activeFilters.area });
-        if (activeFilters.mode && activeFilters.mode !== 'all')
-            list.push({ key: 'mode', label: `Mode: ${activeFilters.mode}` });
-        if (activeFilters.minRate)       list.push({ key: 'minRate',       label: `Min ₹${activeFilters.minRate}` });
-        if (activeFilters.maxRate)       list.push({ key: 'maxRate',       label: `Max ₹${activeFilters.maxRate}` });
-        if (activeFilters.minExperience) list.push({ key: 'minExperience', label: `${activeFilters.minExperience}+ yrs exp` });
-        if (activeFilters.minRating)     list.push({ key: 'minRating',     label: `${activeFilters.minRating}★+` });
-        if (activeFilters.verifiedOnly)  list.push({ key: 'verifiedOnly',  label: 'Verified only' });
-        return list;
-    }, [activeFilters]);
-
-    const removeChip = (key) => {
-        const next = { ...activeFilters, [key]: key === 'verifiedOnly' ? false : key === 'mode' ? 'all' : '' };
-        fetchTutors(next);
-    };
 
     const onFavoriteChange = useCallback((tutorUserId, isFavorite) => {
         setTutors(prev => prev.map(t => {
@@ -137,69 +106,86 @@ const TutorList = () => {
 
     return (
         <div className="space-y-5">
-            {/* Filters */}
             <TutorSearch onSearch={fetchTutors} />
 
-            {/* Results control strip */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 border-b border-gray-200">
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-bold text-gray-900">
-                        {loading ? (
-                            <span className="inline-block w-6 h-4 bg-gray-200 rounded animate-pulse" />
-                        ) : (
-                            <>{sorted.length} tutor{sorted.length !== 1 ? 's' : ''}</>
-                        )}
-                        <span className="text-gray-500 font-normal"> found</span>
-                    </span>
-                    {chips.map(chip => (
-                        <FilterChip key={chip.key} label={chip.label}
-                            onRemove={() => removeChip(chip.key)} />
-                    ))}
-                    {chips.length > 0 && (
-                        <button onClick={() => fetchTutors(EMPTY_FILTERS)}
-                            className="text-xs text-red-500 hover:text-red-700 font-semibold transition-colors">
-                            Reset all
-                        </button>
+            {/* Results bar */}
+            <div className="flex items-center justify-between px-1">
+                <p className="text-[13px] text-gray-500">
+                    {loading ? (
+                        <span className="inline-block w-24 h-4 bg-gray-100 rounded animate-pulse" />
+                    ) : (
+                        <>
+                            <span className="font-extrabold text-navy-950 text-base">{sorted.length}</span>
+                            <span className="ml-1">tutor{sorted.length !== 1 ? 's' : ''} available</span>
+                        </>
                     )}
-                </div>
-
-                {/* Sort */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                    <label className="text-xs text-gray-500 font-medium">Sort:</label>
-                    <select value={sort} onChange={e => setSort(e.target.value)}
-                        className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white font-medium text-gray-700">
+                </p>
+                <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-gray-400 font-semibold hidden sm:block uppercase tracking-wider">Sort</span>
+                    <select
+                        value={sort}
+                        onChange={e => setSort(e.target.value)}
+                        className="text-[12px] border border-gray-200 rounded-full px-3.5 py-1.5 bg-white text-navy-950 font-semibold focus:outline-none focus:ring-2 focus:ring-royal/20 focus:border-royal/40 cursor-pointer"
+                    >
                         {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                 </div>
             </div>
 
-            {/* Tutor grid */}
+            {/* Tutor grid — auto-rows stretch for equal heights */}
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 auto-rows-fr">
                     {[1,2,3,4,5,6].map(i => <CardSkeleton key={i} />)}
                 </div>
+            ) : fetchError ? (
+                <div className="text-center py-24 bg-white rounded-3xl border border-gray-100">
+                    <div className="w-20 h-20 rounded-2xl bg-royal/10 flex items-center justify-center mx-auto mb-5">
+                        <svg className="w-8 h-8 text-royal" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M12 3c4.97 0 9 4.03 9 9s-4.03 9-9 9-9-4.03-9-9 4.03-9 9-9z" />
+                        </svg>
+                    </div>
+                    <h3 className="text-lg font-extrabold text-navy-950 mb-1">Couldn't load tutors</h3>
+                    <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">{fetchError}</p>
+                    <button
+                        onClick={() => fetchTutors(activeFilters)}
+                        className="px-6 py-3 bg-lime text-navy-950 text-sm font-bold rounded-full hover:bg-lime-light transition-colors shadow-sm"
+                    >
+                        Try again
+                    </button>
+                </div>
             ) : sorted.length === 0 ? (
-                <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
-                    <div className="text-5xl mb-4">🔍</div>
-                    <h3 className="text-base font-bold text-gray-800 mb-1">No tutors match your filters</h3>
-                    <p className="text-sm text-gray-500 max-w-sm mx-auto mb-5">
-                        Try adjusting your subject, class, or location filters to see more tutors.
+                <div className="text-center py-24 bg-white rounded-3xl border border-gray-100">
+                    <div className="w-20 h-20 rounded-2xl bg-royal/10 flex items-center justify-center mx-auto mb-5">
+                        <svg className="w-8 h-8 text-royal" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                        </svg>
+                    </div>
+                    <h3 className="text-lg font-extrabold text-navy-950 mb-1">No tutors found</h3>
+                    <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">
+                        Try broadening your search or removing some filters
                     </p>
-                    <button onClick={() => fetchTutors(EMPTY_FILTERS)}
-                        className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
-                        Clear Filters
+                    <button
+                        onClick={() => fetchTutors(EMPTY_FILTERS)}
+                        className="px-6 py-3 bg-lime text-navy-950 text-sm font-bold rounded-full hover:bg-lime-light transition-colors shadow-sm"
+                    >
+                        Clear all filters
                     </button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {sorted.map(tutor => (
-                        <TutorCard
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 auto-rows-fr">
+                    {sorted.map((tutor, i) => (
+                        <div
                             key={tutor._id}
-                            tutor={tutor}
-                            onRequestDemo={onRequestDemo}
-                            onFavoriteChange={onFavoriteChange}
-                            onBookingSuccess={onBookingSuccess}
-                        />
+                            className="animate-fade-in-up flex"
+                            style={{ animationDelay: `${Math.min(i * 60, 400)}ms` }}
+                        >
+                            <TutorCard
+                                tutor={tutor}
+                                onRequestDemo={onRequestDemo}
+                                onFavoriteChange={onFavoriteChange}
+                                onBookingSuccess={onBookingSuccess}
+                            />
+                        </div>
                     ))}
                 </div>
             )}

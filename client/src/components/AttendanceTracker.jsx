@@ -37,10 +37,10 @@ const AttendanceTracker = () => {
 
     const getStatusColor = (status) => {
         const colors = {
-            present: 'bg-green-100 text-green-800',
+            present: 'bg-lime/30 text-navy-950',
             absent: 'bg-red-100 text-red-800',
             late: 'bg-yellow-100 text-yellow-800',
-            excused: 'bg-blue-100 text-blue-800'
+            excused: 'bg-royal/10 text-royal-dark'
         };
         return colors[status] || colors.present;
     };
@@ -101,20 +101,20 @@ const AttendanceTracker = () => {
             {stats && (
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div className="bg-white rounded-lg border border-gray-200 p-6 text-center shadow-sm">
-                        <p className="text-4xl font-bold text-gray-900 mb-2">{stats.total}</p>
+                        <p className="text-4xl font-bold text-navy-950 mb-2">{stats.total}</p>
                         <p className="text-sm text-gray-600 font-medium">Total Sessions</p>
                     </div>
                     <div className="bg-white rounded-lg border border-gray-200 p-6 text-center shadow-sm">
-                        <p className="text-4xl font-bold text-gray-900 mb-2">{stats.present}</p>
+                        <p className="text-4xl font-bold text-navy-950 mb-2">{stats.present}</p>
                         <p className="text-sm text-gray-600 font-medium mb-1">Present</p>
                         {stats.total > 0 && (
-                            <p className="text-sm font-semibold text-green-600">
+                            <p className="text-sm font-semibold text-lime-dark">
                                 {((stats.present / stats.total) * 100).toFixed(1)}%
                             </p>
                         )}
                     </div>
                     <div className="bg-white rounded-lg border border-gray-200 p-6 text-center shadow-sm">
-                        <p className="text-4xl font-bold text-gray-900 mb-2">{stats.absent}</p>
+                        <p className="text-4xl font-bold text-navy-950 mb-2">{stats.absent}</p>
                         <p className="text-sm text-gray-600 font-medium mb-1">Absent</p>
                         {stats.total > 0 && (
                             <p className="text-sm font-semibold text-red-600">
@@ -123,7 +123,7 @@ const AttendanceTracker = () => {
                         )}
                     </div>
                     <div className="bg-white rounded-lg border border-gray-200 p-6 text-center shadow-sm">
-                        <p className="text-4xl font-bold text-gray-900 mb-2">{stats.late}</p>
+                        <p className="text-4xl font-bold text-navy-950 mb-2">{stats.late}</p>
                         <p className="text-sm text-gray-600 font-medium mb-1">Late</p>
                         {stats.total > 0 && (
                             <p className="text-sm font-semibold text-yellow-600">
@@ -132,12 +132,12 @@ const AttendanceTracker = () => {
                         )}
                     </div>
                     <div className="bg-white rounded-lg border border-gray-200 p-6 text-center shadow-sm">
-                        <p className="text-4xl font-bold text-indigo-600 mb-2">{stats.attendancePercentage}%</p>
+                        <p className="text-4xl font-bold text-royal mb-2">{stats.attendancePercentage}%</p>
                         <p className="text-sm text-gray-600 font-medium mb-1">Attendance Rate</p>
                         {weeklyTrend.trend !== 0 && (
                             <div className="flex items-center justify-center gap-1 mt-1">
                                 <span className={`text-sm font-semibold ${
-                                    weeklyTrend.trend > 0 ? 'text-green-600' : 'text-red-600'
+                                    weeklyTrend.trend > 0 ? 'text-lime-dark' : 'text-red-600'
                                 }`}>
                                     {weeklyTrend.trend > 0 ? '↑' : '↓'} {Math.abs(weeklyTrend.trend).toFixed(1)}%
                                 </span>
@@ -150,11 +150,11 @@ const AttendanceTracker = () => {
             {/* Weekly Trend */}
             {stats && attendance.length > 0 && (
                 <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                    <h3 className="text-base font-bold text-gray-900 mb-5 pb-3 border-b border-gray-200">Weekly Trend</h3>
+                    <h3 className="text-base font-bold text-navy-950 mb-5 pb-3 border-b border-gray-200">Weekly Trend</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="p-5 bg-indigo-50 rounded-lg border border-indigo-100">
+                        <div className="p-5 bg-royal/5 rounded-lg border border-royal/20">
                             <p className="text-sm text-gray-600 mb-2 font-medium">This Week</p>
-                            <p className="text-3xl font-bold text-indigo-600 mb-1">{weeklyTrend.thisWeek}%</p>
+                            <p className="text-3xl font-bold text-royal mb-1">{weeklyTrend.thisWeek}%</p>
                             <p className="text-xs text-gray-600">
                                 {attendance.filter(a => {
                                     const date = new Date(a.sessionDate);
@@ -168,11 +168,11 @@ const AttendanceTracker = () => {
                             <p className="text-xs text-gray-600">Previous period</p>
                         </div>
                         <div className={`p-5 rounded-lg border ${
-                            weeklyTrend.trend > 0 ? 'bg-green-50 border-green-100' : weeklyTrend.trend < 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-200'
+                            weeklyTrend.trend > 0 ? 'bg-lime/20 border-green-100' : weeklyTrend.trend < 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-200'
                         }`}>
                             <p className="text-sm text-gray-600 mb-2 font-medium">Change</p>
                             <p className={`text-3xl font-bold mb-1 ${
-                                weeklyTrend.trend > 0 ? 'text-green-600' : weeklyTrend.trend < 0 ? 'text-red-600' : 'text-gray-700'
+                                weeklyTrend.trend > 0 ? 'text-lime-dark' : weeklyTrend.trend < 0 ? 'text-red-600' : 'text-gray-700'
                             }`}>
                                 {weeklyTrend.trend > 0 ? '+' : ''}{weeklyTrend.trend.toFixed(1)}%
                             </p>
@@ -187,7 +187,7 @@ const AttendanceTracker = () => {
             {/* Monthly Breakdown */}
             {Object.keys(monthlyData).length > 0 && (
                 <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                    <h3 className="text-base font-bold text-gray-900 mb-5 pb-3 border-b border-gray-200">Monthly Breakdown</h3>
+                    <h3 className="text-base font-bold text-navy-950 mb-5 pb-3 border-b border-gray-200">Monthly Breakdown</h3>
                     <div className="space-y-4">
                         {Object.entries(monthlyData)
                             .sort((a, b) => b[0].localeCompare(a[0]))
@@ -198,20 +198,20 @@ const AttendanceTracker = () => {
                                 return (
                                     <div key={month} className="border border-gray-200 rounded-lg p-5 hover:border-gray-300 transition-colors">
                                         <div className="flex items-center justify-between mb-3">
-                                            <p className="font-semibold text-gray-900">
+                                            <p className="font-semibold text-navy-950">
                                                 {date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                                             </p>
-                                            <p className="text-xl font-bold text-indigo-600">{rate}%</p>
+                                            <p className="text-xl font-bold text-royal">{rate}%</p>
                                         </div>
                                         <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                                             <span className="font-medium">Total: {data.total}</span>
-                                            <span className="text-green-600 font-medium">Present: {data.present}</span>
+                                            <span className="text-lime-dark font-medium">Present: {data.present}</span>
                                             <span className="text-red-600 font-medium">Absent: {data.absent}</span>
                                             {data.late > 0 && <span className="text-yellow-600 font-medium">Late: {data.late}</span>}
                                         </div>
                                         <div className="w-full bg-gray-200 rounded-full h-2.5">
                                             <div
-                                                className="bg-indigo-600 h-2.5 rounded-full transition-all"
+                                                className="bg-royal h-2.5 rounded-full transition-all"
                                                 style={{ width: `${rate}%` }}
                                             />
                                         </div>
@@ -225,7 +225,7 @@ const AttendanceTracker = () => {
             {/* Attendance List */}
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
                 <div className="px-6 py-5 border-b border-gray-200 bg-gray-50">
-                    <h3 className="text-base font-bold text-gray-900">Attendance Records</h3>
+                    <h3 className="text-base font-bold text-navy-950">Attendance Records</h3>
                     <p className="text-sm text-gray-600 mt-1">Complete history of all attendance records</p>
                 </div>
                 <div className="divide-y divide-gray-200">
@@ -243,7 +243,7 @@ const AttendanceTracker = () => {
                                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(record.status)}`}>
                                                 {record.status}
                                             </span>
-                                            <p className="text-sm font-semibold text-gray-900">
+                                            <p className="text-sm font-semibold text-navy-950">
                                                 {user?.role === 'student' 
                                                     ? record.tutorId?.name 
                                                     : record.studentId?.name}

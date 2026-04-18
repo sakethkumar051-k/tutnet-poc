@@ -61,7 +61,7 @@ const FavoriteTutors = () => {
                             >
                                 <div className="flex items-start justify-between mb-3">
                                     <div className="flex-1">
-                                        <h3 className="font-semibold text-gray-900">{tutor.name}</h3>
+                                        <h3 className="font-semibold text-navy-950">{tutor.name}</h3>
                                         <p className="text-sm text-gray-500">{tutor.email}</p>
                                         {tutor.location && (
                                             <p className="text-xs text-gray-400 mt-1">
@@ -103,7 +103,7 @@ const FavoriteTutors = () => {
                                 )}
                                 <Link
                                     to={`/tutor/${profile._id}`}
-                                    className="block w-full text-center px-4 py-2 bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors text-sm font-medium"
+                                    className="block w-full text-center px-4 py-2 bg-royal/5 text-royal rounded-md hover:bg-royal/10 transition-colors text-sm font-medium"
                                 >
                                     View Profile
                                 </Link>

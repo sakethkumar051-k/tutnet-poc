@@ -1,7 +1,4 @@
-const cron = require('node-cron');
 const Booking = require('../models/Booking');
-
-const CRON_SCHEDULE = '*/10 * * * *'; // Every 10 minutes
 
 /**
  * Expire pending trials: set status to 'cancelled' when now > trialExpiresAt.
@@ -43,16 +40,4 @@ async function expirePendingSessionsWithPastDate() {
     return result;
 }
 
-function startTrialExpiryJob() {
-    cron.schedule(CRON_SCHEDULE, () => {
-        Promise.all([
-            expirePendingTrials(),
-            expirePendingSessionsWithPastDate()
-        ]).catch((err) => {
-            console.error('[bookingExpiry] Job error:', err);
-        });
-    });
-    console.log('[bookingExpiry] Cron job scheduled (every 10 minutes): trial expiry + pending session date expiry.');
-}
-
-module.exports = { startTrialExpiryJob, expirePendingTrials, expirePendingSessionsWithPastDate };
+module.exports = { expirePendingTrials, expirePendingSessionsWithPastDate };

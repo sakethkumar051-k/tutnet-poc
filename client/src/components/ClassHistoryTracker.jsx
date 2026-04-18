@@ -10,9 +10,9 @@ const FILTERS = [
 ];
 
 const statusColor = {
-    completed: 'bg-green-100 text-green-800',
-    approved:  'bg-indigo-100 text-indigo-800',
-    pending:   'bg-amber-100 text-amber-800',
+    completed: 'bg-lime/30 text-navy-950',
+    approved:  'bg-royal/10 text-navy-900',
+    pending:   'bg-lime/30 text-navy-950',
     cancelled: 'bg-gray-100 text-gray-600',
     rejected:  'bg-red-100 text-red-700'
 };
@@ -71,10 +71,10 @@ const ClassHistoryTracker = () => {
             {/* Summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                    { label: 'Total Sessions', value: filtered.length, color: 'text-gray-900' },
-                    { label: 'Completed', value: completed.length, color: 'text-green-700' },
-                    { label: 'Hours Taught', value: `${totalHours.toFixed(1)}h`, color: 'text-indigo-700' },
-                    { label: 'Est. Earnings', value: `₹${totalEarnings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, color: 'text-emerald-700' }
+                    { label: 'Total Sessions', value: filtered.length, color: 'text-navy-950' },
+                    { label: 'Completed', value: completed.length, color: 'text-navy-950' },
+                    { label: 'Hours Taught', value: `${totalHours.toFixed(1)}h`, color: 'text-royal-dark' },
+                    { label: 'Est. Earnings', value: `₹${totalEarnings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, color: 'text-navy-950' }
                 ].map(card => (
                     <div key={card.label} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
                         <p className="text-xs text-gray-500 font-medium mb-1">{card.label}</p>
@@ -84,7 +84,7 @@ const ClassHistoryTracker = () => {
             </div>
 
             {hourlyRate === 0 && (
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
+                <p className="text-xs text-navy-950 bg-lime/20 border border-lime/40 rounded-lg px-4 py-2">
                     Set your hourly rate in your profile to see accurate earnings estimates.
                 </p>
             )}
@@ -98,7 +98,7 @@ const ClassHistoryTracker = () => {
                         onClick={() => setFilter(f.id)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                             filter === f.id
-                                ? 'bg-indigo-600 text-white'
+                                ? 'bg-royal text-white'
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                     >
@@ -131,7 +131,7 @@ const ClassHistoryTracker = () => {
                                 const earning = b.status === 'completed' ? hourlyRate * hrs : null;
                                 return (
                                     <tr key={b._id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="py-3 px-4 font-medium text-gray-900">
+                                        <td className="py-3 px-4 font-medium text-navy-950">
                                             {b.studentId?.name || '—'}
                                         </td>
                                         <td className="py-3 px-4 text-gray-600">{b.subject}</td>
@@ -148,7 +148,7 @@ const ClassHistoryTracker = () => {
                                                 {b.status}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-4 text-right font-semibold text-emerald-700">
+                                        <td className="py-3 px-4 text-right font-semibold text-navy-950">
                                             {earning !== null ? `₹${earning.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '—'}
                                         </td>
                                     </tr>

@@ -80,7 +80,7 @@ export default function AvailabilityManager() {
 
     if (loading) return (
         <div className="flex items-center justify-center py-10">
-            <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-royal border-t-transparent rounded-full animate-spin" />
         </div>
     );
 
@@ -88,7 +88,7 @@ export default function AvailabilityManager() {
         <div className="space-y-5">
             {/* Availability mode: Fixed vs Flexible */}
             <div className="rounded-xl border border-gray-200 bg-white p-4">
-                <h3 className="text-sm font-bold text-gray-900 mb-1">Availability mode</h3>
+                <h3 className="text-sm font-bold text-navy-950 mb-1">Availability mode</h3>
                 <p className="text-xs text-gray-500 mb-3">Choose how students can book with you.</p>
                 <div className="flex flex-wrap gap-6">
                     <label className="flex items-start gap-2 cursor-pointer">
@@ -97,10 +97,10 @@ export default function AvailabilityManager() {
                             name="availabilityMode"
                             checked={availabilityMode === 'flexible'}
                             onChange={() => setAvailabilityMode('flexible')}
-                            className="mt-1 text-indigo-600 focus:ring-indigo-500"
+                            className="mt-1 text-royal focus:ring-royal"
                         />
                         <div>
-                            <span className="text-sm font-medium text-gray-900">Flexible</span>
+                            <span className="text-sm font-medium text-navy-950">Flexible</span>
                             <p className="text-xs text-gray-500">Students can request any date/time. You confirm or suggest another. Best if your schedule varies.</p>
                         </div>
                     </label>
@@ -110,10 +110,10 @@ export default function AvailabilityManager() {
                             name="availabilityMode"
                             checked={availabilityMode === 'fixed'}
                             onChange={() => setAvailabilityMode('fixed')}
-                            className="mt-1 text-indigo-600 focus:ring-indigo-500"
+                            className="mt-1 text-royal focus:ring-royal"
                         />
                         <div>
-                            <span className="text-sm font-medium text-gray-900">Fixed</span>
+                            <span className="text-sm font-medium text-navy-950">Fixed</span>
                             <p className="text-xs text-gray-500">Only the slots below are bookable. Students must pick from these times.</p>
                         </div>
                     </label>
@@ -122,11 +122,11 @@ export default function AvailabilityManager() {
 
             <div className="flex items-start justify-between">
                 <div>
-                    <h3 className="text-base font-bold text-gray-900">Weekly Availability</h3>
+                    <h3 className="text-base font-bold text-navy-950">Weekly Availability</h3>
                     <p className="text-xs text-gray-500 mt-0.5">Set the times you're available each week. Students will see this before booking. {availabilityMode === 'fixed' && 'Only these slots can be booked.'}</p>
                 </div>
                 <button onClick={handleSave} disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-60 transition-colors">
+                    className="flex items-center gap-2 px-4 py-2 bg-royal text-white text-sm font-semibold rounded-lg hover:bg-royal-dark disabled:opacity-60 transition-colors">
                     {saving && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                     Save
                 </button>
@@ -134,14 +134,14 @@ export default function AvailabilityManager() {
 
             <div className="space-y-3">
                 {availability.map((dayData, dayIdx) => (
-                    <div key={dayData.day} className={`rounded-xl border px-4 py-3 ${dayData.slots.length > 0 ? 'border-indigo-100 bg-indigo-50/30' : 'border-gray-100 bg-gray-50/50'}`}>
+                    <div key={dayData.day} className={`rounded-xl border px-4 py-3 ${dayData.slots.length > 0 ? 'border-royal/20 bg-royal/5/30' : 'border-gray-100 bg-gray-50/50'}`}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-semibold text-gray-800">{dayData.day.slice(0, 3)}</span>
                                 {dayData.slots.length === 0 && <span className="text-xs text-gray-400">Not available</span>}
                             </div>
                             <button onClick={() => addSlot(dayIdx)}
-                                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 transition-colors">
+                                className="text-xs text-royal hover:text-navy-900 font-semibold flex items-center gap-1 transition-colors">
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
@@ -156,7 +156,7 @@ export default function AvailabilityManager() {
                                         <select
                                             value={slot.start}
                                             onChange={e => updateSlot(dayIdx, slotIdx, 'start', e.target.value)}
-                                            className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                                            className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40 bg-white"
                                         >
                                             {TIMES.map(t => <option key={t} value={t}>{TimeLabel(t)}</option>)}
                                         </select>
@@ -164,7 +164,7 @@ export default function AvailabilityManager() {
                                         <select
                                             value={slot.end}
                                             onChange={e => updateSlot(dayIdx, slotIdx, 'end', e.target.value)}
-                                            className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                                            className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40 bg-white"
                                         >
                                             {TIMES.map(t => <option key={t} value={t}>{TimeLabel(t)}</option>)}
                                         </select>
@@ -182,8 +182,8 @@ export default function AvailabilityManager() {
                 ))}
             </div>
 
-            <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
-                <p className="text-xs text-amber-700">
+            <div className="bg-lime/20 border border-lime/30 rounded-xl px-4 py-3">
+                <p className="text-xs text-navy-950">
                     Availability is shown to students when they view your profile. Changes take effect immediately after saving.
                 </p>
             </div>

@@ -16,6 +16,10 @@ export default {
             },
         },
         extend: {
+            fontFamily: {
+                display: ['"DM Sans"', 'system-ui', 'sans-serif'],
+                sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+            },
             colors: {
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",
@@ -49,6 +53,21 @@ export default {
                 card: {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
+                },
+                // Reference design colors
+                navy: {
+                    900: '#0d1530',
+                    950: '#0a1120',
+                },
+                royal: {
+                    DEFAULT: '#1939e5',
+                    dark: '#1530c4',
+                    light: '#2a4df0',
+                },
+                lime: {
+                    DEFAULT: '#c8ee44',
+                    dark: '#b5d93d',
+                    light: '#d4f45c',
                 },
             },
             borderRadius: {
