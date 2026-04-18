@@ -12,9 +12,9 @@ const PERIODS = [
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
 const StatCard = ({ label, value, sub, accent }) => (
-    <div className={`bg-white rounded-xl border p-5 ${accent ? 'border-indigo-200' : 'border-gray-200'}`}>
+    <div className={`bg-white rounded-xl border p-5 ${accent ? 'border-royal/30' : 'border-gray-200'}`}>
         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
-        <p className={`text-2xl font-bold mt-1 ${accent ? 'text-indigo-700' : 'text-gray-900'}`}>{value}</p>
+        <p className={`text-2xl font-bold mt-1 ${accent ? 'text-royal-dark' : 'text-navy-950'}`}>{value}</p>
         {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
     </div>
 );
@@ -76,7 +76,7 @@ export default function EarningsDashboard() {
             {/* Header row */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-lg font-bold text-gray-900">Earnings & Payments</h2>
+                    <h2 className="text-lg font-bold text-navy-950">Earnings & Payments</h2>
                     <p className="text-sm text-gray-500 mt-0.5">Confirmed Razorpay income + estimated from completed sessions</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -85,7 +85,7 @@ export default function EarningsDashboard() {
                             <button
                                 key={p.value}
                                 onClick={() => setPeriod(p.value)}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${period === p.value ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${period === p.value ? 'bg-white text-navy-950 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                             >
                                 {p.label}
                             </button>
@@ -93,7 +93,7 @@ export default function EarningsDashboard() {
                     </div>
                     <button
                         onClick={() => setLogModal(true)}
-                        className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                        className="px-3 py-1.5 bg-royal text-white text-xs font-semibold rounded-lg hover:bg-royal-dark transition-colors"
                     >
                         + Log cash payment
                     </button>
@@ -113,11 +113,11 @@ export default function EarningsDashboard() {
                 <>
                     {/* Rate warning */}
                     {!data?.hourlyRate && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
+                        <div className="bg-lime/20 border border-lime/40 rounded-xl px-4 py-3 flex items-start gap-3">
                             <svg className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <p className="text-sm text-amber-700">Set your hourly rate in your profile to see accurate earnings estimates.</p>
+                            <p className="text-sm text-navy-950">Set your hourly rate in your profile to see accurate earnings estimates.</p>
                         </div>
                     )}
 
@@ -159,7 +159,7 @@ export default function EarningsDashboard() {
                                         <div key={m.month} className="flex flex-col items-center justify-end gap-1 flex-1 h-full">
                                             <span className="text-xs text-gray-500">{fmt(m.earnings)}</span>
                                             <div
-                                                className="w-full rounded-t-md bg-indigo-500"
+                                                className="w-full rounded-t-md bg-royal/50"
                                                 style={{ height: `${Math.max(pct, 4)}%` }}
                                             />
                                             <span className="text-xs text-gray-400">{label}</span>
@@ -208,11 +208,11 @@ export default function EarningsDashboard() {
                                                     <td className="px-5 py-3 text-gray-600">{s.subject}</td>
                                                     <td className="px-5 py-3 text-gray-500">{date}</td>
                                                     <td className="px-5 py-3">
-                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${s.isPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${s.isPaid ? 'bg-lime/30 text-navy-950' : 'bg-lime/30 text-navy-950'}`}>
                                                             {s.isPaid ? 'Paid' : 'Pending'}
                                                         </span>
                                                     </td>
-                                                    <td className="px-5 py-3 text-right font-semibold text-indigo-700">{fmt(data.hourlyRate)}</td>
+                                                    <td className="px-5 py-3 text-right font-semibold text-royal-dark">{fmt(data.hourlyRate)}</td>
                                                 </tr>
                                             );
                                         })}
@@ -243,7 +243,7 @@ export default function EarningsDashboard() {
                                     <tbody className="divide-y divide-gray-50">
                                         {paymentsList.map(p => (
                                             <tr key={p._id} className="hover:bg-gray-50">
-                                                <td className="px-5 py-3 font-semibold text-gray-900">{fmt(p.amount)}</td>
+                                                <td className="px-5 py-3 font-semibold text-navy-950">{fmt(p.amount)}</td>
                                                 <td className="px-5 py-3 text-gray-600 capitalize">{p.paymentMethod}</td>
                                                 <td className="px-5 py-3 text-gray-500 max-w-[160px] truncate">
                                                     {p.bookingId?.subject || p.notes || '—'}
@@ -253,10 +253,10 @@ export default function EarningsDashboard() {
                                                 </td>
                                                 <td className="px-5 py-3">
                                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                                        p.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                        p.status === 'completed' ? 'bg-lime/30 text-navy-950' :
                                                         p.status === 'refunded' ? 'bg-red-100 text-red-700' :
                                                         p.status === 'partially_refunded' ? 'bg-orange-100 text-orange-700' :
-                                                        'bg-amber-100 text-amber-700'
+                                                        'bg-lime/30 text-navy-950'
                                                     }`}>
                                                         {p.status === 'partially_refunded' ? 'Partial refund' : p.status}
                                                     </span>
@@ -277,7 +277,7 @@ export default function EarningsDashboard() {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
                         <div className="flex items-start justify-between mb-4">
                             <div>
-                                <h3 className="text-base font-bold text-gray-900">Log a cash / offline payment</h3>
+                                <h3 className="text-base font-bold text-navy-950">Log a cash / offline payment</h3>
                                 <p className="text-sm text-gray-500 mt-0.5">Record a payment received outside Razorpay.</p>
                             </div>
                             <button onClick={() => setLogModal(false)} className="text-gray-400 hover:text-gray-600 ml-3">
@@ -294,7 +294,7 @@ export default function EarningsDashboard() {
                                     min="1"
                                     value={logForm.amount}
                                     onChange={e => setLogForm(v => ({ ...v, amount: e.target.value }))}
-                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                                     placeholder="e.g. 500"
                                     required
                                 />
@@ -304,7 +304,7 @@ export default function EarningsDashboard() {
                                 <select
                                     value={logForm.paymentMethod}
                                     onChange={e => setLogForm(v => ({ ...v, paymentMethod: e.target.value }))}
-                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                                 >
                                     <option value="cash">Cash</option>
                                     <option value="bank_transfer">Bank Transfer</option>
@@ -317,7 +317,7 @@ export default function EarningsDashboard() {
                                     type="text"
                                     value={logForm.notes}
                                     onChange={e => setLogForm(v => ({ ...v, notes: e.target.value }))}
-                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                                     placeholder="e.g. June fee, Math sessions"
                                 />
                             </div>
@@ -332,7 +332,7 @@ export default function EarningsDashboard() {
                                 <button
                                     type="submit"
                                     disabled={logSubmitting}
-                                    className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 flex items-center justify-center gap-2"
+                                    className="flex-1 px-4 py-2.5 bg-royal text-white rounded-lg text-sm font-semibold hover:bg-royal-dark disabled:opacity-60 flex items-center justify-center gap-2"
                                 >
                                     {logSubmitting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                                     Save payment

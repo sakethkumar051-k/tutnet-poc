@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
+import ScrollToTop from './components/ScrollToTop';
 import ToastContainer from './components/shared/ToastContainer';
 import AuthModal from './components/AuthModal';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -17,11 +18,14 @@ const CompleteProfile = lazy(() => import('./pages/CompleteProfile'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
+const Courses = lazy(() => import('./pages/Courses'));
+const StudentOnboarding = lazy(() => import('./pages/StudentOnboarding'));
 const FindTutors = lazy(() => import('./pages/FindTutors'));
 const TutorProfilePage = lazy(() => import('./pages/TutorProfilePage'));
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 const TutorDashboard = lazy(() => import('./pages/TutorDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 
 const PageLoader = () => (
     <div className="min-h-screen flex items-center justify-center">
@@ -42,6 +46,7 @@ function App() {
     return (
         <ErrorBoundary>
             <Router>
+                <ScrollToTop />
                 <Suspense fallback={<PageLoader />}>
                     <Routes>
                         {/* Public pages with navbar + footer */}
@@ -54,6 +59,8 @@ function App() {
                             <Route path="/admin-login" element={<AdminLogin />} />
                             <Route path="/about" element={<About />} />
                             <Route path="/contact" element={<Contact />} />
+                            <Route path="/courses" element={<Courses />} />
+                            <Route path="/onboarding" element={<StudentOnboarding />} />
 
                             {/* Public: anyone can browse tutors, actions gated by auth modal */}
                             <Route path="/find-tutors" element={<FindTutors />} />
@@ -62,6 +69,11 @@ function App() {
 
                         {/* Dashboard pages — no global navbar/footer */}
                         <Route element={<DashboardLayout />}>
+                            {/* Canonical dashboard route — picks by role */}
+                            <Route element={<ProtectedRoute allowedRoles={['student', 'tutor', 'admin']} />}>
+                                <Route path="/dashboard" element={<Dashboard />} />
+                            </Route>
+                            {/* Role-specific routes kept for backward compat & deep-linking */}
                             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
                                 <Route path="/student-dashboard" element={<StudentDashboard />} />
                             </Route>

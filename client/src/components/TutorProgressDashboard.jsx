@@ -140,11 +140,11 @@ const TutorProgressDashboard = () => {
         }
         const rate = attendanceStats.attendancePercentage || 0;
         if (rate >= 90) {
-            return { label: 'Excellent', color: 'bg-green-100 text-green-800' };
+            return { label: 'Excellent', color: 'bg-lime/30 text-navy-950' };
         } else if (rate >= 75) {
-            return { label: 'Good Progress', color: 'bg-blue-100 text-blue-800' };
+            return { label: 'Good Progress', color: 'bg-royal/10 text-royal-dark' };
         } else {
-            return { label: 'Needs Attention', color: 'bg-amber-100 text-amber-800' };
+            return { label: 'Needs Attention', color: 'bg-lime/30 text-navy-950' };
         }
     };
 
@@ -170,13 +170,13 @@ const TutorProgressDashboard = () => {
         <div className="space-y-8">
             {/* SECTION 1: Overall Teaching Health */}
             <div className="bg-white rounded-lg border border-gray-200 p-8 shadow-sm">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Overall Teaching Health</h2>
+                <h2 className="text-2xl font-bold text-navy-950 mb-6">Overall Teaching Health</h2>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Primary Metric: Student Attendance */}
                     <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg border border-gray-200">
                         <p className="text-sm font-medium text-gray-600 mb-3">Student Attendance Rate</p>
-                        <p className="text-6xl font-bold text-gray-900 mb-2">
+                        <p className="text-6xl font-bold text-navy-950 mb-2">
                             {attendanceStats?.attendancePercentage || 0}%
                         </p>
                         <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${overallStatus.color}`}>
@@ -187,25 +187,25 @@ const TutorProgressDashboard = () => {
                     {/* Supporting Metrics */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="text-center p-4 bg-white rounded-lg border border-gray-200">
-                            <p className="text-3xl font-bold text-gray-900 mb-1">
+                            <p className="text-3xl font-bold text-navy-950 mb-1">
                                 {teachingStats?.totalSessions || 0}
                             </p>
                             <p className="text-xs text-gray-600 font-medium">Total Sessions</p>
                         </div>
                         <div className="text-center p-4 bg-white rounded-lg border border-gray-200">
-                            <p className="text-3xl font-bold text-green-600 mb-1">
+                            <p className="text-3xl font-bold text-lime-dark mb-1">
                                 {teachingStats?.completedSessions || 0}
                             </p>
                             <p className="text-xs text-gray-600 font-medium">Completed</p>
                         </div>
                         <div className="text-center p-4 bg-white rounded-lg border border-gray-200">
-                            <p className="text-3xl font-bold text-indigo-600 mb-1">
+                            <p className="text-3xl font-bold text-royal mb-1">
                                 {teachingStats?.studentsCount || 0}
                             </p>
                             <p className="text-xs text-gray-600 font-medium">Students</p>
                         </div>
                         <div className="text-center p-4 bg-white rounded-lg border border-gray-200">
-                            <p className="text-3xl font-bold text-amber-600 mb-1">
+                            <p className="text-3xl font-bold text-lime-dark mb-1">
                                 {teachingStats?.upcomingSessions || 0}
                             </p>
                             <p className="text-xs text-gray-600 font-medium">Upcoming</p>
@@ -217,22 +217,22 @@ const TutorProgressDashboard = () => {
             {/* SECTION 2: Consistency & Trends */}
             {attendanceRecords.length > 0 && (
                 <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Consistency & Trends</h3>
+                    <h3 className="text-lg font-bold text-navy-950 mb-4">Consistency & Trends</h3>
                     <div className="flex items-center justify-between p-6 bg-gray-50 rounded-lg border border-gray-200">
                         <div>
                             <p className="text-sm text-gray-600 mb-2">This Week vs Last Week</p>
-                            <p className="text-2xl font-bold text-gray-900 mb-1">
+                            <p className="text-2xl font-bold text-navy-950 mb-1">
                                 {weeklyTrend.thisWeek}% → {weeklyTrend.lastWeek}%
                             </p>
                             <p className={`text-sm font-medium ${
-                                weeklyTrend.trend > 0 ? 'text-green-600' : 
-                                weeklyTrend.trend < 0 ? 'text-amber-600' : 'text-gray-600'
+                                weeklyTrend.trend > 0 ? 'text-lime-dark' : 
+                                weeklyTrend.trend < 0 ? 'text-lime-dark' : 'text-gray-600'
                             }`}>
                                 {weeklyTrend.trend > 0 ? '↑' : weeklyTrend.trend < 0 ? '↓' : '→'} {Math.abs(weeklyTrend.trend)}% change
                             </p>
                         </div>
                         <div className="text-right">
-                            <p className="text-base font-semibold text-gray-900">
+                            <p className="text-base font-semibold text-navy-950">
                                 {weeklyTrend.trendLabel}
                             </p>
                         </div>
@@ -242,7 +242,7 @@ const TutorProgressDashboard = () => {
 
             {/* SECTION 3: Student-wise Progress Breakdown */}
             <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-900 mb-6">Progress by Student</h3>
+                <h3 className="text-lg font-bold text-navy-950 mb-6">Progress by Student</h3>
                 {currentStudents.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                         <p className="text-sm">No students yet</p>
@@ -255,18 +255,18 @@ const TutorProgressDashboard = () => {
                             return (
                                 <div
                                     key={student.relationshipId}
-                                    className="border border-gray-200 rounded-lg p-6 hover:border-indigo-300 hover:shadow-sm transition-all"
+                                    className="border border-gray-200 rounded-lg p-6 hover:border-royal/40 hover:shadow-sm transition-all"
                                 >
                                     <div className="flex items-start justify-between mb-4">
                                         <div>
-                                            <h4 className="text-base font-semibold text-gray-900 mb-1">
+                                            <h4 className="text-base font-semibold text-navy-950 mb-1">
                                                 {student.studentName}
                                             </h4>
                                             <p className="text-sm text-gray-600">{student.subject}</p>
                                         </div>
                                         <button
                                             onClick={() => navigate(`/tutor-dashboard?tab=progress&studentId=${student.studentId}`)}
-                                            className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md hover:bg-indigo-700 transition-colors"
+                                            className="px-4 py-2 bg-royal text-white text-sm font-semibold rounded-md hover:bg-royal-dark transition-colors"
                                         >
                                             View Detailed Report
                                         </button>
@@ -275,25 +275,25 @@ const TutorProgressDashboard = () => {
                                     <div className="grid grid-cols-4 gap-4 mb-4">
                                         <div>
                                             <p className="text-xs text-gray-600 mb-1">Total Sessions</p>
-                                            <p className="text-xl font-bold text-gray-900">
+                                            <p className="text-xl font-bold text-navy-950">
                                                 {student.sessions?.total || 0}
                                             </p>
                                         </div>
                                         <div>
                                             <p className="text-xs text-gray-600 mb-1">Attendance</p>
-                                            <p className="text-xl font-bold text-indigo-600">
+                                            <p className="text-xl font-bold text-royal">
                                                 {student.attendance?.percentage || 0}%
                                             </p>
                                         </div>
                                         <div>
                                             <p className="text-xs text-gray-600 mb-1">Understanding</p>
-                                            <p className="text-xl font-bold text-green-600">
+                                            <p className="text-xl font-bold text-lime-dark">
                                                 {student.performance?.averageUnderstanding?.toFixed(1) || '0.0'}/5
                                             </p>
                                         </div>
                                         <div>
                                             <p className="text-xs text-gray-600 mb-1">Last Session</p>
-                                            <p className="text-sm font-medium text-gray-900">
+                                            <p className="text-sm font-medium text-navy-950">
                                                 {lastSession 
                                                     ? new Date(lastSession).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                                                     : 'No sessions yet'}
@@ -310,11 +310,11 @@ const TutorProgressDashboard = () => {
             {/* SECTION 4: Feedback & Reviews (Context Only) */}
             <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-bold text-gray-900">Student Reviews</h3>
+                    <h3 className="text-lg font-bold text-navy-950">Student Reviews</h3>
                     {reviews.length > 3 && (
                         <button
                             onClick={() => navigate('/tutor-dashboard?tab=profile')}
-                            className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                            className="text-sm text-royal hover:text-navy-900 font-medium"
                         >
                             View All →
                         </button>
@@ -338,7 +338,7 @@ const TutorProgressDashboard = () => {
                                             key={star}
                                             className={`text-xl ${
                                                 star <= Math.round(reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length)
-                                                    ? 'text-yellow-400'
+                                                    ? 'text-lime-dark'
                                                     : 'text-gray-300'
                                             }`}
                                         >
@@ -346,7 +346,7 @@ const TutorProgressDashboard = () => {
                                         </span>
                                     ))}
                                 </div>
-                                <span className="text-lg font-bold text-gray-900">
+                                <span className="text-lg font-bold text-navy-950">
                                     {(reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)}
                                 </span>
                                 <span className="text-sm text-gray-600">
@@ -366,7 +366,7 @@ const TutorProgressDashboard = () => {
                                                     key={star}
                                                     className={`text-sm ${
                                                         star <= review.rating
-                                                            ? 'text-yellow-400'
+                                                            ? 'text-lime-dark'
                                                             : 'text-gray-300'
                                                     }`}
                                                 >
@@ -374,11 +374,11 @@ const TutorProgressDashboard = () => {
                                                 </span>
                                             ))}
                                         </div>
-                                        <span className="text-sm font-semibold text-gray-900">
+                                        <span className="text-sm font-semibold text-navy-950">
                                             {review.rating}.0
                                         </span>
                                     </div>
-                                    <p className="text-sm font-semibold text-indigo-600">
+                                    <p className="text-sm font-semibold text-royal">
                                         {review.studentId?.name || 'Student'}
                                     </p>
                                 </div>

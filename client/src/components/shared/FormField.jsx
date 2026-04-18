@@ -15,7 +15,7 @@ const FormField = ({
     ...props
 }) => {
     const inputClasses = cn(
-        'block w-full px-4 py-3 bg-gray-50/80 border border-gray-200 rounded-xl text-gray-900 text-sm',
+        'block w-full px-4 py-3 bg-gray-50/80 border border-gray-200 rounded-xl text-navy-950 text-sm',
         'placeholder:text-gray-400 transition-all duration-150',
         'focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 focus:bg-white',
         icon && 'pl-10',

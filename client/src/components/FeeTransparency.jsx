@@ -5,13 +5,13 @@ import CheckoutModal from './CheckoutModal';
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
 const STATUS_COLOR = {
-    completed: 'bg-green-100 text-green-700',
+    completed: 'bg-lime/30 text-navy-950',
     refunded: 'bg-red-100 text-red-700',
     partially_refunded: 'bg-orange-100 text-orange-700',
     failed: 'bg-red-100 text-red-700',
-    pending: 'bg-amber-100 text-amber-700',
-    created: 'bg-amber-100 text-amber-700',
-    unpaid: 'bg-amber-100 text-amber-700'
+    pending: 'bg-lime/30 text-navy-950',
+    created: 'bg-lime/30 text-navy-950',
+    unpaid: 'bg-lime/30 text-navy-950'
 };
 
 const STATUS_LABEL = {
@@ -110,27 +110,27 @@ export default function FeeTransparency() {
         <div className="space-y-5">
             {/* Unpaid sessions action banner */}
             {unpaidBookings.length > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
-                    <p className="text-sm font-semibold text-amber-800 mb-3">
+                <div className="bg-lime/20 border border-lime/40 rounded-xl px-5 py-4">
+                    <p className="text-sm font-semibold text-navy-950 mb-3">
                         {unpaidBookings.length} approved session{unpaidBookings.length !== 1 ? 's' : ''} awaiting payment
                     </p>
                     <div className="space-y-2">
                         {unpaidBookings.slice(0, 3).map(b => (
-                            <div key={b._id} className="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border border-amber-100">
+                            <div key={b._id} className="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border border-lime/30">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-900">{b.tutorId?.name || 'Tutor'}</p>
+                                    <p className="text-sm font-medium text-navy-950">{b.tutorId?.name || 'Tutor'}</p>
                                     <p className="text-xs text-gray-500">{b.subject} · {b.sessionDate ? new Date(b.sessionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'TBD'}</p>
                                 </div>
                                 <button
                                     onClick={() => setCheckoutBooking(b)}
-                                    className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                                    className="px-3 py-1.5 bg-royal text-white text-xs font-semibold rounded-lg hover:bg-royal-dark transition-colors"
                                 >
                                     Pay now
                                 </button>
                             </div>
                         ))}
                         {unpaidBookings.length > 3 && (
-                            <p className="text-xs text-amber-700 text-center pt-1">+{unpaidBookings.length - 3} more — go to Sessions tab to pay</p>
+                            <p className="text-xs text-navy-950 text-center pt-1">+{unpaidBookings.length - 3} more — go to Sessions tab to pay</p>
                         )}
                     </div>
                 </div>
@@ -147,7 +147,7 @@ export default function FeeTransparency() {
                     <button
                         key={p.value}
                         onClick={() => setPeriod(p.value)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${period === p.value ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${period === p.value ? 'bg-royal text-white border-royal' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
                     >
                         {p.label}
                     </button>
@@ -156,13 +156,13 @@ export default function FeeTransparency() {
 
             {/* Summary cards */}
             <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl border border-indigo-200 p-4">
+                <div className="bg-white rounded-xl border border-royal/30 p-4">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Paid sessions</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{paidCount}</p>
+                    <p className="text-2xl font-bold text-navy-950 mt-1">{paidCount}</p>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-200 p-4">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total paid</p>
-                    <p className="text-2xl font-bold text-indigo-700 mt-1">{fmt(totalPaid)}</p>
+                    <p className="text-2xl font-bold text-royal-dark mt-1">{fmt(totalPaid)}</p>
                     <p className="text-xs text-gray-400 mt-0.5">confirmed payments</p>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -184,11 +184,11 @@ export default function FeeTransparency() {
                             return (
                                 <div key={i} className="px-5 py-4 flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-semibold text-gray-900">{t.name}</p>
+                                        <p className="text-sm font-semibold text-navy-950">{t.name}</p>
                                         <p className="text-xs text-gray-400 mt-0.5">{t.payments.length} payment{t.payments.length !== 1 ? 's' : ''}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm font-bold text-indigo-700">{fmt(tutorPaid)}</p>
+                                        <p className="text-sm font-bold text-royal-dark">{fmt(tutorPaid)}</p>
                                         <p className="text-xs text-gray-400 mt-0.5">{t.payments.filter(p => p.status === 'completed').length} paid</p>
                                     </div>
                                 </div>
@@ -235,7 +235,7 @@ export default function FeeTransparency() {
                                             <td className="px-5 py-3 text-gray-500">
                                                 {new Date(p.paidAt || p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                             </td>
-                                            <td className="px-5 py-3 font-semibold text-gray-900">
+                                            <td className="px-5 py-3 font-semibold text-navy-950">
                                                 {fmt(p.amount)}
                                                 {p.refundAmount > 0 && (
                                                     <span className="ml-1.5 text-xs font-normal text-red-600">

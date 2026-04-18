@@ -183,7 +183,7 @@ const SessionManagementDashboard = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No sessions yet</h3>
+                    <h3 className="text-lg font-semibold text-navy-950 mb-2">No sessions yet</h3>
                     <p className="text-sm text-gray-600 mb-8 leading-relaxed">
                         You don't have any active students or scheduled sessions.
                         <br />
@@ -194,7 +194,7 @@ const SessionManagementDashboard = () => {
                             <>
                                 <button
                                     onClick={() => navigate('/tutor-dashboard?tab=profile')}
-                                    className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 transition-colors"
+                                    className="px-4 py-2 bg-navy-950 text-white text-sm font-medium rounded-md hover:bg-navy-900 transition-colors"
                                 >
                                     Set Availability
                                 </button>
@@ -209,7 +209,7 @@ const SessionManagementDashboard = () => {
                         {user?.role === 'student' && (
                             <button
                                 onClick={() => navigate('/find-tutors')}
-                                className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 transition-colors"
+                                className="px-4 py-2 bg-navy-950 text-white text-sm font-medium rounded-md hover:bg-navy-900 transition-colors"
                             >
                                 Find Tutors
                             </button>
@@ -230,7 +230,7 @@ const SessionManagementDashboard = () => {
             <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900 mb-2">
+                        <h2 className="text-xl font-bold text-navy-950 mb-2">
                             Session Management
                         </h2>
                         <p className="text-sm text-gray-600">
@@ -254,7 +254,7 @@ const SessionManagementDashboard = () => {
                                         handleRelationshipChange(selected);
                                     }
                                 }}
-                                className="w-full sm:w-64 px-4 py-2.5 border border-gray-300 rounded-md text-sm font-medium text-gray-900 bg-white hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                                className="w-full sm:w-64 px-4 py-2.5 border border-gray-300 rounded-md text-sm font-medium text-navy-950 bg-white hover:border-royal/50 focus:outline-none focus:ring-2 focus:ring-royal focus:border-royal transition-colors"
                             >
                                 {allRelationships.map((rel) => {
                                     const name = user?.role === 'student' 
@@ -289,7 +289,7 @@ const SessionManagementDashboard = () => {
 
                     {/* Today's Sessions */}
                     <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                        <h3 className="text-base font-bold text-gray-900 mb-4 pb-3 border-b border-gray-200">Today's Sessions</h3>
+                        <h3 className="text-base font-bold text-navy-950 mb-4 pb-3 border-b border-gray-200">Today's Sessions</h3>
                         {todaysSessions.length === 0 ? (
                             <p className="text-gray-500 text-sm">No sessions scheduled for today</p>
                         ) : (
@@ -302,7 +302,7 @@ const SessionManagementDashboard = () => {
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex-1">
-                                                <p className="font-medium text-gray-900">
+                                                <p className="font-medium text-navy-950">
                                                     {session.sessionDate 
                                                         ? new Date(session.sessionDate).toLocaleTimeString('en-US', { 
                                                             hour: '2-digit', 
@@ -321,9 +321,9 @@ const SessionManagementDashboard = () => {
                                             </div>
                                             <div className="flex flex-col items-end gap-1">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                    session.attendanceStatus === 'completed' ? 'bg-green-100 text-green-800' :
-                                                    session.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                                                    session.status === 'completed' ? 'bg-purple-100 text-purple-800' :
+                                                    session.attendanceStatus === 'completed' ? 'bg-lime/30 text-navy-950' :
+                                                    session.status === 'approved' ? 'bg-royal/10 text-royal-dark' :
+                                                    session.status === 'completed' ? 'bg-purple-100 text-navy-900' :
                                                     'bg-yellow-100 text-yellow-800'
                                                 }`}>
                                                     {session.attendanceStatus || session.status}
@@ -333,7 +333,7 @@ const SessionManagementDashboard = () => {
                                                         e.stopPropagation();
                                                         setSelectedSession(session);
                                                     }}
-                                                    className="text-xs text-indigo-600 hover:text-indigo-800"
+                                                    className="text-xs text-royal hover:text-navy-900"
                                                 >
                                                     View Details →
                                                 </button>
@@ -350,13 +350,13 @@ const SessionManagementDashboard = () => {
                 <div className="space-y-6">
                     {/* Today's Discussion Notes */}
                     <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                        <h3 className="text-base font-bold text-gray-900 mb-4 pb-3 border-b border-gray-200">Today's Discussion Notes</h3>
+                        <h3 className="text-base font-bold text-navy-950 mb-4 pb-3 border-b border-gray-200">Today's Discussion Notes</h3>
                         {todaysNotes.length === 0 ? (
                             <p className="text-gray-500 text-sm">No notes for today's sessions yet</p>
                         ) : (
                             <div className="space-y-4">
                                 {todaysNotes.map((note, index) => (
-                                    <div key={index} className="border-l-4 border-indigo-500 pl-4 py-2">
+                                    <div key={index} className="border-l-4 border-royal pl-4 py-2">
                                         <div className="flex items-center justify-between mb-2">
                                             <p className="text-sm font-medium text-gray-700">
                                                 {note.session.preferredSchedule}
@@ -373,7 +373,7 @@ const SessionManagementDashboard = () => {
                                                 {note.topics.map((topic, idx) => (
                                                     <span
                                                         key={idx}
-                                                        className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs"
+                                                        className="px-2 py-1 bg-royal/5 text-royal-dark rounded text-xs"
                                                     >
                                                         {topic}
                                                     </span>
@@ -388,7 +388,7 @@ const SessionManagementDashboard = () => {
 
                     {/* Today's Feedback */}
                     <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                        <h3 className="text-base font-bold text-gray-900 mb-4 pb-3 border-b border-gray-200">Today's Feedback</h3>
+                        <h3 className="text-base font-bold text-navy-950 mb-4 pb-3 border-b border-gray-200">Today's Feedback</h3>
                         {todaysFeedback.length === 0 ? (
                             <p className="text-gray-500 text-sm">No feedback for today's sessions yet</p>
                         ) : (

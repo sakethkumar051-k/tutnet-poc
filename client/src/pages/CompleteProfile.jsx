@@ -144,10 +144,10 @@ const CompleteProfile = () => {
         <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 bg-gray-50">
             <div className={`max-w-${role === 'tutor' ? '4xl' : 'md'} w-full bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden p-8`}>
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center px-4 py-2 bg-amber-100 text-amber-800 rounded-full text-sm font-semibold mb-4">
+                    <div className="inline-flex items-center px-4 py-2 bg-lime/30 text-navy-950 rounded-full text-sm font-semibold mb-4">
                         ⚠️ Mandatory Profile Completion
                     </div>
-                    <h2 className="text-3xl font-bold text-gray-900">Complete Your Profile</h2>
+                    <h2 className="text-3xl font-bold text-navy-950">Complete Your Profile</h2>
                     <p className="mt-2 text-gray-600">
                         {role === 'tutor'
                             ? 'Please provide all required details to start teaching on Tutnet.'
@@ -168,7 +168,7 @@ const CompleteProfile = () => {
                     )}
 
                     {success && (
-                        <div className="bg-green-50 border border-green-200 text-green-600 p-4 rounded-lg text-sm">
+                        <div className="bg-lime/20 border border-lime/40 text-lime-dark p-4 rounded-lg text-sm">
                             <div className="flex items-center">
                                 <svg className="h-5 w-5 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -179,15 +179,15 @@ const CompleteProfile = () => {
                     )}
 
                     {role && (
-                        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                        <div className="bg-royal/5 border border-royal/30 rounded-xl p-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-indigo-900">Account Type</p>
-                                    <p className="text-lg font-bold text-indigo-700 capitalize mt-1">
+                                    <p className="text-sm font-medium text-navy-950">Account Type</p>
+                                    <p className="text-lg font-bold text-royal-dark capitalize mt-1">
                                         {role === 'tutor' ? '👨‍🏫 Tutor' : '👨‍🎓 Student'}
                                     </p>
                                 </div>
-                                <div className="text-xs text-indigo-600">Set during registration</div>
+                                <div className="text-xs text-royal">Set during registration</div>
                             </div>
                         </div>
                     )}
@@ -197,11 +197,11 @@ const CompleteProfile = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-2">I am a...</label>
                             <div className="grid grid-cols-2 gap-3">
                                 <button type="button" onClick={() => setRole('student')}
-                                    className={`py-3 px-4 rounded-xl border-2 transition-all ${role === 'student' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold' : 'border-gray-200 hover:border-indigo-200 text-gray-600'}`}>
+                                    className={`py-3 px-4 rounded-xl border-2 transition-all ${role === 'student' ? 'border-royal bg-royal/5 text-royal-dark font-bold' : 'border-gray-200 hover:border-royal/30 text-gray-600'}`}>
                                     Student
                                 </button>
                                 <button type="button" onClick={() => setRole('tutor')}
-                                    className={`py-3 px-4 rounded-xl border-2 transition-all ${role === 'tutor' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold' : 'border-gray-200 hover:border-indigo-200 text-gray-600'}`}>
+                                    className={`py-3 px-4 rounded-xl border-2 transition-all ${role === 'tutor' ? 'border-royal bg-royal/5 text-royal-dark font-bold' : 'border-gray-200 hover:border-royal/30 text-gray-600'}`}>
                                     Tutor
                                 </button>
                             </div>
@@ -212,12 +212,12 @@ const CompleteProfile = () => {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
                             <input name="phone" type="tel" placeholder="+91 98765 43210" required value={formData.phone} onChange={handleChange}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-royal outline-none" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Area / Locality *</label>
                             <input name="area" type="text" placeholder="e.g. Banjara Hills" required value={formData.location.area} onChange={handleChange}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-royal outline-none" />
                         </div>
                     </div>
 
@@ -225,14 +225,14 @@ const CompleteProfile = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Pincode {role === 'tutor' ? '*' : '(Optional)'}</label>
                         <input name="pincode" type="text" placeholder="500001" value={formData.location.pincode} onChange={handleChange}
                             required={role === 'tutor'} maxLength={6}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-royal outline-none" />
                     </div>
 
                     {role === 'student' && (
                         <div className="animate-fade-in border-t pt-6">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Class / Grade *</label>
                             <select name="classGrade" required value={formData.classGrade} onChange={handleChange}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none appearance-none">
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-royal outline-none appearance-none">
                                 <option value="">Select your class</option>
                                 {[...Array(12)].map((_, i) => (
                                     <option key={i} value={`Class ${i + 1}`}>Class {i + 1}</option>
@@ -245,14 +245,14 @@ const CompleteProfile = () => {
 
                     {role === 'tutor' && (
                         <div className="animate-fade-in border-t pt-6">
-                            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-sm text-indigo-800">
+                            <div className="bg-royal/5 border border-royal/30 rounded-xl p-4 text-sm text-navy-900">
                                 After saving phone and location, you will complete your tutor profile in a short 5-step form on your dashboard.
                             </div>
                         </div>
                     )}
 
                     <button type="button" disabled={loading} onClick={() => handleSubmit({ preventDefault: () => {} })}
-                        className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed">
+                        className="w-full py-3.5 bg-gradient-to-r from-royal to-royal/100 text-white font-semibold rounded-xl shadow-lg hover:shadow-royal/30 transition-all transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed">
                         {loading ? 'Creating Profile...' : 'Complete Registration'}
                     </button>
                 </form>

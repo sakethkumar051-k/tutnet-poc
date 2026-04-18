@@ -40,7 +40,7 @@ export default function TutorChangeRequestModal({ booking, onClose, onSuccess })
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
                 <div className="flex items-start justify-between mb-5">
                     <div>
-                        <h3 className="text-base font-bold text-gray-900">Request a Change</h3>
+                        <h3 className="text-base font-bold text-navy-950">Request a Change</h3>
                         <p className="text-sm text-gray-500 mt-0.5">
                             {booking?.subject} · {booking?.studentId?.name}
                         </p>
@@ -66,7 +66,7 @@ export default function TutorChangeRequestModal({ booking, onClose, onSuccess })
                                     key={t.value}
                                     type="button"
                                     onClick={() => setForm(v => ({ ...v, type: t.value }))}
-                                    className={`py-2 text-xs font-medium rounded-lg border transition-colors ${form.type === t.value ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'}`}
+                                    className={`py-2 text-xs font-medium rounded-lg border transition-colors ${form.type === t.value ? 'bg-royal text-white border-royal' : 'bg-white text-gray-600 border-gray-200 hover:border-royal/40'}`}
                                 >
                                     {t.label}
                                 </button>
@@ -92,7 +92,7 @@ export default function TutorChangeRequestModal({ booking, onClose, onSuccess })
                                     value={form.proposedDate}
                                     onChange={e => setForm(v => ({ ...v, proposedDate: e.target.value }))}
                                     min={new Date().toISOString().split('T')[0]}
-                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                                 />
                             </div>
                             <div>
@@ -102,7 +102,7 @@ export default function TutorChangeRequestModal({ booking, onClose, onSuccess })
                                     value={form.proposedSchedule}
                                     onChange={e => setForm(v => ({ ...v, proposedSchedule: e.target.value }))}
                                     placeholder="e.g. Tuesday 5:00 PM – 6:00 PM"
-                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                                 />
                             </div>
                         </>
@@ -117,7 +117,7 @@ export default function TutorChangeRequestModal({ booking, onClose, onSuccess })
                                 value={form.proposedSubject}
                                 onChange={e => setForm(v => ({ ...v, proposedSubject: e.target.value }))}
                                 placeholder="e.g. Advanced Mathematics"
-                                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                             />
                         </div>
                     )}
@@ -130,13 +130,13 @@ export default function TutorChangeRequestModal({ booking, onClose, onSuccess })
                             onChange={e => setForm(v => ({ ...v, reason: e.target.value }))}
                             rows={2}
                             placeholder="Explain why you need this change…"
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40 resize-none"
                             required
                         />
                     </div>
 
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                        <p className="text-xs text-amber-700">
+                    <div className="bg-lime/20 border border-lime/40 rounded-lg px-3 py-2">
+                        <p className="text-xs text-navy-950">
                             The student/parent will receive a notification and must approve before any changes take effect.
                         </p>
                     </div>
@@ -147,7 +147,7 @@ export default function TutorChangeRequestModal({ booking, onClose, onSuccess })
                             Cancel
                         </button>
                         <button type="submit" disabled={submitting}
-                            className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 flex items-center justify-center gap-2">
+                            className="flex-1 px-4 py-2.5 bg-royal text-white rounded-lg text-sm font-semibold hover:bg-royal-dark disabled:opacity-60 flex items-center justify-center gap-2">
                             {submitting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                             Send Request
                         </button>

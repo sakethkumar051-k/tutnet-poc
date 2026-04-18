@@ -5,9 +5,9 @@ const StatCard = ({ label, value, icon, footer, trend, className }) => (
         <div className="flex items-start justify-between">
             <div>
                 <p className="text-sm text-gray-500 font-medium">{label}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1 tracking-tight">{value}</p>
+                <p className="text-2xl font-bold text-navy-950 mt-1 tracking-tight">{value}</p>
                 {trend && (
-                    <p className={cn('text-xs font-medium mt-1', trend > 0 ? 'text-emerald-600' : 'text-red-500')}>
+                    <p className={cn('text-xs font-medium mt-1', trend > 0 ? 'text-lime-dark' : 'text-red-500')}>
                         {trend > 0 ? '+' : ''}{trend}% from last week
                     </p>
                 )}

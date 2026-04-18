@@ -79,10 +79,10 @@ const BookingForm = ({ tutorId, tutorName, onClose, onSuccess }) => {
         >
             <div className="relative p-6 border w-full max-w-md shadow-xl rounded-lg bg-white">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 id="booking-modal-title" className="text-xl font-semibold text-gray-900">Book {tutorName}</h3>
+                    <h3 id="booking-modal-title" className="text-xl font-semibold text-navy-950">Book {tutorName}</h3>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
+                        className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-royal rounded"
                         aria-label="Close modal"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,7 +100,7 @@ const BookingForm = ({ tutorId, tutorName, onClose, onSuccess }) => {
                             name="subject"
                             id="subject"
                             required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-royal focus:border-royal transition-colors"
                             value={formData.subject}
                             onChange={handleChange}
                             placeholder="e.g., Mathematics, Physics"
@@ -119,7 +119,7 @@ const BookingForm = ({ tutorId, tutorName, onClose, onSuccess }) => {
                             id="preferredSchedule"
                             required
                             placeholder="e.g., Monday 10:00 AM, Wednesday 3:00 PM"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-royal focus:border-royal transition-colors"
                             value={formData.preferredSchedule}
                             onChange={handleChange}
                             aria-required="true"
@@ -132,14 +132,14 @@ const BookingForm = ({ tutorId, tutorName, onClose, onSuccess }) => {
                             type="button"
                             onClick={onClose}
                             disabled={loading}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50"
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-royal transition-colors disabled:opacity-50"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="px-4 py-2 text-sm font-medium text-white bg-royal rounded-md hover:bg-royal-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-royal disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                             {loading ? (
                                 <span className="flex items-center gap-2">

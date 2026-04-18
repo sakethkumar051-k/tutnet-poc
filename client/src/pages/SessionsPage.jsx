@@ -141,7 +141,7 @@ const SessionsPage = () => {
         <div className="max-w-7xl mx-auto space-y-8 pb-12">
             {/* Header Area */}
             <div className="pb-6 border-b border-gray-200">
-                <h1 className="text-4xl font-bold text-gray-900 tracking-tight mb-2">Sessions</h1>
+                <h1 className="text-4xl font-bold text-navy-950 tracking-tight mb-2">Sessions</h1>
                 <p className="text-gray-600 text-base">Manage your classes, schedule, and teaching history</p>
             </div>
 
@@ -170,14 +170,14 @@ const SessionsPage = () => {
                         className={`
                             px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2
                             ${activeTab === tab.id
-                                ? 'border-gray-900 text-gray-900'
+                                ? 'border-gray-900 text-navy-950'
                                 : 'border-transparent text-gray-500 hover:text-gray-700'}
                         `}
                     >
                         {tab.label}
                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                             activeTab === tab.id 
-                                ? 'bg-gray-900 text-white' 
+                                ? 'bg-navy-950 text-white' 
                                 : 'bg-gray-100 text-gray-600'
                         }`}>
                             {tab.count}

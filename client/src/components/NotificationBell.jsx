@@ -6,7 +6,7 @@ const NotificationBell = () => {
     return (
         <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`relative p-2 rounded-full transition-all duration-200 ${isOpen ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:bg-gray-100'
+            className={`relative p-2 rounded-full transition-all duration-200 ${isOpen ? 'bg-royal/5 text-royal' : 'text-gray-500 hover:bg-gray-100'
                 }`}
         >
             <svg

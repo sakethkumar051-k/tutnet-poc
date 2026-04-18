@@ -205,19 +205,19 @@ const BookingList = ({ role }) => {
                             return (
                                 <div
                                     key={booking._id}
-                                    className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200"
+                                    className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md hover:border-royal/30 transition-all duration-200"
                                 >
                                     {/* Header: Subject, type, status */}
                                     <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                                         <div>
-                                            <h3 className="text-lg font-semibold text-gray-900">
+                                            <h3 className="text-lg font-semibold text-navy-950">
                                                 {booking.subject}
                                             </h3>
                                             <div className="flex flex-wrap items-center gap-2 mt-1">
                                                 <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{bookingTypeLabel}</span>
                                                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold
-                                                    ${isApproved || isCompleted ? 'bg-green-100 text-green-800' :
-                                                        isPending ? 'bg-amber-100 text-amber-800' :
+                                                    ${isApproved || isCompleted ? 'bg-lime/30 text-navy-950' :
+                                                        isPending ? 'bg-lime/30 text-navy-950' :
                                                             booking.status === 'rejected' ? 'bg-red-100 text-red-800' :
                                                                 booking.status === 'cancelled' ? 'bg-gray-100 text-gray-800' : 'bg-gray-100 text-gray-800'}`}>
                                                     {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
@@ -230,9 +230,9 @@ const BookingList = ({ role }) => {
                                     <div className="space-y-2 mb-4">
                                         <p className="text-sm text-gray-700">
                                             {role === 'tutor' ? (
-                                                <>Student: <span className="font-medium text-gray-900">{booking.studentId?.name || '—'}</span></>
+                                                <>Student: <span className="font-medium text-navy-950">{booking.studentId?.name || '—'}</span></>
                                             ) : (
-                                                <>Tutor: <span className="font-medium text-gray-900">{booking.tutorId?.name || '—'}</span></>
+                                                <>Tutor: <span className="font-medium text-navy-950">{booking.tutorId?.name || '—'}</span></>
                                             )}
                                         </p>
                                         <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -258,7 +258,7 @@ const BookingList = ({ role }) => {
                                             <button
                                                 type="button"
                                                 onClick={() => toggleDetails(booking._id)}
-                                                className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                                                className="text-sm font-medium text-royal hover:text-royal-dark"
                                             >
                                                 {detailsOpen ? 'Hide request details' : 'Show request details'}
                                             </button>
@@ -305,7 +305,7 @@ const BookingList = ({ role }) => {
                                                 {(isApproved || isCompleted) && (
                                                     <button
                                                         onClick={() => openSessionDetails(booking)}
-                                                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md hover:bg-indigo-700 transition-colors shadow-sm hover:shadow-md"
+                                                        className="px-4 py-2 bg-royal text-white text-sm font-semibold rounded-md hover:bg-royal-dark transition-colors shadow-sm hover:shadow-md"
                                                     >
                                                         View Session
                                                     </button>
@@ -314,28 +314,28 @@ const BookingList = ({ role }) => {
                                                 {isApproved && !isCompleted && !studentReschedule && !tutorChange && (
                                                     <button
                                                         onClick={() => setRescheduleModal(booking)}
-                                                        className="px-4 py-2 bg-white text-indigo-700 text-sm font-medium rounded-md border border-indigo-200 hover:bg-indigo-50 transition-colors"
+                                                        className="px-4 py-2 bg-white text-royal-dark text-sm font-medium rounded-md border border-royal/30 hover:bg-royal/5 transition-colors"
                                                     >
                                                         Request reschedule
                                                     </button>
                                                 )}
                                                 {isApproved && !isCompleted && studentReschedule && (
-                                                    <span className="px-3 py-2 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md">
+                                                    <span className="px-3 py-2 text-xs font-medium text-navy-950 bg-lime/20 border border-lime/40 rounded-md">
                                                         Your reschedule request is pending
                                                     </span>
                                                 )}
                                                 {/* Tutor requested a change → student approves/declines */}
                                                 {isApproved && !isCompleted && tutorChange && (
-                                                    <div className="w-full mt-1 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2">
-                                                        <p className="text-xs font-semibold text-indigo-800 mb-0.5">Your tutor requested a change</p>
-                                                        <p className="text-xs text-indigo-700 mb-2">
+                                                    <div className="w-full mt-1 bg-royal/5 border border-royal/30 rounded-lg px-3 py-2">
+                                                        <p className="text-xs font-semibold text-navy-900 mb-0.5">Your tutor requested a change</p>
+                                                        <p className="text-xs text-royal-dark mb-2">
                                                             {booking.tutorChangeRequest.type === 'reschedule' ? `New schedule: ${booking.tutorChangeRequest.proposedSchedule || 'See details'}` : ''}
                                                             {booking.tutorChangeRequest.type === 'subject' ? `New subject: ${booking.tutorChangeRequest.proposedSubject}` : ''}
                                                             {booking.tutorChangeRequest.type === 'both' ? 'Schedule & subject change' : ''}
                                                         </p>
                                                         <p className="text-xs text-gray-500 mb-2 italic">Reason: {booking.tutorChangeRequest.reason}</p>
                                                         <div className="flex gap-2">
-                                                            <button onClick={() => handleTutorChangeRespond(booking._id, 'approve')} className="px-3 py-1 text-xs font-semibold bg-green-600 text-white rounded-md hover:bg-green-700">Approve</button>
+                                                            <button onClick={() => handleTutorChangeRespond(booking._id, 'approve')} className="px-3 py-1 text-xs font-semibold bg-lime text-navy-950 rounded-xl hover:bg-lime-light">Approve</button>
                                                             <button onClick={() => handleTutorChangeRespond(booking._id, 'decline')} className="px-3 py-1 text-xs font-medium border border-red-300 text-red-700 rounded-md hover:bg-red-50">Decline</button>
                                                         </div>
                                                     </div>
@@ -360,7 +360,7 @@ const BookingList = ({ role }) => {
                                                 )}
                                                 {/* Completed with review: Reviewed badge */}
                                                 {isCompleted && booking.hasReview && (
-                                                    <span className="px-4 py-2 bg-green-50 text-green-700 text-sm font-medium rounded-md border border-green-200">
+                                                    <span className="px-4 py-2 bg-lime/20 text-navy-950 text-sm font-medium rounded-md border border-lime/40">
                                                         ✓ Reviewed
                                                     </span>
                                                 )}
@@ -375,7 +375,7 @@ const BookingList = ({ role }) => {
                                                     <>
                                                         <button
                                                             onClick={() => handleApprove(booking._id)}
-                                                            className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-md hover:bg-green-700 transition-colors shadow-sm hover:shadow-md"
+                                                            className="px-4 py-2 bg-lime text-navy-950 text-sm font-semibold rounded-xl hover:bg-lime-light transition-colors shadow-sm hover:shadow-md"
                                                         >
                                                             Accept
                                                         </button>
@@ -392,7 +392,7 @@ const BookingList = ({ role }) => {
                                                     <>
                                                         <button
                                                             onClick={() => openSessionDetails(booking)}
-                                                            className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md hover:bg-indigo-700 transition-colors shadow-sm hover:shadow-md"
+                                                            className="px-4 py-2 bg-royal text-white text-sm font-semibold rounded-md hover:bg-royal-dark transition-colors shadow-sm hover:shadow-md"
                                                         >
                                                             View Session
                                                         </button>
@@ -404,18 +404,18 @@ const BookingList = ({ role }) => {
                                                         </button>
                                                         {/* Student requested reschedule: show only when there is a real pending request */}
                                                         {studentReschedule && (
-                                                            <div className="w-full mt-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                                                            <div className="w-full mt-2 bg-lime/20 border border-lime/40 rounded-lg px-4 py-3">
                                                                 <p className="text-sm font-semibold text-amber-900 mb-1">Student requested a reschedule</p>
                                                                 {(booking.rescheduleRequest.proposedSchedule || booking.rescheduleRequest.proposedDate) && (
-                                                                    <p className="text-xs text-amber-800 mb-1">
+                                                                    <p className="text-xs text-navy-950 mb-1">
                                                                         Proposed: {booking.rescheduleRequest.proposedSchedule || (booking.rescheduleRequest.proposedDate && new Date(booking.rescheduleRequest.proposedDate).toLocaleDateString()) || '—'}
                                                                     </p>
                                                                 )}
                                                                 {booking.rescheduleRequest.reason && (
-                                                                    <p className="text-xs text-amber-700 mb-2">Reason: {booking.rescheduleRequest.reason}</p>
+                                                                    <p className="text-xs text-navy-950 mb-2">Reason: {booking.rescheduleRequest.reason}</p>
                                                                 )}
                                                                 <div className="flex gap-2 mt-2">
-                                                                    <button onClick={() => handleRescheduleRespond(booking._id, 'approve')} className="px-3 py-1.5 text-xs font-semibold bg-green-600 text-white rounded-md hover:bg-green-700">Approve</button>
+                                                                    <button onClick={() => handleRescheduleRespond(booking._id, 'approve')} className="px-3 py-1.5 text-xs font-semibold bg-lime text-navy-950 rounded-xl hover:bg-lime-light">Approve</button>
                                                                     <button onClick={() => handleRescheduleRespond(booking._id, 'decline')} className="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-md hover:bg-gray-50">Decline</button>
                                                                 </div>
                                                             </div>
@@ -424,13 +424,13 @@ const BookingList = ({ role }) => {
                                                         {!tutorChange && (
                                                             <button
                                                                 onClick={() => setTutorChangeModal(booking)}
-                                                                className="px-4 py-2 bg-white text-amber-700 text-sm font-medium rounded-md border border-amber-300 hover:bg-amber-50 transition-colors"
+                                                                className="px-4 py-2 bg-white text-navy-950 text-sm font-medium rounded-md border border-amber-300 hover:bg-lime/20 transition-colors"
                                                             >
                                                                 Request reschedule
                                                             </button>
                                                         )}
                                                         {tutorChange && (
-                                                            <span className="px-3 py-2 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md">
+                                                            <span className="px-3 py-2 text-xs font-medium text-navy-950 bg-lime/20 border border-lime/40 rounded-md">
                                                                 Your change request is pending approval
                                                             </span>
                                                         )}
@@ -440,7 +440,7 @@ const BookingList = ({ role }) => {
                                                 {isCompleted && (
                                                     <button
                                                         onClick={() => openSessionDetails(booking)}
-                                                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md hover:bg-indigo-700 transition-colors shadow-sm hover:shadow-md"
+                                                        className="px-4 py-2 bg-royal text-white text-sm font-semibold rounded-md hover:bg-royal-dark transition-colors shadow-sm hover:shadow-md"
                                                     >
                                                         View Session
                                                     </button>
@@ -461,7 +461,7 @@ const BookingList = ({ role }) => {
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
                     <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-                            <h2 className="text-xl font-semibold text-gray-900">Leave a Review</h2>
+                            <h2 className="text-xl font-semibold text-navy-950">Leave a Review</h2>
                             <button
                                 onClick={closeReviewModal}
                                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold"

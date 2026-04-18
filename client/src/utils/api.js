@@ -25,16 +25,33 @@ api.interceptors.request.use((config) => {
 
 // Response interceptor — handle auth errors globally
 const PUBLIC_PATHS = ['/login', '/register', '/oauth-success', '/complete-profile', '/admin-login', '/'];
+const PUBLIC_PATH_PREFIXES = ['/find-tutors', '/tutor/', '/about', '/courses', '/contact', '/onboarding'];
+
+const isPublicPath = (path) =>
+    PUBLIC_PATHS.includes(path) || PUBLIC_PATH_PREFIXES.some((p) => path.startsWith(p));
 
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
         const status = error.response?.status;
         const currentPath = window.location.pathname;
+        const originalRequest = error.config;
 
-        if (status === 401 && !PUBLIC_PATHS.includes(currentPath)) {
+        if (status === 401) {
+            // Drop the stale token — it's no longer valid.
             localStorage.removeItem('token');
-            window.location.href = '/login';
+
+            if (isPublicPath(currentPath)) {
+                // On public pages, retry the original request once as a guest
+                // (no Authorization header) so the UI can still render data.
+                if (originalRequest && !originalRequest._retriedAsGuest) {
+                    originalRequest._retriedAsGuest = true;
+                    if (originalRequest.headers) delete originalRequest.headers.Authorization;
+                    return api.request(originalRequest);
+                }
+            } else {
+                window.location.href = '/login';
+            }
         }
         // 403: let components handle permission errors
 

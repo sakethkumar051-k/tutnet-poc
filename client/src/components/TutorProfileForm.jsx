@@ -20,15 +20,15 @@ function FixedWeeklySlots({ weeklyAvailability, addSlot, removeSlot, timeSlots }
     };
     return (
         <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Weekly slots (add start–end per day)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Weekly slots (add start–end per day)</label>
             <div className="space-y-4">
                 {weeklyAvailability.map((dayObj, dayIndex) => (
-                    <div key={dayObj.day} className="border border-slate-200 rounded-lg p-3">
-                        <div className="font-medium text-slate-700 mb-2">{dayObj.day}</div>
+                    <div key={dayObj.day} className="border border-gray-200 rounded-lg p-3">
+                        <div className="font-medium text-gray-700 mb-2">{dayObj.day}</div>
                         <div className="space-y-2">
                             {(dayObj.slots || []).map((slot, slotIndex) => (
                                 <div key={slotIndex} className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm text-slate-600">{slot.start} – {slot.end}</span>
+                                    <span className="text-sm text-gray-600">{slot.start} – {slot.end}</span>
                                     <button
                                         type="button"
                                         onClick={() => removeSlot(dayIndex, slotIndex)}
@@ -42,7 +42,7 @@ function FixedWeeklySlots({ weeklyAvailability, addSlot, removeSlot, timeSlots }
                                 <select
                                     value={(draft[dayIndex] || {}).start || ''}
                                     onChange={e => setDraftForDay(dayIndex, 'start', e.target.value)}
-                                    className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+                                    className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
                                 >
                                     <option value="">Start</option>
                                     {timeSlots.map(t => (
@@ -52,7 +52,7 @@ function FixedWeeklySlots({ weeklyAvailability, addSlot, removeSlot, timeSlots }
                                 <select
                                     value={(draft[dayIndex] || {}).end || ''}
                                     onChange={e => setDraftForDay(dayIndex, 'end', e.target.value)}
-                                    className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+                                    className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
                                 >
                                     <option value="">End</option>
                                     {timeSlots.map(t => (
@@ -62,7 +62,7 @@ function FixedWeeklySlots({ weeklyAvailability, addSlot, removeSlot, timeSlots }
                                 <button
                                     type="button"
                                     onClick={() => handleAdd(dayIndex)}
-                                    className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200"
+                                    className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200"
                                 >
                                     Add slot
                                 </button>
@@ -284,7 +284,7 @@ const TutorProfileForm = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-16">
-                <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-500 border-t-transparent" />
+                <div className="animate-spin rounded-full h-10 w-10 border-2 border-royal border-t-transparent" />
             </div>
         );
     }
@@ -294,10 +294,10 @@ const TutorProfileForm = () => {
             {/* Status banner */}
             {profileData && (
                 <div className={`rounded-xl border p-4 ${
-                    isApproved ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-                    isPending ? 'bg-amber-50 border-amber-200 text-amber-800' :
+                    isApproved ? 'bg-lime/20 border-lime/40 text-navy-950' :
+                    isPending ? 'bg-lime/20 border-lime/40 text-navy-950' :
                     isRejected ? 'bg-red-50 border-red-200 text-red-800' :
-                    'bg-slate-50 border-slate-200 text-slate-800'
+                    'bg-[#f7f7f7] border-gray-200 text-navy-950'
                 }`}>
                     <div className="flex items-center justify-between flex-wrap gap-3">
                         <div>
@@ -313,7 +313,7 @@ const TutorProfileForm = () => {
                                 type="button"
                                 onClick={handleSubmitForApproval}
                                 disabled={submitting || saving}
-                                className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+                                className="px-4 py-2 rounded-lg bg-royal text-white text-sm font-medium hover:bg-royal-dark disabled:opacity-50"
                             >
                                 {submitting ? 'Submitting…' : 'Submit for approval'}
                             </button>
@@ -323,7 +323,7 @@ const TutorProfileForm = () => {
             )}
 
             {message.text && (
-                <div className={`rounded-lg border p-3 ${message.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+                <div className={`rounded-lg border p-3 ${message.type === 'success' ? 'bg-lime/20 border-lime/40 text-navy-950' : 'bg-red-50 border-red-200 text-red-800'}`}>
                     {message.text}
                 </div>
             )}
@@ -337,8 +337,8 @@ const TutorProfileForm = () => {
                         onClick={() => setStep(s.id)}
                         className={`shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                             step === s.id
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                ? 'bg-royal text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                     >
                         {s.short}
@@ -346,53 +346,53 @@ const TutorProfileForm = () => {
                 ))}
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="p-6 sm:p-8">
                     {/* Step 1 – Basic Info */}
                     {step === 1 && (
                         <div className="space-y-6">
-                            <h2 className="text-lg font-semibold text-slate-900">Basic information</h2>
+                            <h2 className="text-lg font-semibold text-navy-950">Basic information</h2>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                                     <input
                                         type="tel"
                                         value={formData.phone}
                                         onChange={e => updateField('phone', e.target.value)}
                                         placeholder="10-digit mobile"
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-navy-950 focus:ring-2 focus:ring-royal focus:border-royal"
                                     />
-                                    <p className="mt-1 text-xs text-slate-500">Verified number preferred for bookings</p>
+                                    <p className="mt-1 text-xs text-gray-500">Verified number preferred for bookings</p>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Area</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
                                     <input
                                         type="text"
                                         value={formData.area}
                                         onChange={e => updateField('area', e.target.value)}
                                         placeholder="e.g. Jubilee Hills"
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-navy-950 focus:ring-2 focus:ring-royal focus:border-royal"
                                     />
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Pincode</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
                                     <input
                                         type="text"
                                         value={formData.pincode}
                                         onChange={e => updateField('pincode', e.target.value)}
                                         placeholder="6-digit"
                                         maxLength={6}
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-navy-950 focus:ring-2 focus:ring-royal focus:border-royal"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Teaching mode</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Teaching mode</label>
                                     <select
                                         value={formData.mode}
                                         onChange={e => updateField('mode', e.target.value)}
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-navy-950 focus:ring-2 focus:ring-royal focus:border-royal"
                                     >
                                         {TEACHING_MODES.map(m => (
                                             <option key={m.value} value={m.value}>{m.label}</option>
@@ -402,7 +402,7 @@ const TutorProfileForm = () => {
                             </div>
                             {(formData.mode === 'home' || formData.mode === 'both') && (
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Travel radius (km)</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Travel radius (km)</label>
                                     <input
                                         type="number"
                                         min={0}
@@ -410,7 +410,7 @@ const TutorProfileForm = () => {
                                         value={formData.travelRadius}
                                         onChange={e => updateField('travelRadius', e.target.value)}
                                         placeholder="e.g. 10"
-                                        className="w-full max-w-[140px] rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full max-w-[140px] rounded-lg border border-gray-300 px-3 py-2 text-navy-950 focus:ring-2 focus:ring-royal focus:border-royal"
                                     />
                                 </div>
                             )}
@@ -420,9 +420,9 @@ const TutorProfileForm = () => {
                     {/* Step 2 – Teaching Details */}
                     {step === 2 && (
                         <div className="space-y-6">
-                            <h2 className="text-lg font-semibold text-slate-900">Teaching details</h2>
+                            <h2 className="text-lg font-semibold text-navy-950">Teaching details</h2>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Subjects</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Subjects</label>
                                 <div className="flex flex-wrap gap-2">
                                     {(options.subjects || []).map(subj => (
                                         <button
@@ -431,8 +431,8 @@ const TutorProfileForm = () => {
                                             onClick={() => toggleMulti('subjects', subj)}
                                             className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                                                 formData.subjects.includes(subj)
-                                                    ? 'bg-indigo-600 text-white border-indigo-600'
-                                                    : 'bg-white text-slate-600 border-slate-300 hover:border-indigo-400'
+                                                    ? 'bg-royal text-white border-royal'
+                                                    : 'bg-white text-gray-600 border-gray-300 hover:border-royal/50'
                                             }`}
                                         >
                                             {subj}
@@ -441,7 +441,7 @@ const TutorProfileForm = () => {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Classes / Grades</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Classes / Grades</label>
                                 <div className="flex flex-wrap gap-2">
                                     {(options.classes || []).map(cls => (
                                         <button
@@ -450,8 +450,8 @@ const TutorProfileForm = () => {
                                             onClick={() => toggleMulti('classes', cls)}
                                             className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                                                 formData.classes.includes(cls)
-                                                    ? 'bg-indigo-600 text-white border-indigo-600'
-                                                    : 'bg-white text-slate-600 border-slate-300 hover:border-indigo-400'
+                                                    ? 'bg-royal text-white border-royal'
+                                                    : 'bg-white text-gray-600 border-gray-300 hover:border-royal/50'
                                             }`}
                                         >
                                             {cls}
@@ -461,23 +461,23 @@ const TutorProfileForm = () => {
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Years of experience</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Years of experience</label>
                                     <input
                                         type="number"
                                         min={0}
                                         value={formData.experienceYears}
                                         onChange={e => updateField('experienceYears', e.target.value)}
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-navy-950 focus:ring-2 focus:ring-royal focus:border-royal"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Hourly rate (₹)</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Hourly rate (₹)</label>
                                     <input
                                         type="number"
                                         min={0}
                                         value={formData.hourlyRate}
                                         onChange={e => updateField('hourlyRate', e.target.value)}
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-navy-950 focus:ring-2 focus:ring-royal focus:border-royal"
                                     />
                                 </div>
                             </div>
@@ -487,9 +487,9 @@ const TutorProfileForm = () => {
                     {/* Step 3 – Availability */}
                     {step === 3 && (
                         <div className="space-y-6">
-                            <h2 className="text-lg font-semibold text-slate-900">Availability</h2>
+                            <h2 className="text-lg font-semibold text-navy-950">Availability</h2>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Availability mode</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Availability mode</label>
                                 <div className="flex gap-4">
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
@@ -497,7 +497,7 @@ const TutorProfileForm = () => {
                                             name="availabilityMode"
                                             checked={formData.availabilityMode === 'fixed'}
                                             onChange={() => updateField('availabilityMode', 'fixed')}
-                                            className="text-indigo-600 focus:ring-indigo-500"
+                                            className="text-royal focus:ring-royal"
                                         />
                                         <span>Fixed weekly</span>
                                     </label>
@@ -507,7 +507,7 @@ const TutorProfileForm = () => {
                                             name="availabilityMode"
                                             checked={formData.availabilityMode === 'flexible'}
                                             onChange={() => updateField('availabilityMode', 'flexible')}
-                                            className="text-indigo-600 focus:ring-indigo-500"
+                                            className="text-royal focus:ring-royal"
                                         />
                                         <span>Flexible / On-demand</span>
                                     </label>
@@ -526,11 +526,11 @@ const TutorProfileForm = () => {
                             {formData.availabilityMode === 'flexible' && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Notice period</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Notice period</label>
                                         <select
                                             value={formData.noticePeriodHours}
                                             onChange={e => updateField('noticePeriodHours', Number(e.target.value))}
-                                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-navy-950 focus:ring-2 focus:ring-royal focus:border-royal"
                                         >
                                             {(options.noticePeriodOptions || []).map(opt => (
                                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -538,14 +538,14 @@ const TutorProfileForm = () => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Max sessions per day</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Max sessions per day</label>
                                         <input
                                             type="number"
                                             min={1}
                                             max={12}
                                             value={formData.maxSessionsPerDay}
                                             onChange={e => updateField('maxSessionsPerDay', e.target.value)}
-                                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-navy-950 focus:ring-2 focus:ring-royal focus:border-royal"
                                         />
                                     </div>
                                 </div>
@@ -556,41 +556,41 @@ const TutorProfileForm = () => {
                     {/* Step 4 – Professional Info */}
                     {step === 4 && (
                         <div className="space-y-6">
-                            <h2 className="text-lg font-semibold text-slate-900">Professional information</h2>
+                            <h2 className="text-lg font-semibold text-navy-950">Professional information</h2>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Degree</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Degree</label>
                                     <input
                                         type="text"
                                         value={formData.degree}
                                         onChange={e => updateField('degree', e.target.value)}
                                         placeholder="e.g. B.Tech, M.Sc"
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-navy-950 focus:ring-2 focus:ring-royal focus:border-royal"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Institution</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Institution</label>
                                     <input
                                         type="text"
                                         value={formData.institution}
                                         onChange={e => updateField('institution', e.target.value)}
                                         placeholder="University / College"
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-navy-950 focus:ring-2 focus:ring-royal focus:border-royal"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Year</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
                                     <input
                                         type="text"
                                         value={formData.year}
                                         onChange={e => updateField('year', e.target.value)}
                                         placeholder="e.g. 2020"
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-navy-950 focus:ring-2 focus:ring-royal focus:border-royal"
                                     />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Certifications</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Certifications</label>
                                 <div className="flex flex-wrap gap-2">
                                     {(options.certifications || []).map(cert => (
                                         <button
@@ -599,8 +599,8 @@ const TutorProfileForm = () => {
                                             onClick={() => toggleMulti('qualifications', cert)}
                                             className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                                                 formData.qualifications.includes(cert)
-                                                    ? 'bg-indigo-600 text-white border-indigo-600'
-                                                    : 'bg-white text-slate-600 border-slate-300 hover:border-indigo-400'
+                                                    ? 'bg-royal text-white border-royal'
+                                                    : 'bg-white text-gray-600 border-gray-300 hover:border-royal/50'
                                             }`}
                                         >
                                             {cert}
@@ -609,7 +609,7 @@ const TutorProfileForm = () => {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Teaching strengths</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Teaching strengths</label>
                                 <div className="flex flex-wrap gap-2">
                                     {(options.strengthTags || []).map(tag => (
                                         <button
@@ -618,8 +618,8 @@ const TutorProfileForm = () => {
                                             onClick={() => toggleMulti('strengthTags', tag)}
                                             className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                                                 formData.strengthTags.includes(tag)
-                                                    ? 'bg-indigo-600 text-white border-indigo-600'
-                                                    : 'bg-white text-slate-600 border-slate-300 hover:border-indigo-400'
+                                                    ? 'bg-royal text-white border-royal'
+                                                    : 'bg-white text-gray-600 border-gray-300 hover:border-royal/50'
                                             }`}
                                         >
                                             {tag}
@@ -628,15 +628,15 @@ const TutorProfileForm = () => {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Bio (min {options.bioMinLength || 150} characters)</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Bio (min {options.bioMinLength || 150} characters)</label>
                                 <textarea
                                     value={formData.bio}
                                     onChange={e => updateField('bio', e.target.value)}
                                     rows={4}
                                     placeholder="Describe your teaching style, experience, and what makes you a great tutor..."
-                                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-navy-950 focus:ring-2 focus:ring-royal focus:border-royal"
                                 />
-                                <p className="mt-1 text-xs text-slate-500">{formData.bio.length} / {options.bioMinLength || 150}</p>
+                                <p className="mt-1 text-xs text-gray-500">{formData.bio.length} / {options.bioMinLength || 150}</p>
                             </div>
                         </div>
                     )}
@@ -644,24 +644,24 @@ const TutorProfileForm = () => {
                     {/* Step 5 – Review & Submit */}
                     {step === 5 && (
                         <div className="space-y-6">
-                            <h2 className="text-lg font-semibold text-slate-900">Review & submit</h2>
+                            <h2 className="text-lg font-semibold text-navy-950">Review & submit</h2>
                             <div className="flex items-center gap-4">
                                 <div className="flex-1">
                                     <div className="flex justify-between text-sm mb-1">
-                                        <span className="font-medium text-slate-700">Profile completeness</span>
-                                        <span className="text-slate-600">{completionScore}%</span>
+                                        <span className="font-medium text-gray-700">Profile completeness</span>
+                                        <span className="text-gray-600">{completionScore}%</span>
                                     </div>
-                                    <div className="h-3 rounded-full bg-slate-200 overflow-hidden">
+                                    <div className="h-3 rounded-full bg-gray-200 overflow-hidden">
                                         <div
-                                            className="h-full bg-indigo-600 rounded-full transition-all"
+                                            className="h-full bg-royal rounded-full transition-all"
                                             style={{ width: `${completionScore}%` }}
                                         />
                                     </div>
                                 </div>
                             </div>
-                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
-                                <h3 className="font-medium text-slate-900 mb-2">Preview</h3>
-                                <ul className="text-sm text-slate-600 space-y-1">
+                            <div className="border border-gray-200 rounded-xl p-4 bg-[#f7f7f7]">
+                                <h3 className="font-medium text-navy-950 mb-2">Preview</h3>
+                                <ul className="text-sm text-gray-600 space-y-1">
                                     <li><strong>Contact:</strong> {formData.phone || '—'}, {formData.area || '—'}, {formData.pincode || '—'}</li>
                                     <li><strong>Mode:</strong> {formData.mode} {formData.travelRadius ? `(${formData.travelRadius} km)` : ''}</li>
                                     <li><strong>Subjects:</strong> {formData.subjects.length ? formData.subjects.join(', ') : '—'}</li>
@@ -671,18 +671,18 @@ const TutorProfileForm = () => {
                                     <li><strong>Bio:</strong> {formData.bio ? `${formData.bio.slice(0, 80)}…` : '—'}</li>
                                 </ul>
                             </div>
-                            <p className="text-sm text-slate-600">Submit for admin approval. Your profile will be visible to students only after approval.</p>
+                            <p className="text-sm text-gray-600">Submit for admin approval. Your profile will be visible to students only after approval.</p>
                         </div>
                     )}
                 </div>
 
-                <div className="px-6 sm:px-8 py-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <div className="px-6 sm:px-8 py-4 bg-[#f7f7f7] border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex gap-2">
                         {step > 1 && (
                             <button
                                 type="button"
                                 onClick={() => setStep(step - 1)}
-                                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-100"
+                                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-100"
                             >
                                 Back
                             </button>
@@ -691,7 +691,7 @@ const TutorProfileForm = () => {
                             <button
                                 type="button"
                                 onClick={() => setStep(step + 1)}
-                                className="px-4 py-2 rounded-lg bg-slate-200 text-slate-800 text-sm font-medium hover:bg-slate-300"
+                                className="px-4 py-2 rounded-lg bg-gray-200 text-navy-950 text-sm font-medium hover:bg-gray-300"
                             >
                                 Next
                             </button>
@@ -702,7 +702,7 @@ const TutorProfileForm = () => {
                             type="button"
                             onClick={handleSave}
                             disabled={saving}
-                            className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+                            className="px-4 py-2 rounded-lg bg-royal text-white text-sm font-medium hover:bg-royal-dark disabled:opacity-50"
                         >
                             {saving ? 'Saving…' : 'Save progress'}
                         </button>
@@ -711,7 +711,7 @@ const TutorProfileForm = () => {
                                 type="button"
                                 onClick={handleSubmitForApproval}
                                 disabled={submitting || saving}
-                                className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+                                className="px-4 py-2 rounded-lg bg-lime-dark text-white text-sm font-medium hover:bg-lime-light disabled:opacity-50"
                             >
                                 {submitting ? 'Submitting…' : 'Submit for approval'}
                             </button>

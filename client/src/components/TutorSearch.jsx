@@ -56,7 +56,7 @@ const SubjectInput = ({ value, onChange }) => {
                 onFocus={() => setOpen(true)}
                 onChange={e => { onChange(e.target.value); setOpen(true); }}
                 placeholder="Search subjects..."
-                className="w-full pl-9 pr-8 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-300 placeholder:text-gray-400 transition-all"
+                className="w-full pl-9 pr-8 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-royal/20 focus:border-royal/40 placeholder:text-gray-400 transition-all"
             />
             {query && (
                 <button onClick={() => { onChange(''); setOpen(false); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors">
@@ -69,7 +69,7 @@ const SubjectInput = ({ value, onChange }) => {
                 <div className="absolute z-30 top-full left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden max-h-52 overflow-y-auto">
                     {filtered.map(s => (
                         <button key={s} onMouseDown={() => { onChange(s); setOpen(false); }}
-                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors">
+                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-royal/5 hover:text-royal transition-colors">
                             {s}
                         </button>
                     ))}
@@ -79,7 +79,7 @@ const SubjectInput = ({ value, onChange }) => {
     );
 };
 
-const fieldBase = 'py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-300 placeholder:text-gray-400 transition-all';
+const fieldBase = 'py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-royal/20 focus:border-royal/40 placeholder:text-gray-400 transition-all';
 
 const TutorSearch = ({ onSearch }) => {
     const [filters, setFilters] = useState(EMPTY);
@@ -109,7 +109,7 @@ const TutorSearch = ({ onSearch }) => {
     return (
         <div className="space-y-3">
             {/* Primary search bar */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-3 shadow-sm">
+            <div className="bg-white rounded-3xl border border-gray-100 p-3 shadow-[0_4px_30px_-12px_rgba(0,0,0,0.08)]">
                 <div className="flex flex-wrap gap-2">
                     <SubjectInput value={filters.subject} onChange={v => set('subject', v)} />
 
@@ -136,17 +136,17 @@ const TutorSearch = ({ onSearch }) => {
                     </div>
 
                     {/* Mode toggle */}
-                    <div className="flex bg-gray-100 rounded-xl p-1 gap-0.5">
+                    <div className="flex bg-gray-100 rounded-full p-1 gap-0.5">
                         {[
                             { label: 'All', value: 'all' },
                             { label: 'Online', value: 'online' },
                             { label: 'Home', value: 'home' },
                         ].map(m => (
                             <button key={m.value} onClick={() => set('mode', m.value, true)}
-                                className={`px-3.5 py-1.5 text-[12px] font-semibold rounded-lg transition-all duration-200 ${
+                                className={`px-4 py-1.5 text-[12px] font-bold rounded-full transition-all duration-200 ${
                                     filters.mode === m.value
-                                        ? 'bg-white text-gray-900 shadow-sm'
-                                        : 'text-gray-500 hover:text-gray-700'
+                                        ? 'bg-navy-950 text-white shadow-sm'
+                                        : 'text-gray-500 hover:text-navy-950'
                                 }`}>
                                 {m.label}
                             </button>
@@ -193,10 +193,10 @@ const TutorSearch = ({ onSearch }) => {
                     </select>
                     <button
                         onClick={() => set('verifiedOnly', !filters.verifiedOnly, true)}
-                        className={`px-4 py-2.5 text-[12px] font-semibold rounded-xl border transition-all duration-200 ${
+                        className={`px-4 py-2.5 text-[12px] font-bold rounded-full border transition-all duration-200 ${
                             filters.verifiedOnly
-                                ? 'bg-teal-50 text-teal-700 border-teal-200 shadow-sm'
-                                : 'bg-white text-gray-600 border-gray-200 hover:border-teal-200 hover:text-teal-700'
+                                ? 'bg-lime text-navy-950 border-lime shadow-sm'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-navy-950 hover:text-navy-950'
                         }`}>
                         <span className="flex items-center gap-1.5">
                             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">

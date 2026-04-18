@@ -33,8 +33,8 @@ const ProgressReports = () => {
 
     const getImprovementColor = (improvement) => {
         const colors = {
-            excellent: 'bg-green-100 text-green-800',
-            good: 'bg-blue-100 text-blue-800',
+            excellent: 'bg-lime/30 text-navy-950',
+            good: 'bg-royal/10 text-royal-dark',
             average: 'bg-yellow-100 text-yellow-800',
             needs_improvement: 'bg-red-100 text-red-800'
         };
@@ -63,7 +63,7 @@ const ProgressReports = () => {
                     >
                         <div className="flex items-start justify-between mb-4">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900">{report.subject}</h3>
+                                <h3 className="text-lg font-semibold text-navy-950">{report.subject}</h3>
                                 <p className="text-sm text-gray-500 mt-1">
                                     {user?.role === 'student' 
                                         ? `Tutor: ${report.tutorId?.name}`
@@ -93,7 +93,7 @@ const ProgressReports = () => {
                                         </div>
                                         <div className="w-full bg-gray-200 rounded-full h-2">
                                             <div
-                                                className="bg-indigo-600 h-2 rounded-full"
+                                                className="bg-royal h-2 rounded-full"
                                                 style={{ width: `${report.attendance?.attendancePercentage || 0}%` }}
                                             />
                                         </div>
@@ -121,7 +121,7 @@ const ProgressReports = () => {
                         </div>
 
                         {report.notes && (
-                            <div className="mt-4 p-3 bg-indigo-50 rounded-lg">
+                            <div className="mt-4 p-3 bg-royal/5 rounded-lg">
                                 <p className="text-sm font-medium text-gray-700 mb-1">Notes:</p>
                                 <p className="text-sm text-gray-600">{report.notes}</p>
                             </div>

@@ -20,7 +20,7 @@ const HandoverModal = ({ student, onClose, onConfirm }) => {
     return (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-1">End Engagement</h3>
+                <h3 className="text-lg font-bold text-navy-950 mb-1">End Engagement</h3>
                 <p className="text-sm text-gray-500 mb-4">
                     You are ending the tutoring relationship with <strong>{student?.studentId?.name}</strong> for <strong>{student?.subject}</strong>.
                     Session history and notes will be preserved.
@@ -32,7 +32,7 @@ const HandoverModal = ({ student, onClose, onConfirm }) => {
                         <select
                             value={reason}
                             onChange={e => setReason(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-royal"
                         >
                             <option value="">Select a reason…</option>
                             <option value="Curriculum complete">Curriculum complete</option>
@@ -49,7 +49,7 @@ const HandoverModal = ({ student, onClose, onConfirm }) => {
                             onChange={e => setNotes(e.target.value)}
                             placeholder="Topics covered, student strengths/weaknesses, recommended next steps…"
                             rows={4}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-royal resize-none"
                         />
                     </div>
                 </div>
@@ -140,7 +140,7 @@ const MyCurrentStudents = () => {
                                 className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:border-gray-300 transition-colors"
                             >
                                 <div className="mb-4">
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                                    <h3 className="text-xl font-bold text-navy-950 mb-2">
                                         {studentInfo.name}
                                     </h3>
                                     <p className="text-sm text-gray-600 mb-1 font-medium">
@@ -159,11 +159,11 @@ const MyCurrentStudents = () => {
                                 <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
                                     <div>
                                         <p className="text-xs text-gray-600 mb-1 font-medium">Total Sessions</p>
-                                        <p className="text-2xl font-bold text-gray-900">{relationship.totalSessionsBooked}</p>
+                                        <p className="text-2xl font-bold text-navy-950">{relationship.totalSessionsBooked}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-600 mb-1 font-medium">Completed</p>
-                                        <p className="text-2xl font-bold text-green-600">{relationship.sessionsCompleted}</p>
+                                        <p className="text-2xl font-bold text-lime-dark">{relationship.sessionsCompleted}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-600 mb-1 font-medium">Missed</p>
@@ -171,7 +171,7 @@ const MyCurrentStudents = () => {
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-600 mb-1 font-medium">Attendance</p>
-                                        <p className="text-2xl font-bold text-indigo-600">{attendancePercentage}%</p>
+                                        <p className="text-2xl font-bold text-royal">{attendancePercentage}%</p>
                                     </div>
                                 </div>
 
@@ -179,7 +179,7 @@ const MyCurrentStudents = () => {
                                 <div className="flex flex-wrap gap-2">
                                     <button
                                         onClick={() => navigate(`/tutor-dashboard?tab=progress&studentId=${relationship.studentId._id}`)}
-                                        className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-semibold"
+                                        className="flex-1 px-4 py-2 bg-royal text-white rounded-md hover:bg-royal-dark transition-colors text-sm font-semibold"
                                         aria-label="View student progress"
                                     >
                                         View Analytics

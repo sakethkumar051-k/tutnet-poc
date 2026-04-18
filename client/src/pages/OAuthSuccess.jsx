@@ -36,12 +36,8 @@ const OAuthSuccess = () => {
 
                 const { token } = await response.json();
                 localStorage.setItem('token', token);
-                const userData = await login(token);
-                const userRole = userData?.role || 'student';
-
-                if (userRole === 'tutor') navigate('/tutor-dashboard');
-                else if (userRole === 'admin') navigate('/admin-dashboard');
-                else navigate('/student-dashboard');
+                await login(token);
+                navigate('/dashboard');
 
             } catch (err) {
                 console.error('OAuth code exchange failed:', err);
@@ -62,14 +58,14 @@ const OAuthSuccess = () => {
                         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <span className="text-2xl">✕</span>
                         </div>
-                        <h2 className="text-xl font-bold text-gray-900 mb-2">Sign In Failed</h2>
+                        <h2 className="text-xl font-bold text-navy-950 mb-2">Sign In Failed</h2>
                         <p className="text-gray-600">{error}</p>
                         <p className="text-sm text-gray-500 mt-4">Redirecting back to login...</p>
                     </>
                 ) : (
                     <>
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                        <h2 className="text-xl font-bold text-gray-900 mb-2">Signing you in...</h2>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-royal mx-auto mb-4"></div>
+                        <h2 className="text-xl font-bold text-navy-950 mb-2">Signing you in...</h2>
                         <p className="text-gray-600">Please wait while we verify your Google account.</p>
                     </>
                 )}

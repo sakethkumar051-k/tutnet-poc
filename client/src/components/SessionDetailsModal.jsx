@@ -265,7 +265,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
             <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-lg p-6 shadow-xl">
                     <div className="flex items-center gap-3">
-                        <svg className="animate-spin h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                        <svg className="animate-spin h-5 w-5 text-royal" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
@@ -291,7 +291,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
             <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
                 {/* Header */}
                 <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center z-10">
-                    <h2 id="session-modal-title" className="text-xl font-semibold text-gray-900">Session Details</h2>
+                    <h2 id="session-modal-title" className="text-xl font-semibold text-navy-950">Session Details</h2>
                     <button
                         onClick={onClose}
                         onKeyDown={(e) => {
@@ -300,7 +300,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                 onClose();
                             }
                         }}
-                        className="text-gray-400 hover:text-gray-600 text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded transition-colors"
+                        className="text-gray-400 hover:text-gray-600 text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-royal rounded transition-colors"
                         aria-label="Close modal"
                     >
                         ×
@@ -321,12 +321,12 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                         const doneCount = steps.filter(s => s.done).length;
                         const allDone = doneCount === steps.length;
                         return (
-                            <div className={`mx-6 mt-4 p-4 rounded-xl border ${allDone ? 'bg-green-50 border-green-200' : 'bg-indigo-50 border-indigo-200'}`}>
+                            <div className={`mx-6 mt-4 p-4 rounded-xl border ${allDone ? 'bg-lime/20 border-lime/40' : 'bg-royal/5 border-royal/30'}`}>
                                 <div className="flex items-center justify-between mb-3">
-                                    <p className={`text-sm font-semibold ${allDone ? 'text-green-800' : 'text-indigo-800'}`}>
+                                    <p className={`text-sm font-semibold ${allDone ? 'text-navy-950' : 'text-navy-900'}`}>
                                         {allDone ? '✓ Post-session complete' : `Post-session checklist — ${doneCount}/${steps.length} done`}
                                     </p>
-                                    {!allDone && <p className="text-xs text-indigo-600">Click a step to jump there</p>}
+                                    {!allDone && <p className="text-xs text-royal">Click a step to jump there</p>}
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {steps.map(step => (
@@ -335,8 +335,8 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                             onClick={() => !step.done && setActiveTab(step.tab)}
                                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                                                 step.done
-                                                    ? 'bg-green-100 text-green-800 cursor-default'
-                                                    : 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+                                                    ? 'bg-lime/30 text-navy-950 cursor-default'
+                                                    : 'bg-white border border-royal/30 text-royal-dark hover:bg-royal/10'
                                             }`}
                                         >
                                             {step.done ? (
@@ -380,9 +380,9 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                 aria-selected={activeTab === tab.id}
                                 aria-controls={`tabpanel-${tab.id}`}
                                 className={`${activeTab === tab.id
-                                        ? 'border-indigo-500 text-indigo-600'
+                                        ? 'border-royal text-royal'
                                         : 'border-transparent text-gray-500 hover:text-gray-700'
-                                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors focus:outline-none focus:ring-2 focus:ring-royal`}
                             >
                                 <span aria-hidden="true">{tab.icon}</span>
                                 {tab.label}
@@ -400,17 +400,17 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-sm font-medium text-gray-500">Subject</p>
-                                    <p className="text-lg text-gray-900">{session?.subject || 'N/A'}</p>
+                                    <p className="text-lg text-navy-950">{session?.subject || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-500">Schedule</p>
-                                    <p className="text-lg text-gray-900">{session?.preferredSchedule || 'N/A'}</p>
+                                    <p className="text-lg text-navy-950">{session?.preferredSchedule || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-500">
                                         {user?.role === 'student' ? 'Tutor' : 'Student'}
                                     </p>
-                                    <p className="text-lg text-gray-900">
+                                    <p className="text-lg text-navy-950">
                                         {user?.role === 'student' 
                                             ? (session?.tutorId?.name || session?.tutorId || 'N/A')
                                             : (session?.studentId?.name || session?.studentId || 'N/A')}
@@ -418,7 +418,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-500">Status</p>
-                                    <p className="text-lg text-gray-900 capitalize">
+                                    <p className="text-lg text-navy-950 capitalize">
                                         {session?.attendanceStatus || session?.status || 'N/A'}
                                     </p>
                                 </div>
@@ -432,7 +432,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                         {feedback.parentVerificationStatus && feedback.parentVerificationStatus !== 'unverified' ? (
                                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
                                                 feedback.parentVerificationStatus === 'verified'
-                                                    ? 'bg-green-100 text-green-800'
+                                                    ? 'bg-lime/30 text-navy-950'
                                                     : 'bg-red-100 text-red-800'
                                             }`}>
                                                 {feedback.parentVerificationStatus === 'verified' ? (
@@ -458,10 +458,10 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                         Tutor marked this session as:{' '}
                                         <span className={`font-semibold capitalize ${
                                             feedback.attendanceStatus === 'completed' || feedback.attendanceStatus === 'present'
-                                                ? 'text-green-700'
+                                                ? 'text-navy-950'
                                                 : feedback.attendanceStatus === 'student_absent' || feedback.attendanceStatus === 'absent'
                                                 ? 'text-red-700'
-                                                : 'text-amber-700'
+                                                : 'text-navy-950'
                                         }`}>
                                             {feedback.attendanceStatus?.replace('_', ' ')}
                                         </span>
@@ -477,13 +477,13 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                                 onChange={e => setParentVerify(v => ({ ...v, note: e.target.value }))}
                                                 placeholder="Optional note (required if disputing)"
                                                 rows={2}
-                                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-royal resize-none"
                                             />
                                             <div className="flex gap-3">
                                                 <button
                                                     onClick={() => handleParentVerify('verified')}
                                                     disabled={parentVerify.submitting}
-                                                    className="flex-1 py-2 px-4 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                                                    className="flex-1 py-2 px-4 bg-lime hover:bg-lime-light text-navy-950 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
                                                 >
                                                     {parentVerify.submitting ? 'Saving...' : 'Yes, confirm'}
                                                 </button>
@@ -519,7 +519,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
 
                             {/* Mark Attendance (Tutor only) - Only during/after session, not for upcoming */}
                             {user?.role === 'tutor' && (session.status === 'approved' || session.status === 'completed') && session?.sessionDate && new Date(session.sessionDate) <= new Date() && (
-                                <div className="mt-6 p-4 bg-indigo-50 rounded-lg">
+                                <div className="mt-6 p-4 bg-royal/5 rounded-lg">
                                     <h3 className="font-semibold mb-3">
                                         {feedback?.attendanceStatus ? 'Update Attendance' : 'Mark Attendance'}
                                     </h3>
@@ -578,7 +578,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                         </div>
                                         <button
                                             type="submit"
-                                            className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                                            className="w-full px-4 py-2 bg-royal text-white rounded-md hover:bg-royal-dark transition-colors"
                                         >
                                             {feedback?.attendanceStatus ? 'Update Attendance' : 'Mark Attendance'}
                                         </button>
@@ -586,10 +586,10 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
 
                                     {/* Missed class recovery prompt */}
                                     {(feedback?.attendanceStatus === 'student_absent' || attendance.status === 'student_absent') && (
-                                        <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                                        <div className="mt-4 p-4 bg-lime/20 border border-lime/40 rounded-lg">
                                             <p className="text-sm font-semibold text-amber-900 mb-1">Student missed this class</p>
                                             {makeupOffer.sent ? (
-                                                <p className="text-xs text-green-700 font-medium">✓ Makeup offer sent to student</p>
+                                                <p className="text-xs text-navy-950 font-medium">✓ Makeup offer sent to student</p>
                                             ) : makeupOffer.show ? (
                                                 <div className="space-y-2 mt-2">
                                                     <textarea
@@ -597,13 +597,13 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                                         onChange={e => setMakeupOffer(v => ({ ...v, note: e.target.value }))}
                                                         placeholder="Optional message to student (e.g. suggested makeup time)"
                                                         rows={2}
-                                                        className="w-full px-3 py-2 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none bg-white"
+                                                        className="w-full px-3 py-2 text-sm border border-lime/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-royal/30 resize-none bg-white"
                                                     />
                                                     <div className="flex gap-2">
                                                         <button
                                                             onClick={handleSendMakeupOffer}
                                                             disabled={makeupOffer.submitting}
-                                                            className="flex-1 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                                                            className="flex-1 py-2 bg-lime-dark hover:bg-lime-dark text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
                                                         >
                                                             {makeupOffer.submitting ? 'Sending...' : 'Send makeup offer'}
                                                         </button>
@@ -618,7 +618,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                             ) : (
                                                 <button
                                                     onClick={() => setMakeupOffer(v => ({ ...v, show: true }))}
-                                                    className="mt-1 text-xs font-semibold text-amber-800 underline hover:text-amber-900"
+                                                    className="mt-1 text-xs font-semibold text-navy-950 underline hover:text-amber-900"
                                                 >
                                                     Offer a makeup session →
                                                 </button>
@@ -637,7 +637,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                         <div className="space-y-6">
                             {/* Tutor Feedback */}
                             {user?.role === 'tutor' && (
-                                <div className="p-4 bg-blue-50 rounded-lg">
+                                <div className="p-4 bg-royal/5 rounded-lg">
                                     <h3 className="font-semibold mb-3">
                                         Session Summary (Tutor)
                                         {feedback?.tutorSummary && (
@@ -647,7 +647,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                         )}
                                     </h3>
                                     {feedback?.tutorSummary && (
-                                        <div className="mb-4 p-3 bg-white rounded border border-blue-200">
+                                        <div className="mb-4 p-3 bg-white rounded border border-royal/20">
                                             <p className="text-xs text-gray-500 mb-2">Current Feedback:</p>
                                             <p className="text-sm text-gray-700 mb-2">{feedback.tutorSummary}</p>
                                             {feedback.understandingScore && (
@@ -729,7 +729,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
 
                             {/* Student Feedback */}
                             {user?.role === 'student' && (
-                                <div className="p-4 bg-green-50 rounded-lg">
+                                <div className="p-4 bg-lime/20 rounded-lg">
                                     <h3 className="font-semibold mb-3">
                                         Your Feedback
                                         {feedback?.studentRating && (
@@ -739,7 +739,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                         )}
                                     </h3>
                                     {feedback?.studentRating && (
-                                        <div className="mb-4 p-3 bg-white rounded border border-green-200">
+                                        <div className="mb-4 p-3 bg-white rounded border border-lime/40">
                                             <p className="text-xs text-gray-500 mb-2">Current Feedback:</p>
                                             <p className="text-sm">
                                                 Rating: {feedback.studentRating}/5 ⭐
@@ -777,7 +777,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                             </div>
                                             <button
                                                 type="submit"
-                                                className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                                                className="w-full px-4 py-2 bg-lime text-navy-950 rounded-xl hover:bg-lime-light transition-colors"
                                             >
                                                 {feedback?.studentRating ? 'Update Feedback' : 'Submit Feedback'}
                                             </button>
@@ -793,7 +793,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                         <div role="tabpanel" id="tabpanel-materials" aria-labelledby="tab-materials">
                         <div className="space-y-4">
                             {user?.role === 'tutor' && (
-                                <div className="p-4 bg-indigo-50 rounded-lg mb-4">
+                                <div className="p-4 bg-royal/5 rounded-lg mb-4">
                                     <h3 className="font-semibold mb-3">Add Study Material</h3>
                                     <form onSubmit={handleAddStudyMaterial} className="space-y-3">
                                         <div>
@@ -869,7 +869,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                         <button
                                             type="submit"
                                             disabled={uploadingFile}
-                                            className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            className="w-full px-4 py-2 bg-royal text-white rounded-md hover:bg-royal-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                         >
                                             {uploadingFile ? 'Uploading...' : 'Add Material'}
                                         </button>
@@ -893,7 +893,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                                                 href={material.url}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                className="text-sm text-indigo-600 hover:underline"
+                                                                className="text-sm text-royal hover:underline"
                                                             >
                                                                 Open Link →
                                                             </a>
@@ -963,8 +963,8 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                         {feedback.homework.map((hw, index) => {
                                             const statusColors = {
                                                 assigned: 'bg-yellow-100 text-yellow-800',
-                                                in_progress: 'bg-blue-100 text-blue-800',
-                                                completed: 'bg-green-100 text-green-800'
+                                                in_progress: 'bg-royal/10 text-royal-dark',
+                                                completed: 'bg-lime/30 text-navy-950'
                                             };
                                             return (
                                                 <div key={index} className="p-4 bg-gray-50 rounded-lg">
@@ -989,7 +989,7 @@ const SessionDetailsModal = ({ session, onClose, onUpdate }) => {
                                                             </button>
                                                             <button
                                                                 onClick={() => handleUpdateHomeworkStatus(feedback._id, index, 'completed')}
-                                                                className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                                                                className="px-3 py-1 bg-lime text-navy-950 rounded text-sm hover:bg-lime-light"
                                                             >
                                                                 Mark Completed
                                                             </button>

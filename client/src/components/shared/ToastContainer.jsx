@@ -1,9 +1,9 @@
 import { useToastStore } from '../../stores/toastStore';
 
 const typeStyles = {
-    success: 'bg-emerald-600',
+    success: 'bg-lime-dark',
     error: 'bg-red-600',
-    warning: 'bg-amber-500',
+    warning: 'bg-lime',
     info: 'bg-gray-800',
 };
 

@@ -5,8 +5,8 @@ import { useAuth } from '../context/AuthContext';
 
 const statusBadge = (status) => {
     const map = {
-        pending: 'bg-amber-100 text-amber-800 border-amber-200',
-        approved: 'bg-green-100 text-green-800 border-green-200',
+        pending: 'bg-lime/30 text-navy-950 border-lime/40',
+        approved: 'bg-lime/30 text-navy-950 border-lime/40',
         rejected: 'bg-red-100 text-red-800 border-red-200',
         declined: 'bg-red-100 text-red-800 border-red-200'
     };
@@ -50,33 +50,33 @@ function RequestCard({ request: b, isStudent, isTutor, onApprove, onReject, onRe
 
     const primaryActions = showRescheduleActions ? (
         <>
-            <button onClick={() => onTutorChangeRespond(b._id, 'approve')} className="px-3 py-1.5 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700">Approve</button>
+            <button onClick={() => onTutorChangeRespond(b._id, 'approve')} className="px-3 py-1.5 text-sm font-semibold bg-lime text-navy-950 rounded-lg hover:bg-lime-light">Approve</button>
             <button onClick={() => onTutorChangeRespond(b._id, 'decline')} className="px-3 py-1.5 text-sm font-medium border border-red-300 text-red-700 rounded-lg hover:bg-red-50">Decline</button>
         </>
     ) : showRescheduleRespondActions ? (
         <>
-            <button onClick={() => onRescheduleRespond(b._id, 'approve')} className="px-3 py-1.5 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700">Approve</button>
+            <button onClick={() => onRescheduleRespond(b._id, 'approve')} className="px-3 py-1.5 text-sm font-semibold bg-lime text-navy-950 rounded-lg hover:bg-lime-light">Approve</button>
             <button onClick={() => onRescheduleRespond(b._id, 'decline')} className="px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50">Decline</button>
         </>
     ) : showBookingActions ? (
         <>
-            <button onClick={() => onApprove(b._id)} className="px-3 py-1.5 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700">Approve</button>
+            <button onClick={() => onApprove(b._id)} className="px-3 py-1.5 text-sm font-semibold bg-lime text-navy-950 rounded-lg hover:bg-lime-light">Approve</button>
             <button onClick={() => onReject(b._id)} className="px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50">Reject</button>
         </>
     ) : null;
 
     return (
-        <li className={`rounded-xl border overflow-hidden ${isPermanent ? 'border-indigo-200 bg-indigo-50/20' : 'border-gray-200 bg-white'}`}>
+        <li className={`rounded-xl border overflow-hidden ${isPermanent ? 'border-royal/30 bg-royal/5/20' : 'border-gray-200 bg-white'}`}>
             <div className="p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                            <span className="text-sm font-semibold text-gray-900">{b.subject}</span>
-                            <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${isDemo ? 'bg-violet-100 text-violet-800' : isPermanent ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'}`}>
+                            <span className="text-sm font-semibold text-navy-950">{b.subject}</span>
+                            <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${isDemo ? 'bg-violet-100 text-violet-800' : isPermanent ? 'bg-royal/10 text-navy-900' : 'bg-gray-100 text-gray-700'}`}>
                                 {typeLabel}
                             </span>
                             {isReschedule && (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Reschedule requested</span>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-lime/30 text-navy-950 font-medium">Reschedule requested</span>
                             )}
                             {statusBadge(b.status)}
                         </div>
@@ -98,7 +98,7 @@ function RequestCard({ request: b, isStudent, isTutor, onApprove, onReject, onRe
                             <button
                                 type="button"
                                 onClick={() => setExpanded((e) => !e)}
-                                className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                                className="text-xs font-medium text-royal hover:text-royal-dark"
                             >
                                 {expanded ? 'Less' : 'More details'}
                             </button>
@@ -270,7 +270,7 @@ export default function RequestsHub({ onNavigateToSessions, onRequestProcessed }
         return (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <div className="flex items-center justify-center py-8">
-                    <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-6 h-6 border-2 border-royal border-t-transparent rounded-full animate-spin" />
                 </div>
             </div>
         );
@@ -302,7 +302,7 @@ export default function RequestsHub({ onNavigateToSessions, onRequestProcessed }
                 <button
                     type="button"
                     onClick={() => { setHistoryOpen((o) => !o); if (!historyOpen) fetchHistory(); }}
-                    className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+                    className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-navy-950"
                 >
                     {historyOpen ? '▼' : '▶'} Declined & rejected history
                     {historyList.length > 0 && !historyLoading && (
@@ -313,7 +313,7 @@ export default function RequestsHub({ onNavigateToSessions, onRequestProcessed }
                     <div className="mt-3">
                         {historyLoading ? (
                             <div className="flex justify-center py-4">
-                                <div className="w-5 h-5 border-2 border-gray-300 border-t-indigo-600 rounded-full animate-spin" />
+                                <div className="w-5 h-5 border-2 border-gray-300 border-t-royal rounded-full animate-spin" />
                             </div>
                         ) : historyList.length === 0 ? (
                             <p className="text-sm text-gray-500 py-2">No declined or rejected requests.</p>
@@ -344,11 +344,11 @@ export default function RequestsHub({ onNavigateToSessions, onRequestProcessed }
     if (pending.length === 0) {
         return (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                <h3 className="text-base font-bold text-gray-900 mb-2">Booking requests</h3>
+                <h3 className="text-base font-bold text-navy-950 mb-2">Booking requests</h3>
                 <p className="text-sm text-gray-500">
                     No pending requests.{' '}
                     {onNavigateToSessions && (
-                        <button type="button" onClick={onNavigateToSessions} className="text-indigo-600 hover:underline font-medium">
+                        <button type="button" onClick={onNavigateToSessions} className="text-royal hover:underline font-medium">
                             View sessions
                         </button>
                     )}
@@ -361,9 +361,9 @@ export default function RequestsHub({ onNavigateToSessions, onRequestProcessed }
     return (
         <div id="booking-requests" className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900">Booking requests</h3>
+                <h3 className="text-lg font-bold text-navy-950">Booking requests</h3>
                 {onNavigateToSessions && (
-                    <button type="button" onClick={onNavigateToSessions} className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+                    <button type="button" onClick={onNavigateToSessions} className="text-sm font-semibold text-royal hover:text-royal-dark">
                         View all sessions →
                     </button>
                 )}

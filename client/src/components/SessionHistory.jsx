@@ -70,12 +70,12 @@ const SessionHistory = () => {
     const getStatusBadge = (session) => {
         const status = session.attendanceStatus || session.status;
         const colors = {
-            completed: 'bg-green-100 text-green-800',
-            approved: 'bg-blue-100 text-blue-800',
+            completed: 'bg-lime/30 text-navy-950',
+            approved: 'bg-royal/10 text-royal-dark',
             scheduled: 'bg-yellow-100 text-yellow-800',
             student_absent: 'bg-red-100 text-red-800',
             tutor_absent: 'bg-orange-100 text-orange-800',
-            rescheduled: 'bg-purple-100 text-purple-800'
+            rescheduled: 'bg-purple-100 text-navy-900'
         };
         return (
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status] || colors.approved}`}>
@@ -91,10 +91,10 @@ const SessionHistory = () => {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Session History</h2>
+                <h2 className="text-xl font-semibold text-navy-950">Session History</h2>
                 <button
                     onClick={fetchSessionHistory}
-                    className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-royal bg-royal/5 rounded-md hover:bg-royal/10 transition-colors"
                 >
                     🔄 Refresh
                 </button>
@@ -116,7 +116,7 @@ const SessionHistory = () => {
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
-                                        <h3 className="font-semibold text-gray-900">
+                                        <h3 className="font-semibold text-navy-950">
                                             {user?.role === 'student' 
                                                 ? session.tutorId?.name 
                                                 : session.studentId?.name}
@@ -150,7 +150,7 @@ const SessionHistory = () => {
                                     {/* Attendance */}
                                     {session.hasAttendance && (
                                         <div className="flex items-center gap-2 text-sm">
-                                            <span className="text-green-600">✅</span>
+                                            <span className="text-lime-dark">✅</span>
                                             <span className="text-gray-700">
                                                 Attendance: <span className="font-medium capitalize">{session.feedback.attendanceStatus}</span>
                                             </span>
@@ -163,7 +163,7 @@ const SessionHistory = () => {
                                             <span className="text-gray-500">Tutor Summary: </span>
                                             <span className="text-gray-700 line-clamp-2">{session.feedback.tutorSummary}</span>
                                             {session.feedback.understandingScore && (
-                                                <span className="ml-2 text-indigo-600">
+                                                <span className="ml-2 text-royal">
                                                     (Understanding: {session.feedback.understandingScore}/5)
                                                 </span>
                                             )}
@@ -173,7 +173,7 @@ const SessionHistory = () => {
                                     {/* Study Materials */}
                                     {session.hasMaterials && (
                                         <div className="flex items-center gap-2 text-sm">
-                                            <span className="text-blue-600">📚</span>
+                                            <span className="text-royal">📚</span>
                                             <span className="text-gray-700">
                                                 {session.feedback.studyMaterials.length} study material(s)
                                             </span>
@@ -206,7 +206,7 @@ const SessionHistory = () => {
                             <div className="mt-4 flex gap-2">
                                 <button
                                     onClick={() => setSelectedSession(session)}
-                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                    className="flex-1 px-4 py-2 bg-royal text-white rounded-md hover:bg-royal-dark transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-royal focus:ring-offset-2"
                                 >
                                     {session.feedback ? 'View/Edit Details' : 'Add Details'}
                                 </button>

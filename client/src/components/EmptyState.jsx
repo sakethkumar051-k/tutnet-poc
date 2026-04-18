@@ -21,13 +21,13 @@ const EmptyState = ({
                     )}
                 </div>
             )}
-            <h3 className="text-base font-semibold text-gray-900 mb-1">{title}</h3>
+            <h3 className="text-base font-semibold text-navy-950 mb-1">{title}</h3>
             <p className="text-sm text-gray-500 mb-6 leading-relaxed">{description}</p>
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
                 {actionLabel && onAction && (
                     <button
                         onClick={onAction}
-                        className="px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+                        className="px-4 py-2.5 bg-navy-950 text-white text-sm font-medium rounded-lg hover:bg-navy-900 transition-colors"
                     >
                         {actionLabel}
                     </button>

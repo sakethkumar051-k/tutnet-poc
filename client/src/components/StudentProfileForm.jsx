@@ -100,13 +100,13 @@ export default function StudentProfileForm() {
         <div className="space-y-6">
             {/* Avatar / Identity */}
             <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-2xl font-bold flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-royal/10 flex items-center justify-center text-royal-dark text-2xl font-bold flex-shrink-0">
                     {form.name ? form.name[0].toUpperCase() : '?'}
                 </div>
                 <div>
-                    <p className="text-base font-semibold text-gray-900">{form.name || 'Your Name'}</p>
+                    <p className="text-base font-semibold text-navy-950">{form.name || 'Your Name'}</p>
                     <p className="text-sm text-gray-500">{user?.email}</p>
-                    <p className="text-xs text-indigo-600 font-medium mt-0.5 capitalize">{user?.role}</p>
+                    <p className="text-xs text-royal font-medium mt-0.5 capitalize">{user?.role}</p>
                 </div>
             </div>
 
@@ -119,7 +119,7 @@ export default function StudentProfileForm() {
                         name="name"
                         value={form.name}
                         onChange={handleChange}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                         placeholder="Your full name"
                         required
                     />
@@ -133,7 +133,7 @@ export default function StudentProfileForm() {
                         name="phone"
                         value={form.phone}
                         onChange={handleChange}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                         placeholder="+91 9876543210"
                     />
                 </div>
@@ -145,7 +145,7 @@ export default function StudentProfileForm() {
                         name="classGrade"
                         value={form.classGrade}
                         onChange={handleChange}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                     >
                         <option value="">Select your class</option>
                         {CLASS_GRADES.map(g => (
@@ -163,7 +163,7 @@ export default function StudentProfileForm() {
                             name="area"
                             value={form.location.area}
                             onChange={handleChange}
-                            className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                             placeholder="Area / Colony"
                         />
                         <input
@@ -171,7 +171,7 @@ export default function StudentProfileForm() {
                             name="city"
                             value={form.location.city}
                             onChange={handleChange}
-                            className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                             placeholder="City"
                         />
                         <input
@@ -179,7 +179,7 @@ export default function StudentProfileForm() {
                             name="pincode"
                             value={form.location.pincode}
                             onChange={handleChange}
-                            className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                             placeholder="Pincode"
                         />
                     </div>
@@ -238,13 +238,13 @@ export default function StudentProfileForm() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 flex items-center gap-2 transition-colors"
+                        className="px-6 py-2.5 bg-royal text-white rounded-lg text-sm font-semibold hover:bg-royal-dark disabled:opacity-60 flex items-center gap-2 transition-colors"
                     >
                         {loading && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                         Save Changes
                     </button>
                     {saved && (
-                        <span className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
+                        <span className="flex items-center gap-1.5 text-sm text-lime-dark font-medium">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>

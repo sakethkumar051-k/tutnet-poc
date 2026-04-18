@@ -1,9 +1,9 @@
 import { cn } from '../../lib/utils';
 
 const variants = {
-    info: 'bg-blue-50 border-blue-200 text-blue-800',
-    success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
-    warning: 'bg-amber-50 border-amber-200 text-amber-800',
+    info: 'bg-royal/5 border-royal/20 text-royal-dark',
+    success: 'bg-lime/20 border-lime/40 text-navy-950',
+    warning: 'bg-lime/20 border-lime/40 text-navy-950',
     error: 'bg-red-50 border-red-200 text-red-800',
 };
 

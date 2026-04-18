@@ -8,15 +8,30 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors({
-    origin: [
-        'http://localhost:5173',
-        'http://192.168.29.213:5173',
-        'https://tutnet-ffxb.vercel.app',
-        /\.vercel\.app$/  // Allow all Vercel preview deployments
-    ],
-    credentials: true
-}));
+const ALLOWED_ORIGINS = [
+    'https://tutnet-ffxb.vercel.app',
+    /\.vercel\.app$/, // Allow all Vercel preview deployments
+    /^http:\/\/localhost(:\d+)?$/,   // any localhost port (dev)
+    /^http:\/\/127\.0\.0\.1(:\d+)?$/, // 127.0.0.1 equivalent
+    /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/, // LAN dev
+];
+
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow same-origin / curl / mobile native (no Origin header)
+        if (!origin) return callback(null, true);
+        const ok = ALLOWED_ORIGINS.some((o) =>
+            o instanceof RegExp ? o.test(origin) : o === origin
+        );
+        return callback(ok ? null : new Error(`CORS: origin ${origin} not allowed`), ok);
+    },
+    credentials: true,
+};
+
+app.use(cors(corsOptions));
+// Make sure preflight OPTIONS requests on every route get a CORS response,
+// even before hitting the rate limiter or auth middleware.
+app.options('*', cors(corsOptions));
 // Razorpay webhook needs the raw body for HMAC signature verification.
 // Capture raw bytes for /api/payments/webhook BEFORE express.json() parses it.
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }), (req, _res, next) => {
@@ -35,6 +50,9 @@ const apiLimiter = rateLimit({
     max: 300,
     standardHeaders: true,
     legacyHeaders: false,
+    // Never rate-limit preflight or local dev traffic — preflight without CORS
+    // response headers manifests as a CORS error in the browser.
+    skip: (req) => req.method === 'OPTIONS' || process.env.NODE_ENV !== 'production',
     message: { message: 'Too many requests. Please try again later.', code: 'RATE_LIMIT_EXCEEDED' }
 });
 app.use('/api', apiLimiter);
@@ -76,11 +94,11 @@ app.get('/', (req, res) => {
 });
 
 // Database Connection (non-blocking - server will start even if DB fails)
-const { startTrialExpiryJob } = require('./jobs/trialExpiry.job');
+const { startAllJobs } = require('./jobs');
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
         console.log('MongoDB Connected');
-        startTrialExpiryJob();
+        startAllJobs();
     })
     .catch(err => {
         console.error('MongoDB Connection Error:', err);
@@ -182,17 +200,6 @@ app.use(require('./middleware/error.middleware').errorHandler);
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Health check available at: http://localhost:${PORT}/api/health`);
-
-    // Session reminder job — runs every 30 minutes
-    const { sendSessionReminders } = require('./jobs/sessionReminders');
-    setInterval(async () => {
-        try {
-            const result = await sendSessionReminders();
-            if (result.processed24h + result.processed1h > 0) {
-                console.log(`[Reminders] Sent: ${result.processed24h} (24h), ${result.processed1h} (1h)`);
-            }
-        } catch (e) {
-            console.error('[Reminders] Error:', e.message);
-        }
-    }, 30 * 60 * 1000);
+    // Background jobs are started inside the MongoDB `.then()` above so they
+    // can't run before the DB is ready. Nothing else to schedule here.
 });
