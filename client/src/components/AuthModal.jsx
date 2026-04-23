@@ -132,7 +132,10 @@ const AuthModal = () => {
 
                     {/* Google OAuth */}
                     <div className="px-7 pt-5">
-                        <GoogleSignInButton text={mode === 'login' ? 'Continue with Google' : 'Sign up with Google'} />
+                        <GoogleSignInButton
+                            text={mode === 'login' ? 'Continue with Google' : 'Sign up with Google'}
+                            signupRole="student"
+                        />
                         <div className="relative flex items-center my-5">
                             <div className="flex-1 border-t border-gray-100" />
                             <span className="px-3 text-[10px] text-gray-400 font-bold uppercase tracking-[0.15em]">or</span>

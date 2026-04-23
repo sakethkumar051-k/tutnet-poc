@@ -1,13 +1,16 @@
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/User');
+const TutorProfile = require('../models/TutorProfile');
+const { OAUTH_SIGNUP_ROLE_COOKIE } = require('../utils/authCookies');
 
 module.exports = (passport) => {
     passport.use(new GoogleStrategy({
         clientID: process.env.GOOGLE_CLIENT_ID || 'your-client-id',
         clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'your-client-secret',
-        callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5001/api/auth/google/callback'
+        callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5001/api/auth/google/callback',
+        passReqToCallback: true
     },
-        async (accessToken, refreshToken, profile, done) => {
+        async (req, accessToken, refreshToken, profile, done) => {
             try {
                 console.log('Google OAuth Profile:', profile.id, profile.emails[0].value);
 
@@ -24,7 +27,7 @@ module.exports = (passport) => {
                 user = await User.findOne({ email });
 
                 if (user) {
-                    // Link Google account to existing user
+                    // Link Google account to existing user (keep existing role)
                     console.log('Linking Google to existing user:', user._id);
                     user.googleId = profile.id;
                     user.authProvider = 'google';
@@ -33,15 +36,23 @@ module.exports = (passport) => {
                     return done(null, user);
                 }
 
+                // Session may be empty after Google redirect; cookie is set on GET /auth/google (see auth.routes)
+                const cookieRole = req.cookies?.[OAUTH_SIGNUP_ROLE_COOKIE];
+                const sessionRole = req.session?.oauthSignupRole;
+                const intentRole = sessionRole === 'tutor' || sessionRole === 'student'
+                    ? sessionRole
+                    : (cookieRole === 'tutor' || cookieRole === 'student' ? cookieRole : null);
+                const newUserRole = intentRole === 'tutor' ? 'tutor' : 'student';
+
                 // Create new user with Google auth
-                console.log('Creating new Google user');
+                console.log('Creating new Google user as', newUserRole);
                 user = await User.create({
                     googleId: profile.id,
                     name: profile.displayName,
                     email: email,
                     profilePicture: profile.photos[0]?.value || '',
                     authProvider: 'google',
-                    role: 'student', // Default role
+                    role: newUserRole,
                     isActive: true,
                     phone: '', // Not required for OAuth
                     location: {
@@ -49,6 +60,15 @@ module.exports = (passport) => {
                         area: 'Not specified'
                     }
                 });
+
+                if (newUserRole === 'tutor') {
+                    await TutorProfile.create({
+                        userId: user._id,
+                        hourlyRate: 0,
+                        approvalStatus: 'pending',
+                        profileStatus: 'draft'
+                    });
+                }
 
                 console.log('New Google user created:', user._id);
                 // Attach temporary flag to indicate new user

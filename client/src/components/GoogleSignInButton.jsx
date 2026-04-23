@@ -1,12 +1,20 @@
 import React from 'react';
 import { getBaseURL } from '../utils/api';
 
-const GoogleSignInButton = ({ text = "Continue with Google" }) => {
+/**
+ * @param {'student' | 'tutor'} signupRole — sent as ?role= so new Google accounts get the right role (existing accounts keep their role).
+ */
+const GoogleSignInButton = ({ text = 'Continue with Google', signupRole = 'student' }) => {
     const handleGoogleSignIn = () => {
-        // Redirect to backend OAuth endpoint
-        // Use centralized helper to ensure correct path (localhost vs production)
         const apiUrl = getBaseURL();
-        window.location.href = `${apiUrl}/auth/google`;
+        const role = signupRole === 'tutor' ? 'tutor' : 'student';
+        try {
+            sessionStorage.setItem('tutnet_oauth_signup_role', role);
+        } catch {
+            /* ignore */
+        }
+        const qs = new URLSearchParams({ role });
+        window.location.href = `${apiUrl}/auth/google?${qs.toString()}`;
     };
 
     return (

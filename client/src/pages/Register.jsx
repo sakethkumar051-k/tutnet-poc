@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import api from '../utils/api';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { useToastStore } from '../stores/toastStore';
@@ -28,12 +29,24 @@ const Register = () => {
         name: '', email: '', phone: '', password: '', confirmPassword: '',
         location: { area: '', city: 'Hyderabad' },
     });
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const register = useAuthStore((s) => s.register);
     const openLogin = useAuthModalStore((s) => s.openLogin);
     const showSuccess = useToastStore((s) => s.showSuccess);
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const [referralInfo, setReferralInfo] = useState(null); // { code, referrerName, reward }
+
+    // If URL has ?ref=CODE, validate once so the banner can show the bonus pitch.
+    useEffect(() => {
+        const code = searchParams.get('ref');
+        if (!code) return;
+        api.get('/referrals/lookup', { params: { code } })
+            .then(({ data }) => setReferralInfo({ code: code.toUpperCase(), ...data }))
+            .catch(() => { /* invalid code — silently ignore */ });
+    }, [searchParams]);
 
     const handleChange = (e) => {
         if (e.target.name === 'area') {
@@ -49,11 +62,13 @@ const Register = () => {
 
         if (formData.password !== formData.confirmPassword) { setError('Passwords do not match'); return; }
         if (formData.password.length < 6) { setError('Password must be at least 6 characters'); return; }
+        if (!agreedToTerms) { setError('Please review and accept the Tutor Service Agreement to continue.'); return; }
 
         setLoading(true);
         try {
             const payload = { ...formData };
             delete payload.confirmPassword;
+            if (referralInfo?.code) payload.referralCode = referralInfo.code;
             await register({ ...payload, role: 'tutor' });
             showSuccess('Application started — complete your tutor profile next.');
             navigate('/complete-profile', { replace: true });
@@ -117,7 +132,7 @@ const Register = () => {
                                 </div>
 
                                 <div className="px-7 pt-5">
-                                    <GoogleSignInButton text="Sign up with Google" />
+                                    <GoogleSignInButton text="Sign up with Google" signupRole="tutor" />
                                     <div className="relative flex items-center my-5">
                                         <div className="flex-1 border-t border-gray-100" />
                                         <span className="px-3 text-[10px] text-gray-400 font-bold uppercase tracking-[0.15em]">or</span>
@@ -144,6 +159,21 @@ const Register = () => {
                                         <input name="password" type="password" required value={formData.password} onChange={handleChange} placeholder="Password" className={inputClass} />
                                         <input name="confirmPassword" type="password" required value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm" className={inputClass} />
                                     </div>
+                                    <label className="flex items-start gap-2.5 pt-1 cursor-pointer select-none">
+                                        <input
+                                            type="checkbox"
+                                            checked={agreedToTerms}
+                                            onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                            className="mt-0.5 w-4 h-4 rounded border-gray-300 text-royal focus:ring-royal/20 focus:ring-2 cursor-pointer"
+                                        />
+                                        <span className="text-xs text-gray-600 leading-relaxed">
+                                            I agree to the{' '}
+                                            <Link to="/tutor-agreement" target="_blank" className="font-semibold text-navy-950 underline hover:text-royal">
+                                                Tutor Service Agreement
+                                            </Link>
+                                            {' '}and confirm I will teach Tutnet-introduced students exclusively through the platform.
+                                        </span>
+                                    </label>
                                     <button type="submit" disabled={loading}
                                         className="w-full py-3 bg-lime hover:bg-lime-light text-navy-950 text-sm font-bold rounded-full transition-colors disabled:opacity-50 mt-2 shadow-sm">
                                         {loading ? 'Starting application...' : 'Start tutor application'}

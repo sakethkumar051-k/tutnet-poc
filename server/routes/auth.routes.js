@@ -7,12 +7,16 @@ const {
     verifyAdminSecret,
     forgotPassword,
     resetPassword,
-    updateProfile
+    updateProfile,
+    refreshAccessToken,
+    logoutUser
 } = require('../controllers/auth.controller');
 const { protect } = require('../middleware/auth.middleware');
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.post('/refresh', refreshAccessToken);
+router.post('/logout', logoutUser);
 router.get('/me', protect, getMe);
 router.put('/profile', protect, updateProfile); // New onboarding route
 router.post('/verify-admin', protect, verifyAdminSecret);
@@ -21,8 +25,9 @@ router.post('/reset-password', resetPassword);
 
 // Google OAuth Routes
 const passport = require('passport');
-const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { generateAccessToken, generateRefreshToken } = require('../utils/jwtTokens');
+const { setRefreshTokenCookie, setOauthSignupRoleCookie, clearOauthSignupRoleCookie } = require('../utils/authCookies');
 
 // In-memory one-time code store { code -> { token, expiresAt } }
 // Simple and sufficient for a single-instance server.
@@ -53,12 +58,26 @@ router.get('/oauth-token/:code', (req, res) => {
 
     // One-time use — delete immediately after first exchange
     oauthCodeStore.delete(code);
-    return res.json({ token: entry.token });
+    if (entry.refreshToken) {
+        setRefreshTokenCookie(res, entry.refreshToken);
+    }
+    return res.json({ token: entry.accessToken || entry.token });
 });
 
-// @desc    Initiate Google OAuth
+// @desc    Initiate Google OAuth (?role=tutor|student — stored in session for new signups only)
 // @route   GET /api/auth/google
 router.get('/google',
+    (req, res, next) => {
+        const q = req.query?.role;
+        const resolved = q === 'tutor' || q === 'student' ? q : 'student';
+        req.session.oauthSignupRole = resolved;
+        // Reliable fallback: session cookies often fail across SPA → API → Google redirects
+        setOauthSignupRoleCookie(res, resolved);
+        req.session.save((err) => {
+            if (err) return next(err);
+            next();
+        });
+    },
     passport.authenticate('google', {
         scope: ['profile', 'email'],
         prompt: 'select_account'
@@ -79,15 +98,27 @@ router.get('/google/callback',
     async (req, res) => {
         console.log('Google Auth Successful, User:', req.user?._id);
         try {
-            const token = jwt.sign(
-                { id: req.user.id },
-                process.env.JWT_SECRET,
-                { expiresIn: '30d' }
-            );
+            try {
+                if (req.session) {
+                    delete req.session.oauthSignupRole;
+                    await new Promise((resolve, reject) => {
+                        req.session.save((err) => (err ? reject(err) : resolve()));
+                    });
+                }
+            } catch (sessionErr) {
+                console.warn('OAuth session cleanup (non-fatal):', sessionErr?.message || sessionErr);
+            }
+            clearOauthSignupRoleCookie(res);
+            const accessToken = generateAccessToken(req.user.id);
+            const refreshToken = generateRefreshToken(req.user.id);
 
-            // Generate a short-lived one-time code so the JWT never appears in the URL
+            // Generate a short-lived one-time code so tokens never appear in the URL
             const code = crypto.randomBytes(32).toString('hex');
-            oauthCodeStore.set(code, { token, expiresAt: Date.now() + 60_000 }); // 60s TTL
+            oauthCodeStore.set(code, {
+                accessToken,
+                refreshToken,
+                expiresAt: Date.now() + 60_000
+            }); // 60s TTL
 
             const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
             const needsOnboarding = req.user.isNew ||
