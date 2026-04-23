@@ -1,6 +1,9 @@
 const Booking = require('../models/Booking');
 const Review = require('../models/Review');
 const SessionFeedback = require('../models/SessionFeedback');
+const TutorProfile = require('../models/TutorProfile');
+const { nextTierProgress, TIERS: COMMISSION_TIERS } = require('../services/commissionTier.service');
+const { pendingTutorBonuses } = require('../services/incentiveEngine.service');
 
 // Tier thresholds
 const TIERS = [
@@ -84,14 +87,51 @@ const getTutorIncentives = async (req, res) => {
             ratingNeeded: Math.max(0, nextTier.minRating - avgRating).toFixed(1)
         } : null;
 
+        // ── NEW: commission-tier system (REVENUE_MODEL.md §4) ─────────────
+        const tutorProfile = await TutorProfile.findOne({ userId: tutorId });
+        const totalSessions = tutorProfile?.totalSessions ?? sessionCount;
+        const profileAvgRating = tutorProfile?.averageRating ?? avgRating;
+
+        const prog = nextTierProgress({ totalSessions, averageRating: profileAvgRating });
+        const commissionTier = prog.current;
+        const nextCommissionTier = prog.next;
+
+        // Pending bonuses from IncentiveLedger
+        const { total: pendingBonusTotal, rows: pendingRows } = await pendingTutorBonuses(tutorId);
+
         res.json({
+            // Existing (backward compatible)
             sessionCount,
             avgRating: parseFloat(avgRating.toFixed(2)),
             reviewCount: reviews.length,
             currentTier,
-            nextTier: progressToNext,
+            legacyNextTier: progressToNext,
             milestones: earnedMilestones,
-            totalBonusEarned
+            totalBonusEarned,
+
+            // New commission-tier fields (consumed by TutorTierCard)
+            tier: commissionTier.key,
+            commissionRate: commissionTier.commissionRate,
+            totalSessions,
+            averageRating: parseFloat((profileAvgRating || 0).toFixed(2)),
+            progress: prog.progress,
+            nextTier: nextCommissionTier ? {
+                key: nextCommissionTier.key,
+                label: nextCommissionTier.label,
+                commissionRate: nextCommissionTier.commissionRate,
+                minSessions: nextCommissionTier.minSessions,
+                minRating: nextCommissionTier.minRating
+            } : null,
+            pendingBonusTotal,
+            pendingBonusRows: pendingRows.map((r) => ({
+                kind: r.kind,
+                amount: r.amount,
+                accruedAt: r.accruedAt,
+                idempotencyKey: r.idempotencyKey
+            })),
+            lifetimeGrossEarnings: tutorProfile?.lifetimeGrossEarnings || 0,
+            lifetimeCommissionPaid: tutorProfile?.lifetimeCommissionPaid || 0,
+            lifetimeIncentivesPaid: tutorProfile?.lifetimeIncentivesPaid || 0
         });
     } catch (err) {
         res.status(500).json({ message: err.message });

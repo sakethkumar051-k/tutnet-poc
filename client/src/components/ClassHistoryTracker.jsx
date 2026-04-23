@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import LoadingSpinner from './LoadingSpinner';
+import { useBookingStore } from '../stores/bookingStore';
 
 const FILTERS = [
     { id: 'all',   label: 'All Time' },
@@ -18,24 +19,21 @@ const statusColor = {
 };
 
 const ClassHistoryTracker = () => {
-    const [bookings, setBookings]     = useState([]);
+    const bookings = useBookingStore((s) => s.bookings);
+    const bookingsLoading = useBookingStore((s) => s.loading);
     const [profile, setProfile]       = useState(null);
-    const [loading, setLoading]       = useState(true);
+    const [profileLoading, setProfileLoading] = useState(true);
     const [filter, setFilter]         = useState('all');
     const { showError } = useToast();
 
     useEffect(() => {
-        Promise.all([
-            api.get('/bookings/mine'),
-            api.get('/tutors/my-profile').catch(() => ({ data: null }))
-        ])
-            .then(([bookingsRes, profileRes]) => {
-                setBookings(bookingsRes.data || []);
-                setProfile(profileRes.data);
-            })
-            .catch(() => showError('Failed to load history'))
-            .finally(() => setLoading(false));
+        api.get('/tutors/my-profile')
+            .then((res) => setProfile(res.data))
+            .catch(() => setProfile(null))
+            .finally(() => setProfileLoading(false));
     }, []);
+
+    const loading = bookingsLoading || profileLoading;
 
     const filtered = useMemo(() => {
         const now = new Date();

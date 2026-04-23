@@ -1,0 +1,15 @@
+---
+description: Express handlers — consistent JSON errors (sendError, safe500)
+globs: server/**/*.js
+alwaysApply: false
+---
+
+# API error responses (Express)
+
+When returning errors from route handlers and controllers:
+
+- **4xx / validation / not found**: use `sendError(res, status, message, code)` from `server/utils/responseHelpers.js` — shape is `{ success: false, error: { code, message } }`.
+- **Unexpected errors in `catch`**: use `safe500(res, err, 'context')` — never send raw `err.message` or stack to the client in production.
+- **Unhandled/async errors**: prefer `next(err)` so the global `error.middleware` can respond consistently (when using async wrappers that forward `next`).
+
+Avoid introducing new `res.status(n).json({ message: '...' })` without `success: false` / `error` unless matching a legacy client contract. Prefer extending `getApiErrorMessage` on the client when changing shapes.

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import api from '../utils/api';
+import api, { getApiErrorMessage } from '../utils/api';
 import TutorCard from './TutorCard';
 import RequestDemoModal from './RequestDemoModal';
 import TutorSearch from './TutorSearch';
@@ -34,8 +34,12 @@ const EMPTY_FILTERS = {
     mode: 'all', minExperience: '', minRating: '', verifiedOnly: false,
 };
 
+const PAGE_SIZE = 18;
+
 const TutorList = () => {
     const [tutors, setTutors] = useState([]);
+    const [pagination, setPagination] = useState(null);
+    const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState(null);
     const [selectedTutor, setSelectedTutor] = useState(null);
@@ -43,7 +47,7 @@ const TutorList = () => {
     const [activeFilters, setActiveFilters] = useState(EMPTY_FILTERS);
     const fetchStarted = useRef(false);
 
-    const fetchTutors = useCallback(async (filters = EMPTY_FILTERS) => {
+    const fetchTutors = useCallback(async (filters = EMPTY_FILTERS, pageNum = 1) => {
         setLoading(true);
         setFetchError(null);
         try {
@@ -56,20 +60,36 @@ const TutorList = () => {
             if (filters.mode && filters.mode !== 'all') params.append('mode', filters.mode);
             if (filters.minExperience) params.append('minExperience', filters.minExperience);
             if (filters.minRating)     params.append('minRating',     filters.minRating);
+            params.append('page', String(pageNum));
+            params.append('limit', String(PAGE_SIZE));
 
             const { data } = await api.get(`/tutors?${params.toString()}`);
+            let raw = [];
+            let pag = null;
+            if (data?.tutors && data?.pagination) {
+                raw = data.tutors;
+                pag = data.pagination;
+            } else if (Array.isArray(data)) {
+                raw = data;
+            }
             const result = filters.verifiedOnly
-                ? data.filter(t => t.approvalStatus === 'approved')
-                : data;
-            setTutors(result);
+                ? raw.filter((t) => t.approvalStatus === 'approved')
+                : raw;
+            if (pageNum > 1) {
+                setTutors((prev) => [...prev, ...result]);
+            } else {
+                setTutors(result);
+            }
+            setPagination(pag);
+            setPage(pageNum);
             setActiveFilters(filters);
         } catch (err) {
             console.error('Error fetching tutors:', err);
-            const msg = err?.response?.data?.message
-                || err?.message
-                || 'Could not load tutors. Check your connection and try again.';
+            const msg =
+                getApiErrorMessage(err) || 'Could not load tutors. Check your connection and try again.';
             setFetchError(msg);
             setTutors([]);
+            setPagination(null);
         } finally {
             setLoading(false);
         }
@@ -78,7 +98,7 @@ const TutorList = () => {
     useEffect(() => {
         if (fetchStarted.current) return;
         fetchStarted.current = true;
-        fetchTutors();
+        fetchTutors(EMPTY_FILTERS, 1);
     }, [fetchTutors]);
 
     const sorted = useMemo(() => {
@@ -101,12 +121,17 @@ const TutorList = () => {
     const onRequestDemo = useCallback((tutor) => setSelectedTutor(tutor), []);
 
     const onBookingSuccess = useCallback(() => {
-        fetchTutors(activeFilters);
+        fetchTutors(activeFilters, 1);
     }, [fetchTutors, activeFilters]);
+
+    const onSearchFilters = useCallback(
+        (filters) => fetchTutors(filters, 1),
+        [fetchTutors]
+    );
 
     return (
         <div className="space-y-5">
-            <TutorSearch onSearch={fetchTutors} />
+            <TutorSearch onSearch={onSearchFilters} />
 
             {/* Results bar */}
             <div className="flex items-center justify-between px-1">
@@ -115,8 +140,10 @@ const TutorList = () => {
                         <span className="inline-block w-24 h-4 bg-gray-100 rounded animate-pulse" />
                     ) : (
                         <>
-                            <span className="font-extrabold text-navy-950 text-base">{sorted.length}</span>
-                            <span className="ml-1">tutor{sorted.length !== 1 ? 's' : ''} available</span>
+                            <span className="font-extrabold text-navy-950 text-base">
+                                {pagination?.total ?? sorted.length}
+                            </span>
+                            <span className="ml-1">tutor{(pagination?.total ?? sorted.length) !== 1 ? 's' : ''} available</span>
                         </>
                     )}
                 </p>
@@ -147,7 +174,7 @@ const TutorList = () => {
                     <h3 className="text-lg font-extrabold text-navy-950 mb-1">Couldn't load tutors</h3>
                     <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">{fetchError}</p>
                     <button
-                        onClick={() => fetchTutors(activeFilters)}
+                        onClick={() => fetchTutors(activeFilters, 1)}
                         className="px-6 py-3 bg-lime text-navy-950 text-sm font-bold rounded-full hover:bg-lime-light transition-colors shadow-sm"
                     >
                         Try again
@@ -165,29 +192,43 @@ const TutorList = () => {
                         Try broadening your search or removing some filters
                     </p>
                     <button
-                        onClick={() => fetchTutors(EMPTY_FILTERS)}
+                        onClick={() => fetchTutors(EMPTY_FILTERS, 1)}
                         className="px-6 py-3 bg-lime text-navy-950 text-sm font-bold rounded-full hover:bg-lime-light transition-colors shadow-sm"
                     >
                         Clear all filters
                     </button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 auto-rows-fr">
-                    {sorted.map((tutor, i) => (
-                        <div
-                            key={tutor._id}
-                            className="animate-fade-in-up flex"
-                            style={{ animationDelay: `${Math.min(i * 60, 400)}ms` }}
-                        >
-                            <TutorCard
-                                tutor={tutor}
-                                onRequestDemo={onRequestDemo}
-                                onFavoriteChange={onFavoriteChange}
-                                onBookingSuccess={onBookingSuccess}
-                            />
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 auto-rows-fr">
+                        {sorted.map((tutor, i) => (
+                            <div
+                                key={tutor._id}
+                                className="animate-fade-in-up flex"
+                                style={{ animationDelay: `${Math.min(i * 60, 400)}ms` }}
+                            >
+                                <TutorCard
+                                    tutor={tutor}
+                                    onRequestDemo={onRequestDemo}
+                                    onFavoriteChange={onFavoriteChange}
+                                    onBookingSuccess={onBookingSuccess}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                    {pagination && pagination.pages > 1 && page < pagination.pages && (
+                        <div className="flex justify-center pt-6">
+                            <button
+                                type="button"
+                                onClick={() => fetchTutors(activeFilters, page + 1)}
+                                disabled={loading}
+                                className="px-6 py-2.5 rounded-full border border-gray-200 text-sm font-semibold text-navy-950 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                {loading ? 'Loading…' : 'Load more'}
+                            </button>
                         </div>
-                    ))}
-                </div>
+                    )}
+                </>
             )}
 
             {selectedTutor && (

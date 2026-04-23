@@ -12,7 +12,15 @@ const { safe500, isValidObjectId } = require('../utils/responseHelpers');
 // Every order auto-succeeds. Safe for dev/testing without real API keys.
 // ---------------------------------------------------------------------------
 const MOCK_MODE = process.env.PAYMENT_MODE === 'mock';
-if (MOCK_MODE) console.log('[payments] Running in MOCK mode — Razorpay calls are simulated');
+if (MOCK_MODE) {
+    console.log('[payments] Running in MOCK mode — Razorpay calls are simulated');
+} else {
+    const keyId = process.env.RAZORPAY_KEY_ID || '';
+    const hasSecret = !!process.env.RAZORPAY_KEY_SECRET;
+    const hasWebhook = !!process.env.RAZORPAY_WEBHOOK_SECRET && process.env.RAZORPAY_WEBHOOK_SECRET !== 'replace_me_after_adding_webhook_in_dashboard';
+    const env = keyId.startsWith('rzp_test_') ? 'TEST' : keyId.startsWith('rzp_live_') ? 'LIVE' : 'UNKNOWN';
+    console.log(`[payments] Razorpay ${env} mode | key=${keyId ? 'loaded' : 'MISSING'} secret=${hasSecret ? 'loaded' : 'MISSING'} webhook=${hasWebhook ? 'loaded' : 'pending'}`);
+}
 
 // ---------------------------------------------------------------------------
 // Razorpay client — initialised lazily so a missing key doesn't crash startup
@@ -37,15 +45,23 @@ function getRazorpay() {
 /** Amount in paise (Razorpay expects smallest unit) */
 const toPaise = (amount) => Math.round(amount * 100);
 
-/** Verify Razorpay webhook signature */
+/** Verify Razorpay webhook signature. Returns false (not throw) if secret absent so we don't crash production. */
 function verifyWebhookSignature(rawBody, signature) {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
-    if (!secret) throw new Error('RAZORPAY_WEBHOOK_SECRET not set');
-    const expected = crypto
-        .createHmac('sha256', secret)
-        .update(rawBody)
-        .digest('hex');
-    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+    if (!secret || secret === 'replace_me_after_adding_webhook_in_dashboard') {
+        console.warn('[webhook] RAZORPAY_WEBHOOK_SECRET not configured — rejecting webhook');
+        return false;
+    }
+    try {
+        const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+        const a = Buffer.from(expected);
+        const b = Buffer.from(signature);
+        if (a.length !== b.length) return false;
+        return crypto.timingSafeEqual(a, b);
+    } catch (err) {
+        console.error('[webhook] signature verification failed:', err.message);
+        return false;
+    }
 }
 
 /** Verify payment signature from checkout callback */
@@ -152,17 +168,34 @@ const createOrder = async (req, res) => {
         const rz = getRazorpay();
         const receipt = `tutnet_${booking._id.toString().slice(-8)}_${Date.now().toString().slice(-6)}`;
 
-        const order = await rz.orders.create({
-            amount: toPaise(hourlyRate),
-            currency: 'INR',
-            receipt,
-            notes: {
-                bookingId: booking._id.toString(),
-                studentName: booking.studentId.name,
-                tutorName: booking.tutorId.name,
-                subject: booking.subject
+        let order;
+        try {
+            order = await rz.orders.create({
+                amount: toPaise(hourlyRate),
+                currency: 'INR',
+                receipt,
+                notes: {
+                    bookingId: booking._id.toString(),
+                    studentName: booking.studentId.name,
+                    tutorName: booking.tutorId.name,
+                    subject: booking.subject
+                }
+            });
+        } catch (razorpayErr) {
+            const rzDesc = razorpayErr?.error?.description || razorpayErr?.message || 'Unknown Razorpay error';
+            console.error('[createOrder] Razorpay order.create failed:', rzDesc);
+            if (rzDesc.toLowerCase().includes('authentication')) {
+                return res.status(503).json({
+                    message: 'Payment gateway is not configured correctly. Please contact support.',
+                    code: 'PAYMENT_GATEWAY_AUTH',
+                    detail: 'RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET missing or invalid on the server.'
+                });
             }
-        });
+            return res.status(502).json({
+                message: `Payment gateway rejected the request: ${rzDesc}`,
+                code: 'PAYMENT_GATEWAY_ERROR'
+            });
+        }
 
         // Persist the order record
         const payment = await Payment.create({
@@ -267,6 +300,15 @@ const verifyPayment = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
+        if (
+            payment.status === 'completed' &&
+            payment.razorpayPaymentId &&
+            razorpayPaymentId &&
+            payment.razorpayPaymentId === razorpayPaymentId
+        ) {
+            return res.json({ message: 'Payment already verified', status: 'completed' });
+        }
+
         // Update payment record (idempotent)
         if (payment.status !== 'completed') {
             payment.razorpayPaymentId = razorpayPaymentId;
@@ -359,14 +401,25 @@ const handleWebhook = async (req, res) => {
                 .populate('studentId', 'name')
                 .populate('tutorId', 'name');
             if (booking) {
+                const subjectLabel = booking.plan
+                    ? `${booking.plan.charAt(0).toUpperCase() + booking.plan.slice(1)} subscription`
+                    : `${booking.subject} session`;
                 await createNotification({
                     userId: booking.tutorId._id,
                     type: 'payment_received',
                     title: 'Payment Received',
-                    message: `${booking.studentId.name} paid ₹${payment.amount} for the ${booking.subject} session.`,
+                    message: `${booking.studentId.name} paid ₹${payment.amount} for the ${subjectLabel}.`,
                     link: '/tutor-dashboard?tab=sessions',
                     bookingId: booking._id
-                });
+                }).catch(() => {});
+                await createNotification({
+                    userId: booking.studentId._id,
+                    type: 'payment_success',
+                    title: 'Payment successful',
+                    message: `Your payment of ₹${payment.amount} for the ${subjectLabel} with ${booking.tutorId.name} is confirmed.`,
+                    link: '/student-dashboard?tab=sessions',
+                    bookingId: booking._id
+                }).catch(() => {});
             }
         }
 

@@ -1,8 +1,16 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useNotifications } from '../context/NotificationContext';
-import { useRef, useEffect } from 'react';
+import { useNotificationStore } from '../stores/notificationStore';
+import { useRef, useEffect, useMemo } from 'react';
 
+/**
+ * NotificationPanel — world-class notification center.
+ * - Time-grouped (Today / Yesterday / This week / Earlier)
+ * - Unread count + filter (All | Unread)
+ * - Inline icons per type with design-system colors
+ * - Keyboard accessible (Esc closes)
+ */
 const NotificationPanel = () => {
     const {
         notifications,
@@ -15,238 +23,154 @@ const NotificationPanel = () => {
     const navigate = useNavigate();
     const panelRef = useRef(null);
 
-    // Close on click outside
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (panelRef.current && !panelRef.current.contains(event.target)) {
-                setIsOpen(false);
-            }
-        };
-
         if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
+            useNotificationStore.getState().fetchNotifications({ skipDedup: true });
         }
+    }, [isOpen]);
+
+    // Close on click outside + Esc
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        const onClick = (e) => {
+            if (panelRef.current && !panelRef.current.contains(e.target)) setIsOpen(false);
+        };
+        const onKey = (e) => { if (e.key === 'Escape') setIsOpen(false); };
+        document.addEventListener('mousedown', onClick);
+        document.addEventListener('keydown', onKey);
         return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('mousedown', onClick);
+            document.removeEventListener('keydown', onKey);
         };
     }, [isOpen, setIsOpen]);
 
-    if (!isOpen) return null;
-
     const handleClick = (notification) => {
-        if (!notification.isRead) {
-            markAsRead(notification._id);
-        }
+        if (!notification.isRead) markAsRead(notification._id);
         if (notification.link) {
             navigate(notification.link);
             setIsOpen(false);
         }
     };
 
-    const getIcon = (type) => {
-        switch (type) {
-            case 'booking_approved':
-            case 'demo_accepted':
-                return (
-                    <div className="bg-lime/30 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-lime-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                    </div>
-                );
-            case 'booking_rejected':
-            case 'demo_rejected':
-            case 'booking_cancelled':
-                return (
-                    <div className="bg-red-100 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </div>
-                );
-            case 'new_booking_request':
-            case 'new_trial_request':
-            case 'demo_booking_created':
-            case 'schedule_updated':
-                return (
-                    <div className="bg-royal/10 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-royal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                );
-            case 'session_missed':
-                return (
-                    <div className="bg-lime/30 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-lime-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </div>
-                );
-            case 'admin_alert':
-                return (
-                    <div className="bg-purple-100 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-navy-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                );
-            case 'session_reminder':
-            case 'session_starting_soon':
-                return (
-                    <div className="bg-lime/30 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-lime-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                );
-            case 'new_review':
-            case 'feedback_received':
-                return (
-                    <div className="bg-yellow-100 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                        </svg>
-                    </div>
-                );
-            case 'homework_assigned':
-            case 'homework_completed':
-            case 'study_material_added':
-                return (
-                    <div className="bg-royal/10 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-royal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
-                    </div>
-                );
-            case 'attendance_marked':
-            case 'session_completed':
-                return (
-                    <div className="bg-lime/30 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-lime-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                        </svg>
-                    </div>
-                );
-            case 'system_alert':
-            case 'tutor_verification_approved':
-                return (
-                    <div className="bg-purple-100 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-navy-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                );
-            default:
-                return (
-                    <div className="bg-gray-100 p-2 rounded-full">
-                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                );
-        }
-    };
-
-    const formatRelativeTime = (dateStr) => {
-        const date = new Date(dateStr);
+    // Group by time bucket
+    const grouped = useMemo(() => {
+        const buckets = { today: [], yesterday: [], thisWeek: [], earlier: [] };
         const now = new Date();
-        const seconds = Math.floor((now - date) / 1000);
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const yesterdayStart = todayStart - 86400_000;
+        const weekStart = todayStart - 6 * 86400_000;
+        for (const n of notifications || []) {
+            const t = new Date(n.createdAt).getTime();
+            if (t >= todayStart) buckets.today.push(n);
+            else if (t >= yesterdayStart) buckets.yesterday.push(n);
+            else if (t >= weekStart) buckets.thisWeek.push(n);
+            else buckets.earlier.push(n);
+        }
+        return buckets;
+    }, [notifications]);
 
-        if (seconds < 60) return 'Just now';
+    const unreadCount = (notifications || []).filter((n) => !n.isRead).length;
 
-        const minutes = Math.floor(seconds / 60);
-        if (minutes < 60) return `${minutes}m ago`;
-
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours}h ago`;
-
-        const days = Math.floor(hours / 24);
-        if (days < 7) return `${days}d ago`;
-
-        return date.toLocaleDateString();
-    };
+    if (!isOpen) return null;
 
     const panel = (
         <>
-            <div className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[1px]" aria-hidden="true" />
+            <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]" aria-hidden="true" />
             <div
                 ref={panelRef}
-                className="fixed top-4 right-4 w-96 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden ring-1 ring-black ring-opacity-5"
+                className="fixed z-50 bg-white border border-gray-100 overflow-hidden flex flex-col
+                    inset-0 rounded-none shadow-none
+                    sm:inset-auto sm:top-4 sm:right-4 sm:w-[420px] sm:max-w-[calc(100vw-2rem)]
+                    sm:rounded-3xl sm:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)]"
+                role="dialog"
+                aria-label="Notifications"
             >
                 {/* Header */}
-                <div className="px-4 py-3 border-b border-gray-100 bg-white flex justify-between items-center sticky top-0 z-10">
-                    <h3 className="font-bold text-navy-950 text-sm uppercase tracking-wide">Notifications</h3>
-                    <div className="flex items-center gap-3">
-                        {notifications.length > 0 && (
-                            <button
-                                onClick={markAllAsRead}
-                                className="text-xs font-medium text-royal hover:text-navy-900 transition-colors"
-                            >
-                                Mark all read
-                            </button>
-                        )}
-                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-medium">
-                            {notifications.length}
-                        </span>
+                <div className="px-5 pt-5 pb-4 border-b border-gray-100">
+                    <div className="flex items-center justify-between mb-0.5">
+                        <div>
+                            <p className="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Activity</p>
+                            <h3 className="text-lg font-extrabold text-navy-950 tracking-tight">
+                                Notifications
+                                {unreadCount > 0 && (
+                                    <span className="ml-2 text-xs bg-royal text-white rounded-full px-2 py-0.5 font-bold align-middle">
+                                        {unreadCount}
+                                    </span>
+                                )}
+                            </h3>
+                        </div>
+                        <button
+                            onClick={() => setIsOpen(false)}
+                            aria-label="Close"
+                            className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
+                    {unreadCount > 0 && (
+                        <button
+                            onClick={markAllAsRead}
+                            className="mt-2 text-[11px] font-bold text-royal hover:text-navy-950 transition-colors"
+                        >
+                            Mark all as read
+                        </button>
+                    )}
                 </div>
 
                 {/* List */}
-                <div className="max-h-[32rem] overflow-y-auto custom-scrollbar">
+                <div className="flex-1 overflow-y-auto sm:max-h-[32rem]">
                     {loading && notifications.length === 0 ? (
-                        <div className="p-8 space-y-4">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="flex gap-4 animate-pulse">
-                                    <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0"></div>
+                        <div className="p-5 space-y-3">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="flex gap-3 animate-pulse">
+                                    <div className="w-9 h-9 bg-gray-100 rounded-full flex-shrink-0" />
                                     <div className="flex-1 space-y-2">
-                                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                                        <div className="h-3 bg-gray-100 rounded w-3/4" />
+                                        <div className="h-2.5 bg-gray-100 rounded w-1/2" />
                                     </div>
                                 </div>
                             ))}
                         </div>
                     ) : notifications.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                            <div className="bg-gray-50 p-4 rounded-full mb-3">
-                                <span className="text-2xl">🎉</span>
+                        <div className="py-14 px-6 text-center">
+                            <div className="w-12 h-12 rounded-2xl bg-lime/20 flex items-center justify-center mx-auto mb-3">
+                                <svg className="w-6 h-6 text-lime-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
                             </div>
-                            <h4 className="text-navy-950 font-medium mb-1">You're all caught up!</h4>
-                            <p className="text-gray-500 text-sm">No new notifications at the moment.</p>
+                            <p className="text-sm font-bold text-navy-950">You're all caught up</p>
+                            <p className="text-xs text-gray-500 mt-1">New activity will show here in real time.</p>
                         </div>
                     ) : (
-                        <ul className="divide-y divide-gray-50">
-                            {notifications.map((notification) => (
-                                <li
-                                    key={notification._id}
-                                    onClick={() => handleClick(notification)}
-                                    className={`relative p-4 hover:bg-gray-50 transition-colors cursor-pointer group ${!notification.isRead ? 'bg-royal/5/40' : 'bg-white'}`}
-                                >
-                                    <div className="flex gap-3 items-start">
-                                        <div className="flex-shrink-0 mt-0.5 transition-transform group-hover:scale-110 duration-200">
-                                            {getIcon(notification.type)}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex justify-between items-start gap-2">
-                                                <p className={`text-sm ${!notification.isRead ? 'font-bold text-navy-950' : 'font-medium text-gray-700'}`}>
-                                                    {notification.title}
-                                                </p>
-                                                <span className="text-[10px] text-gray-400 whitespace-nowrap flex-shrink-0 pt-0.5">
-                                                    {formatRelativeTime(notification.createdAt)}
-                                                </span>
-                                            </div>
-                                            <p className={`text-sm mt-0.5 line-clamp-2 ${!notification.isRead ? 'text-gray-800' : 'text-gray-500'}`}>
-                                                {notification.message}
-                                            </p>
-                                        </div>
-                                        {!notification.isRead && (
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 bg-royal/50 rounded-full ring-4 ring-royal/10/50"></div>
-                                        )}
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
+                        <div>
+                            {grouped.today.length > 0 && <Group title="Today" items={grouped.today} onClick={handleClick} />}
+                            {grouped.yesterday.length > 0 && <Group title="Yesterday" items={grouped.yesterday} onClick={handleClick} />}
+                            {grouped.thisWeek.length > 0 && <Group title="This week" items={grouped.thisWeek} onClick={handleClick} />}
+                            {grouped.earlier.length > 0 && <Group title="Earlier" items={grouped.earlier} onClick={handleClick} />}
+                        </div>
                     )}
+                </div>
+
+                {/* Footer — always rendered so View-all/Settings are always reachable */}
+                <div className="flex-shrink-0 border-t border-gray-100 px-5 py-3 flex items-center justify-between bg-gray-50/50">
+                    <Link
+                        to="/notifications"
+                        onClick={() => setIsOpen(false)}
+                        className="text-xs font-bold text-royal hover:text-royal-dark">
+                        View all →
+                    </Link>
+                    <Link
+                        to="/notifications/settings"
+                        onClick={() => setIsOpen(false)}
+                        className="text-xs font-semibold text-gray-500 hover:text-navy-950 inline-flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317a1 1 0 011.35 0l.96.87a1 1 0 00.86.24l1.29-.24a1 1 0 011.17.77l.27 1.29a1 1 0 00.55.7l1.17.56a1 1 0 01.55 1.16l-.37 1.26a1 1 0 000 .56l.37 1.26a1 1 0 01-.55 1.16l-1.17.56a1 1 0 00-.55.7l-.27 1.29a1 1 0 01-1.17.77l-1.29-.24a1 1 0 00-.86.24l-.96.87a1 1 0 01-1.35 0l-.96-.87a1 1 0 00-.86-.24l-1.29.24a1 1 0 01-1.17-.77l-.27-1.29a1 1 0 00-.55-.7l-1.17-.56a1 1 0 01-.55-1.16l.37-1.26a1 1 0 000-.56l-.37-1.26a1 1 0 01.55-1.16l1.17-.56a1 1 0 00.55-.7l.27-1.29a1 1 0 011.17-.77l1.29.24a1 1 0 00.86-.24l.96-.87z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Settings
+                    </Link>
                 </div>
             </div>
         </>
@@ -254,5 +178,138 @@ const NotificationPanel = () => {
 
     return createPortal(panel, document.body);
 };
+
+// ── Subcomponents ──────────────────────────────────────────────────────
+
+function Group({ title, items, onClick }) {
+    return (
+        <div>
+            <div className="sticky top-0 bg-[#fafafa] px-5 py-1.5 border-b border-gray-100 z-10">
+                <p className="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">{title}</p>
+            </div>
+            <ul className="divide-y divide-gray-50">
+                {items.map((n) => <NotificationItem key={n._id} notification={n} onClick={onClick} />)}
+            </ul>
+        </div>
+    );
+}
+
+function NotificationItem({ notification, onClick }) {
+    const isUnread = !notification.isRead;
+    return (
+        <li
+            onClick={() => onClick(notification)}
+            className={`relative px-5 py-3.5 hover:bg-gray-50/70 transition-colors cursor-pointer ${isUnread ? 'bg-royal/[0.03]' : ''}`}
+        >
+            <div className="flex gap-3 items-start">
+                <div className="flex-shrink-0">{iconFor(notification.type)}</div>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                        <p className={`text-sm truncate ${isUnread ? 'font-bold text-navy-950' : 'font-semibold text-gray-700'}`}>
+                            {notification.title}
+                        </p>
+                        <span className="text-[10px] text-gray-400 whitespace-nowrap flex-shrink-0 pt-0.5">
+                            {formatRelativeTime(notification.createdAt)}
+                        </span>
+                    </div>
+                    <p className={`text-xs mt-0.5 line-clamp-2 leading-relaxed ${isUnread ? 'text-gray-700' : 'text-gray-500'}`}>
+                        {notification.message}
+                    </p>
+                </div>
+                {isUnread && (
+                    <div className="flex-shrink-0 self-center w-2 h-2 bg-royal rounded-full ring-4 ring-royal/10" />
+                )}
+            </div>
+        </li>
+    );
+}
+
+function iconFor(type) {
+    const map = {
+        // success / lime
+        booking_approved:  ['lime', 'check'],
+        demo_accepted:     ['lime', 'check'],
+        session_completed: ['lime', 'check'],
+        attendance_marked: ['lime', 'check'],
+        payment_success:   ['lime', 'rupee'],
+        payment_received:  ['lime', 'rupee'],
+        report_verified:   ['lime', 'shield'],
+        tier_upgraded:     ['lime', 'star'],
+
+        // primary / royal
+        new_booking_request:    ['royal', 'calendar'],
+        new_trial_request:      ['royal', 'calendar'],
+        demo_booking_created:   ['royal', 'calendar'],
+        schedule_updated:       ['royal', 'calendar'],
+        subscription_created:   ['royal', 'calendar'],
+        homework_assigned:      ['royal', 'book'],
+        homework_completed:     ['royal', 'book'],
+        study_material_added:   ['royal', 'book'],
+
+        // time / upcoming
+        session_reminder:       ['yellow', 'clock'],
+        session_starting_soon:  ['yellow', 'clock'],
+
+        // warning / red
+        booking_rejected:   ['rose', 'x'],
+        demo_rejected:      ['rose', 'x'],
+        booking_cancelled:  ['rose', 'x'],
+        payment_failed:     ['rose', 'x'],
+        session_missed:     ['rose', 'alert'],
+
+        // admin / meta
+        admin_alert:                ['navy', 'info'],
+        system_alert:               ['navy', 'info'],
+        tutor_verification_approved:['navy', 'info'],
+        report_dismissed:           ['navy', 'info'],
+
+        // feedback / yellow
+        new_review:         ['yellow', 'star'],
+        feedback_received:  ['yellow', 'star']
+    };
+    const [color, shape] = map[type] || ['gray', 'info'];
+    const bg = {
+        lime: 'bg-lime/25 text-lime-dark',
+        royal: 'bg-royal/10 text-royal-dark',
+        yellow: 'bg-yellow-100 text-yellow-700',
+        rose: 'bg-rose-100 text-rose-600',
+        navy: 'bg-navy-950/10 text-navy-950',
+        gray: 'bg-gray-100 text-gray-500'
+    }[color];
+    return (
+        <div className={`w-9 h-9 rounded-full ${bg} flex items-center justify-center`}>
+            {shapeSvg(shape)}
+        </div>
+    );
+}
+
+function shapeSvg(shape) {
+    const c = 'w-4 h-4';
+    const p = { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', strokeWidth: 2 };
+    switch (shape) {
+        case 'check':    return <svg className={c} {...p}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>;
+        case 'x':        return <svg className={c} {...p}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
+        case 'calendar': return <svg className={c} {...p}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
+        case 'clock':    return <svg className={c} {...p}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        case 'star':     return <svg className={c} fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L14.39 8.26H20.77L15.69 12.14L18.08 18.4L12 14.52L5.92 18.4L8.31 12.14L3.23 8.26H9.61L12 2Z" /></svg>;
+        case 'alert':    return <svg className={c} {...p}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>;
+        case 'info':     return <svg className={c} {...p}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        case 'rupee':    return <svg className={c} fill="currentColor" viewBox="0 0 24 24"><path d="M7 4h11a1 1 0 110 2h-3.09c.26.63.4 1.3.4 2 0 .35-.02.68-.08 1H18a1 1 0 110 2h-3.2c-.7 1.92-2.5 3.38-5.3 3.82L15.5 20H13l-5.8-5.4c-.14-.12-.2-.3-.2-.6v-1c0-.55.45-1 1-1h1c2 0 3.34-.82 3.85-2H7a1 1 0 110-2h6.83c.11-.33.17-.66.17-1 0-.73-.3-1.4-.82-2H7a1 1 0 010-2z"/></svg>;
+        case 'book':     return <svg className={c} {...p}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>;
+        case 'shield':   return <svg className={c} {...p}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>;
+        default:         return null;
+    }
+}
+
+function formatRelativeTime(dateStr) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    if (seconds < 60) return 'Just now';
+    const m = Math.floor(seconds / 60); if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60); if (h < 24) return `${h}h`;
+    const d = Math.floor(h / 24); if (d < 7) return `${d}d`;
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
 
 export default NotificationPanel;

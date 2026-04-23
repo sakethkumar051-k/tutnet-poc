@@ -1,13 +1,23 @@
 const mongoose = require('mongoose');
 
 /**
+ * Standard API errors for Express handlers:
+ * - `sendError(res, status, message, code)` — 4xx/404 validation-style responses
+ * - `safe500(res, err, context)` — catch blocks; never leak internals
+ * Global `error.middleware` wraps unhandled errors with the same `{ success, error }` shape.
+ */
+
+/**
  * Send a safe 500 response without leaking stack or error details.
  * Log the full error server-side.
  */
 function safe500(res, err, context = '') {
     if (context) console.error(context, err);
     else console.error(err);
-    return res.status(500).json({ message: 'Server Error', code: 'INTERNAL_ERROR' });
+    return res.status(500).json({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Server Error' }
+    });
 }
 
 /**
@@ -27,4 +37,11 @@ function sanitizeString(value, maxLength = 1000) {
     return maxLength > 0 && s.length > maxLength ? s.slice(0, maxLength) : s;
 }
 
-module.exports = { safe500, isValidObjectId, sanitizeString };
+function sendError(res, status, message, code = 'REQUEST_ERROR') {
+    return res.status(status).json({
+        success: false,
+        error: { code, message }
+    });
+}
+
+module.exports = { safe500, sendError, isValidObjectId, sanitizeString };

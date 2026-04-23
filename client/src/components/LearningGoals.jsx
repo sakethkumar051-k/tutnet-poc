@@ -279,7 +279,7 @@ export default function LearningGoals({ role = 'student' }) {
                                                 <div className="space-y-2 max-h-36 overflow-y-auto">
                                                     {[...goal.progressNotes].reverse().map((n, i) => (
                                                         <div key={i} className="flex items-start gap-2 bg-white rounded-lg px-3 py-2 border border-gray-100">
-                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs flex-shrink-0 mt-0.5 ${n.addedByRole === 'tutor' ? 'bg-purple-100 text-purple-700' : 'bg-royal/10 text-royal-dark'}`}>
+                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs flex-shrink-0 mt-0.5 ${n.addedByRole === 'tutor' ? 'bg-royal/10 text-royal-dark' : 'bg-royal/10 text-royal-dark'}`}>
                                                                 {n.addedByRole === 'tutor' ? 'T' : 'S'}
                                                             </div>
                                                             <div className="flex-1 min-w-0">

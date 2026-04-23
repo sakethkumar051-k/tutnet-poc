@@ -31,9 +31,93 @@ const userSchema = new mongoose.Schema({
         relationship: { type: String, default: '' },
         phone: { type: String, default: '' }
     },
-    isActive: { type: Boolean, default: true }
+    /** IANA timezone for scheduling & reminders (e.g. Asia/Kolkata) */
+    timezone: { type: String, default: 'Asia/Kolkata', trim: true },
+    /** Updated on authenticated API activity (throttled in middleware) */
+    lastSeenAt: { type: Date },
+    /** Linked parent account for minor verification flows */
+    parentUserId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    preferences: {
+        reminderChannels: {
+            type: [String],
+            default: () => ['email'],
+            validate: {
+                validator(arr) {
+                    const ok = new Set(['email', 'sms', 'push']);
+                    return !arr || arr.every((c) => ok.has(c));
+                },
+                message: 'Invalid reminder channel'
+            }
+        },
+        reminderLeadTimes: {
+            type: [String],
+            default: () => ['24h', '1h'],
+            validate: {
+                validator(arr) {
+                    const ok = new Set(['24h', '1h']);
+                    return !arr || arr.every((c) => ok.has(c));
+                },
+                message: 'Invalid reminder lead time'
+            }
+        }
+    },
+    deviceTokens: [{
+        token: { type: String, required: true, trim: true },
+        platform: { type: String, trim: true, default: '' },
+        createdAt: { type: Date, default: Date.now }
+    }],
+    isActive: { type: Boolean, default: true },
+    /**
+     * In-app notification category toggles. Checked by createNotification() before insert.
+     * Every user gets all-on by default except marketing — that's opt-in.
+     */
+    notificationPreferences: {
+        session:   { type: Boolean, default: true },
+        payment:   { type: Boolean, default: true },
+        review:    { type: Boolean, default: true },
+        message:   { type: Boolean, default: true },
+        admin:     { type: Boolean, default: true },
+        system:    { type: Boolean, default: true },
+        marketing: { type: Boolean, default: false }
+    },
+    /** Admin-only CS notes — internal support context, not visible to user. */
+    adminNotes: [{
+        note: { type: String, required: true, trim: true, maxlength: 2000 },
+        adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        adminName: { type: String, default: '' },
+        at: { type: Date, default: Date.now }
+    }],
+    /** Reason on last suspension, cleared on reactivation. */
+    suspensionReason: { type: String, default: '' },
+    suspendedAt: { type: Date },
+
+    /** Public referral code — generated lazily on first request. Share to earn credit. */
+    referralCode: { type: String, unique: true, sparse: true, index: true },
+    /** The user who referred this account (set on register via `ref=<code>`). */
+    referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    /** Whether the referral reward has been paid out for this user's first session. */
+    referralRewarded: { type: Boolean, default: false },
+
+    /** Parent-of linkage — list of child User ids (for multi-child households). */
+    children: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: {
+        transform(_doc, ret) {
+            delete ret.password;
+            return ret;
+        }
+    },
+    toObject: {
+        transform(_doc, ret) {
+            delete ret.password;
+            return ret;
+        }
+    }
 });
 
 userSchema.pre('save', async function (next) {

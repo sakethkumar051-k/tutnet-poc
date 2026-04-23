@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
+import MockRazorpayCheckout from './MockRazorpayCheckout';
+import MoneyFlowReceipt from './MoneyFlowReceipt';
 
 /**
  * CheckoutModal
@@ -15,6 +17,8 @@ export default function CheckoutModal({ booking, onClose, onSuccess }) {
     const { showSuccess, showError } = useToast();
     const [loading, setLoading] = useState(false);
     const [paymentStatus, setPaymentStatus] = useState(null); // null | 'success' | 'failed'
+    const [mockOrder, setMockOrder] = useState(null);
+    const [paidReceipt, setPaidReceipt] = useState(null);
 
     // Load Razorpay checkout.js script once
     useEffect(() => {
@@ -44,17 +48,14 @@ export default function CheckoutModal({ booking, onClose, onSuccess }) {
                 notes
             } = orderData;
 
-            // Step 2: Mock mode — skip the Razorpay overlay entirely
+            // Step 2: Mock mode — open the fake Razorpay UI so user sees full flow
             if (keyId === 'mock_key') {
-                await api.post('/payments/verify', {
-                    razorpayOrderId: orderId,
-                    razorpayPaymentId: `mock_pay_${Date.now()}`,
-                    razorpaySignature: 'mock_signature',
-                    bookingId: booking._id
+                setMockOrder({
+                    orderId,
+                    amount,
+                    description: `${notes?.subject || booking.subject} session · ${notes?.tutorName || booking.tutorId?.name}`,
+                    prefill
                 });
-                setPaymentStatus('success');
-                showSuccess('Payment successful! (mock mode)');
-                if (onSuccess) onSuccess();
                 setLoading(false);
                 return;
             }
@@ -75,7 +76,9 @@ export default function CheckoutModal({ booking, onClose, onSuccess }) {
                     bookingId: booking._id,
                     subject: notes?.subject || booking.subject
                 },
-                theme: { color: '#4F46E5' },
+                theme: { color: '#1939e5' },
+                // Let Razorpay show all methods the account has enabled.
+                // (UPI must be toggled ON at dashboard.razorpay.com/app/payment-methods)
 
                 handler: async (response) => {
                     // Step 3: Verify on server (belt-and-suspenders, webhook is authoritative)
@@ -136,103 +139,146 @@ export default function CheckoutModal({ booking, onClose, onSuccess }) {
 
     return (
         <div
-            style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
             onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
-            <div style={{ background: 'var(--color-background-primary)', borderRadius: 'var(--border-radius-xl)', width: '100%', maxWidth: '420px', padding: '1.5rem', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
-
+            <div className="bg-white rounded-3xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)] w-full max-w-[440px] max-h-[min(92vh,900px)] overflow-y-auto">
                 {paymentStatus === 'success' ? (
-                    <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--color-background-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="20 6 9 17 4 12"/>
-                            </svg>
+                    <div className="p-7">
+                        <div className="text-center mb-5">
+                            <div className="w-14 h-14 rounded-full bg-lime/30 flex items-center justify-center mx-auto mb-3">
+                                <svg className="w-7 h-7 text-navy-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-extrabold text-navy-950 tracking-tight">Payment successful</h3>
+                            <p className="text-sm text-gray-500 mt-1">Your session with {tutorName} is confirmed.</p>
                         </div>
-                        <h3 style={{ fontSize: 18, fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: '0.5rem' }}>Payment successful</h3>
-                        <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: '1.5rem' }}>
-                            Your session with {tutorName} is confirmed. You'll receive a notification shortly.
-                        </p>
-                        <button
-                            onClick={onClose}
-                            style={{ padding: '0.625rem 1.5rem', background: 'var(--color-background-info)', color: 'var(--color-text-info)', borderRadius: 'var(--border-radius-md)', border: 'none', fontWeight: 500, cursor: 'pointer', fontSize: 14 }}
-                        >
+
+                        {paidReceipt && (
+                            <MoneyFlowReceipt
+                                grossAmount={paidReceipt.amount}
+                                commissionRate={paidReceipt.commissionRate}
+                                commissionAmount={paidReceipt.commissionAmount}
+                                tutorShare={paidReceipt.amount - paidReceipt.commissionAmount}
+                                appliedCredits={0}
+                                tutorName={tutorName}
+                                mode="session"
+                            />
+                        )}
+
+                        <button onClick={onClose}
+                            className="mt-6 w-full py-3 bg-navy-950 hover:bg-navy-900 text-white text-sm font-bold rounded-full transition-colors">
                             Done
                         </button>
                     </div>
                 ) : paymentStatus === 'failed' ? (
-                    <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--color-background-danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-danger)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    <div className="text-center py-6 px-6">
+                        <div className="w-14 h-14 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-7 h-7 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </div>
-                        <h3 style={{ fontSize: 18, fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: '0.5rem' }}>Payment failed</h3>
-                        <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: '1.5rem' }}>
-                            Something went wrong. Please try again.
-                        </p>
-                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-                            <button onClick={onClose} style={{ padding: '0.625rem 1rem', border: '1px solid var(--color-border-primary)', borderRadius: 'var(--border-radius-md)', background: 'transparent', color: 'var(--color-text-secondary)', cursor: 'pointer', fontSize: 14 }}>Cancel</button>
-                            <button onClick={() => { setPaymentStatus(null); setLoading(false); }} style={{ padding: '0.625rem 1rem', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 'var(--border-radius-md)', cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>Try again</button>
+                        <h3 className="text-xl font-extrabold text-navy-950 tracking-tight">Payment failed</h3>
+                        <p className="text-sm text-gray-500 mt-2">Please try again with a different method.</p>
+                        <div className="flex gap-3 justify-center mt-6">
+                            <button onClick={onClose}
+                                className="px-5 py-2.5 border border-gray-200 text-gray-700 text-sm font-semibold rounded-full hover:bg-gray-50 transition-colors">
+                                Cancel
+                            </button>
+                            <button onClick={() => { setPaymentStatus(null); setLoading(false); }}
+                                className="px-5 py-2.5 bg-lime hover:bg-lime-light text-navy-950 text-sm font-bold rounded-full transition-colors">
+                                Try again
+                            </button>
                         </div>
                     </div>
                 ) : (
-                    <>
+                    <div className="p-7">
                         {/* Header */}
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                        <div className="flex items-start justify-between mb-5">
                             <div>
-                                <h3 style={{ fontSize: 18, fontWeight: 500, color: 'var(--color-text-primary)', margin: 0 }}>Complete payment</h3>
-                                <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 4 }}>Secure checkout via Razorpay</p>
+                                <p className="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Checkout</p>
+                                <h3 className="text-xl font-extrabold text-navy-950 tracking-tight mt-1">Complete payment</h3>
+                                <p className="text-xs text-gray-500 mt-1">Secure checkout via Razorpay</p>
                             </div>
-                            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 4 }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            <button onClick={onClose}
+                                className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
 
                         {/* Summary */}
-                        <div style={{ background: 'var(--color-background-tertiary)', borderRadius: 'var(--border-radius-lg)', padding: '1rem', marginBottom: '1.25rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Tutor</span>
-                                <span style={{ fontSize: 13, color: 'var(--color-text-primary)', fontWeight: 500 }}>{tutorName}</span>
+                        <div className="bg-[#f7f7f7] rounded-2xl p-4 mb-5 space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Tutor</span>
+                                <span className="font-semibold text-navy-950">{tutorName}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Subject</span>
-                                <span style={{ fontSize: 13, color: 'var(--color-text-primary)', fontWeight: 500 }}>{subject}</span>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Subject</span>
+                                <span className="font-semibold text-navy-950">{subject}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                                <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Session date</span>
-                                <span style={{ fontSize: 13, color: 'var(--color-text-primary)', fontWeight: 500 }}>{sessionDate}</span>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Session date</span>
+                                <span className="font-semibold text-navy-950">{sessionDate}</span>
                             </div>
-                            <div style={{ borderTop: '1px solid var(--color-border-tertiary)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>Total</span>
+                            <div className="pt-3 mt-2 border-t border-gray-200 flex items-center justify-between">
+                                <span className="text-sm font-bold text-navy-950">Total</span>
                                 <AmountDisplay bookingId={booking._id} />
                             </div>
                         </div>
 
                         {/* Security note */}
-                        <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        <p className="flex items-center gap-1.5 text-[11px] text-gray-500 mb-5">
+                            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                             </svg>
-                            Payments are processed securely by Razorpay. TutNet never stores your card details.
+                            Secured by Razorpay. Tutnet never stores your card details.
                         </p>
 
                         <button
                             onClick={handlePay}
                             disabled={loading}
-                            style={{ width: '100%', padding: '0.75rem', background: loading ? '#A5B4FC' : '#4F46E5', color: '#fff', border: 'none', borderRadius: 'var(--border-radius-md)', fontWeight: 500, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 0.15s' }}
+                            className="w-full py-3 bg-lime hover:bg-lime-light text-navy-950 text-sm font-bold rounded-full transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                             {loading && (
-                                <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.6s linear infinite' }} />
+                                <span className="w-4 h-4 border-2 border-navy-950/30 border-t-navy-950 rounded-full animate-spin" />
                             )}
-                            {loading ? 'Opening checkout...' : 'Pay with Razorpay'}
+                            {loading ? 'Opening checkout…' : 'Pay with Razorpay'}
                         </button>
-
-                        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                    </>
+                    </div>
                 )}
             </div>
+
+            {/* Mock Razorpay gateway (only in mock mode) */}
+            {mockOrder && (
+                <MockRazorpayCheckout
+                    amount={mockOrder.amount}
+                    orderId={mockOrder.orderId}
+                    description={mockOrder.description}
+                    prefill={mockOrder.prefill}
+                    onDismiss={() => setMockOrder(null)}
+                    onSuccess={async (rz) => {
+                        try {
+                            await api.post('/payments/verify', {
+                                razorpayOrderId: rz.razorpay_order_id,
+                                razorpayPaymentId: rz.razorpay_payment_id,
+                                razorpaySignature: rz.razorpay_signature,
+                                bookingId: booking._id
+                            });
+                        } catch (_) { /* webhook catches up */ }
+                        // Build the money-flow receipt from booking's commission snapshot if present
+                        const commissionRate = booking.commissionRate || 25;
+                        const commissionAmount = booking.commissionAmount ?? Math.round(mockOrder.amount * commissionRate / 100);
+                        setPaidReceipt({ amount: mockOrder.amount, commissionRate, commissionAmount });
+                        setMockOrder(null);
+                        setPaymentStatus('success');
+                        showSuccess('Payment successful!');
+                        if (onSuccess) onSuccess();
+                    }}
+                />
+            )}
         </div>
     );
 }
@@ -252,8 +298,7 @@ function AmountDisplay({ bookingId }) {
             .finally(() => setTried(true));
     }, [bookingId]);
 
-    // Fetch will also be triggered when Pay button creates the order; re-fetch on mount is enough
-    if (!tried) return <span style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>Calculating...</span>;
-    if (amount === null) return <span style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>See checkout</span>;
-    return <span style={{ fontSize: 18, fontWeight: 500, color: '#4F46E5' }}>₹{amount.toLocaleString('en-IN')}</span>;
+    if (!tried) return <span className="text-sm text-gray-500">Calculating…</span>;
+    if (amount === null) return <span className="text-sm text-gray-500">See checkout</span>;
+    return <span className="text-xl font-extrabold text-royal tracking-tight">₹{amount.toLocaleString('en-IN')}</span>;
 }

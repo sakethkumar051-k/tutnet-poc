@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useBookingStore } from '../stores/bookingStore';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -15,6 +16,7 @@ const SessionCalendar = ({ currentTutorId, tutorId, studentId, subject, onBookin
     });
     const [selectedTime, setSelectedTime] = useState('');
     const [availableSlots, setAvailableSlots] = useState([]);
+    const storeBookings = useBookingStore((s) => s.bookings);
     const [existingBookings, setExistingBookings] = useState([]);
     const [tutorAvailability, setTutorAvailability] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -36,9 +38,44 @@ const SessionCalendar = ({ currentTutorId, tutorId, studentId, subject, onBookin
         }
     }, [user?.role, tutorId]);
 
-    useEffect(() => {
-        fetchExistingBookings();
-    }, [selectedDate, tutorId, studentId]);
+    const applyBookingsForDate = useCallback(() => {
+        const data = storeBookings;
+        try {
+            const dateStr = selectedDate.toISOString().split('T')[0];
+            const bookingsForDate = data.filter((booking) => {
+                if (booking.sessionDate) {
+                    return booking.sessionDate.split('T')[0] === dateStr;
+                }
+                return booking.preferredSchedule && booking.preferredSchedule.includes(dateStr);
+            });
+            setExistingBookings(bookingsForDate);
+
+            const bookedSlots = bookingsForDate
+                .map((b) => {
+                    if (b.sessionDate) {
+                        return new Date(b.sessionDate).toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                        });
+                    }
+                    return null;
+                })
+                .filter(Boolean);
+
+            const allowedByTutor =
+                user?.role === 'student' && tutorAvailability
+                    ? getSlotsForDay(selectedDate, tutorAvailability.weeklyAvailability)
+                    : timeSlots;
+            setAvailableSlots(allowedByTutor.filter((slot) => !bookedSlots.includes(slot)));
+        } catch (err) {
+            setAvailableSlots(
+                user?.role === 'student' && tutorAvailability
+                    ? getSlotsForDay(selectedDate, tutorAvailability?.weeklyAvailability) || timeSlots
+                    : timeSlots
+            );
+        }
+    }, [selectedDate, storeBookings, tutorAvailability, user?.role]);
 
     function getSlotsForDay(date, weeklyAvailability) {
         if (!weeklyAvailability?.length) return timeSlots;
@@ -57,35 +94,9 @@ const SessionCalendar = ({ currentTutorId, tutorId, studentId, subject, onBookin
         return [...new Set(slots)].sort();
     }
 
-    const fetchExistingBookings = async () => {
-        try {
-            const { data } = await api.get('/bookings/mine');
-            const dateStr = selectedDate.toISOString().split('T')[0];
-            const bookingsForDate = data.filter(booking => {
-                if (booking.sessionDate) {
-                    return booking.sessionDate.split('T')[0] === dateStr;
-                }
-                return booking.preferredSchedule && booking.preferredSchedule.includes(dateStr);
-            });
-            setExistingBookings(bookingsForDate);
-
-            const bookedSlots = bookingsForDate.map(b => {
-                if (b.sessionDate) {
-                    return new Date(b.sessionDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-                }
-                return null;
-            }).filter(Boolean);
-
-            const allowedByTutor = user?.role === 'student' && tutorAvailability
-                ? getSlotsForDay(selectedDate, tutorAvailability.weeklyAvailability)
-                : timeSlots;
-            setAvailableSlots(allowedByTutor.filter(slot => !bookedSlots.includes(slot)));
-        } catch (err) {
-            setAvailableSlots(user?.role === 'student' && tutorAvailability
-                ? getSlotsForDay(selectedDate, tutorAvailability?.weeklyAvailability) || timeSlots
-                : timeSlots);
-        }
-    };
+    useEffect(() => {
+        applyBookingsForDate();
+    }, [applyBookingsForDate]);
 
     const handleDateSelect = (date) => {
         const d = new Date(date);
@@ -144,7 +155,7 @@ const SessionCalendar = ({ currentTutorId, tutorId, studentId, subject, onBookin
             await api.post('/bookings', bookingData);
             showSuccess('Session booked successfully!');
             setSelectedTime('');
-            fetchExistingBookings();
+            await useBookingStore.getState().fetch({ force: true });
             onBookingCreated?.();
         } catch (err) {
             console.error('Booking error:', err);

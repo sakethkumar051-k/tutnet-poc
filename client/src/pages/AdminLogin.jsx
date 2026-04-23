@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import { clearAccessToken } from '../authToken';
 
 const AdminLogin = () => {
     const [formData, setFormData] = useState({ email: '', password: '', adminSecret: '' });
@@ -30,8 +31,7 @@ const AdminLogin = () => {
                 return;
             }
 
-            // Step 2: Store token so interceptor can attach it
-            localStorage.setItem('token', data.token);
+            // Step 2: Token stored by axios interceptor (sessionStorage) + refresh cookie
 
             // Step 3: Verify admin secret
             const secretResponse = await api.post('/auth/verify-admin', {
@@ -39,7 +39,7 @@ const AdminLogin = () => {
             });
 
             if (!secretResponse.data.verified) {
-                localStorage.removeItem('token');
+                clearAccessToken();
                 setError('Invalid admin secret key.');
                 setLoading(false);
                 return;
@@ -52,7 +52,7 @@ const AdminLogin = () => {
             // Step 5: Navigate — ProtectedRoute will now see role: 'admin' correctly
             navigate('/dashboard', { replace: true });
         } catch (err) {
-            localStorage.removeItem('token');
+            clearAccessToken();
             if (err.response?.status === 404) {
                 setError('API endpoint not found. Check backend configuration.');
             } else if (err.response?.status === 401) {

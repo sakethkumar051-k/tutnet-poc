@@ -4,6 +4,7 @@ import { useNotificationStore } from '../stores/notificationStore';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { checkTutorProfileComplete } from '../utils/profileUtils';
+import { useMyBookings } from '../context/MyBookingsContext';
 
 // Components
 import Sidebar from '../components/Sidebar';
@@ -25,7 +26,16 @@ import MessagingPanel from '../components/MessagingPanel';
 import WeeklyProgressReport from '../components/WeeklyProgressReport';
 import SafetyPanel from '../components/SafetyPanel';
 import IncentiveDashboard from '../components/IncentiveDashboard';
+import TutorTierCard from '../components/TutorTierCard';
 import LearningGoals from '../components/LearningGoals';
+import TutorVacationCard from '../components/TutorVacationCard';
+import TutorPayoutsPanel from '../components/TutorPayoutsPanel';
+import CalendarExportButton from '../components/CalendarExportButton';
+import ReferralCard from '../components/ReferralCard';
+import QualificationUploader from '../components/QualificationUploader';
+import TutorOverviewHero from '../components/TutorOverviewHero';
+import TutorRateBandsCard from '../components/TutorRateBandsCard';
+import TutorAnalyticsPanel from '../components/TutorAnalyticsPanel';
 import AvailabilityManager from '../components/AvailabilityManager';
 import RequestsHub from '../components/RequestsHub';
 import LoadingSkeleton from '../components/LoadingSkeleton';
@@ -37,13 +47,13 @@ const TutorDashboard = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
     const [stats, setStats] = useState(null);
+    const [tutorDashboardMeta, setTutorDashboardMeta] = useState(null);
     const [loading, setLoading] = useState(true);
     const [currentStudents, setCurrentStudents] = useState([]);
-    const [pendingBookings, setPendingBookings] = useState([]);
-    const [upcomingBookings, setUpcomingBookings] = useState([]);
     const user = useAuthStore((s) => s.user);
     const unreadCount = useNotificationStore((s) => s.unreadCount);
     const setNotificationsOpen = useNotificationStore((s) => s.setIsOpen);
+    const { bookings, loading: bookingsLoading } = useMyBookings();
 
     // Sync activeTab with URL search params
     useEffect(() => {
@@ -99,52 +109,18 @@ const TutorDashboard = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            // Fetch all data in parallel
-            const [bookingsRes, profileRes, reviewsRes, studentsRes] = await Promise.all([
-                api.get('/bookings/mine'),
+            const [profileRes, reviewsRes, studentsRes] = await Promise.all([
                 api.get('/tutors/my-profile'),
                 api.get(`/reviews/tutor/${user._id}`),
-                api.get('/current-tutors/tutor/my-students').catch(() => ({ data: [] })) // Don't fail if no students
+                api.get('/current-tutors/tutor/my-students').catch(() => ({ data: [] }))
             ]);
 
-            const bookings = bookingsRes.data;
             const profile = profileRes.data;
             const reviews = reviewsRes.data;
             const students = studentsRes.data;
 
             setCurrentStudents(students);
-
-            // Filter bookings
-            const pending = bookings.filter(b => b.status === 'pending');
-            const approved = bookings.filter(b => b.status === 'approved');
-            const upcoming = approved.filter(b => {
-                if (!b.sessionDate) return false;
-                const sessionDate = new Date(b.sessionDate);
-                return sessionDate >= new Date();
-            });
-
-            setPendingBookings(pending);
-            setUpcomingBookings(upcoming);
-
-            // Calculate statistics
-            const totalBookings = bookings.length;
-            const completedBookings = bookings.filter(b => b.status === 'completed').length;
-
-            // Calculate average rating
-            const averageRating = reviews.length > 0
-                ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-                : 0;
-
-            setStats({
-                total: totalBookings,
-                pending: pending.length,
-                approved: approved.length,
-                completed: completedBookings,
-                rating: averageRating,
-                reviewCount: reviews.length,
-                approvalStatus: profile?.approvalStatus || 'pending',
-                studentsCount: students.length
-            });
+            setTutorDashboardMeta({ profile, reviews, studentsCount: students.length });
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -152,72 +128,53 @@ const TutorDashboard = () => {
         }
     };
 
-    const dashboardStats = stats ? [
-        {
-            label: 'Upcoming Sessions',
-            value: stats.approved,
-            icon: '📅',
-            bgColor: 'bg-royal/5',
-            iconColor: 'text-royal'
-        },
-        {
-            label: 'Pending Requests',
-            value: stats.pending,
-            icon: '⏳',
-            bgColor: 'bg-lime/20',
-            iconColor: 'text-lime-dark'
-        },
-        {
-            label: 'Rating',
-            value: stats.rating > 0 ? `${stats.rating}` : 'N/A',
-            icon: '⭐',
-            bgColor: 'bg-yellow-50',
-            iconColor: 'text-yellow-600',
-            footer: `${stats.reviewCount} review${stats.reviewCount !== 1 ? 's' : ''}`
-        },
-        {
-            label: 'Completed',
-            value: stats.completed,
-            icon: '✅',
-            bgColor: 'bg-lime/20',
-            iconColor: 'text-lime-dark'
+    useEffect(() => {
+        if (activeTab !== 'dashboard' || !tutorDashboardMeta || bookingsLoading || !user?._id) {
+            return;
         }
-    ] : [];
+        const list = bookings || [];
+        const { profile, reviews, studentsCount } = tutorDashboardMeta;
+        const pending = list.filter((b) => b.status === 'pending');
+        const approved = list.filter((b) => b.status === 'approved');
+        const upcoming = approved.filter((b) => {
+            if (!b.sessionDate) return false;
+            const sessionDate = new Date(b.sessionDate);
+            return sessionDate >= new Date();
+        });
 
-    const getApprovalBadge = () => {
-        if (!stats) return null;
+        // Pending / upcoming filtered lists are computed inline where needed in the Overview tab.
+        void pending; void upcoming;
 
-        const statusConfig = {
-            approved: {
-                bg: 'bg-lime/30',
-                text: 'text-navy-950',
-                label: '✓ Approved'
-            },
-            pending: {
-                bg: 'bg-yellow-100',
-                text: 'text-yellow-800',
-                label: '⏳ Pending Approval'
-            },
-            rejected: {
-                bg: 'bg-red-100',
-                text: 'text-red-800',
-                label: '✕ Rejected'
-            }
-        };
+        const totalBookings = list.length;
+        const completedBookings = list.filter((b) => b.status === 'completed').length;
+        const averageRating =
+            reviews.length > 0
+                ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+                : 0;
 
-        const config = statusConfig[stats.approvalStatus] || statusConfig.pending;
-
-        return (
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.bg} ${config.text}`}>
-                {config.label}
-            </span>
-        );
-    };
+        setStats({
+            total: totalBookings,
+            pending: pending.length,
+            approved: approved.length,
+            completed: completedBookings,
+            rating: averageRating,
+            reviewCount: reviews.length,
+            approvalStatus: profile?.approvalStatus || 'pending',
+            studentsCount: studentsCount ?? 0
+        });
+    }, [activeTab, tutorDashboardMeta, bookings, bookingsLoading, user?._id]);
 
     const renderContent = () => {
         switch (activeTab) {
             case 'sessions':
-                return <SessionsPage />;
+                return (
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-end">
+                            <CalendarExportButton label="Add to Calendar (.ics)" />
+                        </div>
+                        <SessionsPage />
+                    </div>
+                );
 
             case 'students':
                 return (
@@ -296,8 +253,14 @@ const TutorDashboard = () => {
             case 'earnings':
                 return (
                     <div className="space-y-8">
+                        <TutorTierCard />
                         <EarningsDashboard />
                         <IncentiveDashboard />
+                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                            <h2 className="text-lg font-bold text-navy-950 mb-1">Payouts</h2>
+                            <p className="text-sm text-gray-500 mb-5">Weekly payout ledger — every period with commission, bonuses, reserve and net payable.</p>
+                            <TutorPayoutsPanel />
+                        </div>
                     </div>
                 );
 
@@ -317,407 +280,167 @@ const TutorDashboard = () => {
 
             case 'profile':
                 return (
-                    <div className="space-y-6">
+                    <div className="space-y-8 -mx-2 sm:mx-0">
+                        <TutorVacationCard />
                         <TutorCredibilityPanel />
-                        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                            <h2 className="text-xl font-bold text-navy-950 mb-6 pb-4 border-b border-gray-200">Edit Profile</h2>
-                            <TutorProfileForm />
-                        </div>
+                        <TutorProfileForm />
+                        <TutorRateBandsCard highlightRate={stats?.hourlyRate} />
+                        <QualificationUploader />
+                        <ReferralCard />
                         <TutorProgressDashboard />
+                        {user?._id && (
+                            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                                <h2 className="text-lg font-bold text-navy-950 mb-1">Reviews & Responses</h2>
+                                <p className="text-sm text-gray-500 mb-5">Respond to your reviews. Your reply shows publicly below each review on your profile.</p>
+                                <ReviewList tutorId={user._id} canReply />
+                            </div>
+                        )}
                     </div>
                 );
 
             case 'dashboard':
             default:
                 return (
-                    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
-                        {/* Welcome Header */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-6 border-b border-gray-200 animate-fade-in-up">
-                            <div>
-                                <h1 className="text-4xl font-bold text-navy-950 tracking-tight mb-2">
-                                    Welcome back, {user?.name?.split(' ')[0]}
-                                </h1>
-                                <p className="text-gray-600 text-base">
-                                    {stats?.approved > 0 
-                                        ? `You have ${stats.approved} upcoming session${stats.approved !== 1 ? 's' : ''} scheduled.`
-                                        : stats?.studentsCount > 0
-                                        ? `You have ${stats.studentsCount} student${stats.studentsCount !== 1 ? 's' : ''} matched with you.`
-                                        : 'Get started by connecting with students.'}
+                    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
+                        {/* Tier-branded hero */}
+                        <TutorOverviewHero />
+
+                        {/* Pending approval banner — only when actually pending */}
+                        {stats && stats.approvalStatus === 'pending' && (
+                            <div className="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-xl shadow-sm">
+                                <p className="text-sm font-bold text-amber-950 mb-1">Your profile is under review</p>
+                                <p className="text-sm text-amber-800">
+                                    An admin is reviewing your application. You'll be notified the moment you're approved and can accept students.
                                 </p>
                             </div>
-                            {getApprovalBadge()}
-                        </div>
+                        )}
 
-                        {/* Notifications bar - visible in main content */}
+                        {/* Unread notifications — tight chip */}
                         {unreadCount > 0 && (
-                            <div className="flex items-center justify-between gap-4 py-3 px-4 bg-royal/5 border border-royal/20 rounded-lg">
-                                <p className="text-sm font-medium text-navy-950">
+                            <button
+                                type="button"
+                                onClick={() => setNotificationsOpen(true)}
+                                className="w-full flex items-center justify-between gap-4 py-3 px-4 bg-royal/5 border border-royal/20 rounded-xl hover:bg-royal/10 transition-colors">
+                                <p className="text-sm font-semibold text-navy-950">
                                     You have {unreadCount} new notification{unreadCount !== 1 ? 's' : ''}
                                 </p>
-                                <button
-                                    type="button"
-                                    onClick={() => setNotificationsOpen(true)}
-                                    className="text-sm font-semibold text-royal hover:text-navy-900"
-                                >
-                                    View →
-                                </button>
+                                <span className="text-sm font-bold text-royal">View →</span>
+                            </button>
+                        )}
+
+                        {/* No students yet — lightweight coach card (only the minimum) */}
+                        {!loading && currentStudents.length === 0 && stats?.approvalStatus === 'approved' && (
+                            <div className="bg-gradient-to-br from-royal/5 to-royal/10 border border-royal/30 rounded-2xl p-6">
+                                <div className="flex flex-wrap items-start justify-between gap-4">
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-royal-dark mb-1">Waiting for your first student</p>
+                                        <h3 className="text-lg font-extrabold text-navy-950">Ready to teach</h3>
+                                        <p className="text-sm text-gray-600 mt-1 max-w-lg">
+                                            Students find tutors by subject and availability. Keep your profile 100% complete and your weekly schedule up to date — that's how you appear in search.
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-2 flex-wrap">
+                                        <button onClick={() => handleTabChange('profile')}
+                                            className="px-4 py-2 bg-royal text-white rounded-lg text-sm font-bold hover:bg-royal-dark shadow-sm">
+                                            Complete profile
+                                        </button>
+                                        <button onClick={() => handleTabChange('schedule')}
+                                            className="px-4 py-2 bg-white text-royal border border-royal/30 rounded-lg text-sm font-bold hover:bg-royal/5">
+                                            Set availability
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
-                        {/* Status Alert */}
-                        {stats && stats.approvalStatus === 'pending' && (
-                            <div className="bg-lime/20 border-l-4 border-amber-500 p-5 rounded-r-lg">
-                                <p className="text-sm font-semibold text-navy-950 mb-1">Your Profile is Being Reviewed</p>
-                                <p className="text-sm text-gray-700">
-                                    An admin is reviewing your profile. You'll be able to teach students once it's approved.
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Requests Hub */}
+                        {/* Pending requests (tutor-side) — only renders when there's something to do */}
                         <RequestsHub onNavigateToSessions={() => handleTabChange('sessions')} />
 
-                        {/* Quick Action Cards - Business Focused */}
-                        {loading ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="bg-white p-6 rounded-lg border border-gray-200 animate-pulse">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="h-12 w-12 bg-gray-200 rounded-md"></div>
-                                            <div className="h-4 w-16 bg-gray-200 rounded"></div>
-                                        </div>
-                                        <div className="h-10 w-20 bg-gray-200 rounded mb-2"></div>
-                                        <div className="h-4 w-32 bg-gray-200 rounded"></div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : stats && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                                {dashboardStats.map((stat, index) => (
-                                    <div 
-                                        key={index} 
-                                        className="bg-white p-6 rounded-lg border border-gray-200 hover:border-royal/40 hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:scale-[1.02] animate-fade-in-up"
-                                        style={{ animationDelay: `${index * 100}ms` }}
-                                        onClick={() => {
-                                            if (stat.label === 'Pending Requests' && stats.pending > 0) {
-                                                document.getElementById('booking-requests')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                            }
-                                        }}
-                                    >
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className={`p-3 rounded-md ${stat.bgColor} transition-transform duration-300 hover:scale-110`}>
-                                                <span className={`text-xl ${stat.iconColor}`}>{stat.icon}</span>
-                                            </div>
-                                            {stat.footer && <span className="text-xs text-gray-500 font-medium">{stat.footer}</span>}
-                                        </div>
-                                        <div>
-                                            <p className="text-4xl font-bold text-navy-950 mb-2 leading-none transition-all duration-300">{stat.value}</p>
-                                            <p className="text-sm font-medium text-gray-700">{stat.label}</p>
-                                            {stat.label === 'Pending Requests' && stats.pending > 0 && (
-                                                <p className="text-xs text-royal mt-3 font-medium">Review below ↓</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                        {/* Business analytics — the page's biggest signal */}
+                        <TutorAnalyticsPanel />
 
-                        {/* Book a Session - Calendar Access */}
-                        {currentStudents.length > 0 && (
-                            <div className="bg-white border-l-4 border-royal rounded-lg p-6 shadow-sm animate-fade-in-up">
-                                <div className="flex items-center justify-between">
+                        {/* Two-column: Tier card + Today's priorities */}
+                        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6">
+                            <TutorTierCard />
+
+                            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                                <div className="flex items-center justify-between mb-4">
                                     <div>
-                                        <h3 className="text-lg font-bold text-navy-950 mb-1">Book a Session</h3>
-                                        <p className="text-sm text-gray-600">Schedule a new session with your students using the calendar</p>
+                                        <h3 className="text-sm font-bold text-navy-950">Today's priorities</h3>
+                                        <p className="text-[11px] text-gray-500 mt-0.5">What to do in the next 24 hours</p>
                                     </div>
-                                    <button
-                                        onClick={() => handleTabChange('sessions')}
-                                        className="px-6 py-3 bg-royal text-white rounded-md text-sm font-semibold hover:bg-royal-dark transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-sm hover:shadow-md"
-                                    >
-                                        Open Calendar →
-                                    </button>
                                 </div>
+                                <TodayPriorities
+                                    stats={stats}
+                                    bookings={bookings}
+                                    currentStudents={currentStudents}
+                                    onNav={handleTabChange}
+                                />
                             </div>
-                        )}
+                        </div>
 
-                        {/* Matched Students - Book First Session */}
-                        {currentStudents.length > 0 && (
-                            <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm animate-fade-in-up">
-                                <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-200">
+                        {/* Profile completeness + search visibility — performance signal */}
+                        {tutorDashboardMeta?.profile && (
+                            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                                <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                                     <div>
-                                        <h3 className="text-lg font-bold text-navy-950 mb-1">Your Matched Students</h3>
-                                        <p className="text-sm text-gray-600">You have {currentStudents.length} student{currentStudents.length !== 1 ? 's' : ''} ready to learn with you</p>
+                                        <h3 className="text-sm font-bold text-navy-950">Profile performance</h3>
+                                        <p className="text-[11px] text-gray-500 mt-0.5">
+                                            How discoverable you are to students searching for tutors.
+                                        </p>
                                     </div>
-                                    <button
-                                        onClick={() => handleTabChange('students')}
-                                        className="px-4 py-2 bg-white text-gray-700 rounded-md text-sm font-semibold border border-gray-300 hover:bg-gray-50 transition-all duration-200 transform hover:scale-105 active:scale-95"
-                                    >
-                                        View All →
+                                    <button onClick={() => handleTabChange('profile')}
+                                        className="text-xs font-bold text-royal hover:text-royal-dark">
+                                        Improve →
                                     </button>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    {currentStudents.slice(0, 2).map((student) => {
-                                        const hasNoSessions = student.totalSessionsBooked === 0;
-                                        return (
-                                            <div key={student._id} className="bg-white rounded-lg p-4 border border-royal/30">
-                                                <div className="flex items-start justify-between mb-3">
-                                                    <div>
-                                                        <p className="font-bold text-navy-950 text-lg">{student.studentId?.name}</p>
-                                                        <p className="text-sm text-gray-600 mt-1">📚 {student.subject}</p>
-                                                        {student.classGrade && (
-                                                            <p className="text-xs text-gray-500 mt-1">Class: {student.classGrade}</p>
-                                                        )}
-                                                    </div>
-                                                    {hasNoSessions && (
-                                                        <span className="text-xs bg-lime/30 text-navy-950 px-2 py-1 rounded-full font-medium">New Match!</span>
-                                                    )}
-                                                </div>
-                                                {hasNoSessions ? (
-                                                    <div className="bg-lime/20 border border-lime/40 rounded-lg p-3">
-                                                        <p className="text-sm font-semibold text-green-900 mb-2">🎉 Ready to Start!</p>
-                                                        <p className="text-xs text-navy-950 mb-3">Book your first session with {student.studentId?.name?.split(' ')[0]} to begin teaching.</p>
-                                                        <button
-                                                            onClick={() => handleTabChange('sessions')}
-                                                            className="w-full px-3 py-2 bg-lime text-navy-950 rounded-md text-sm font-semibold hover:bg-lime-light transition-colors"
-                                                        >
-                                                            📅 Book First Session
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center justify-between text-sm">
-                                                        <span className="text-gray-600">Sessions: {student.totalSessionsBooked}</span>
-                                                        <button
-                                                            onClick={() => handleTabChange('sessions')}
-                                                            className="text-royal hover:text-royal-dark font-semibold"
-                                                        >
-                                                            Manage →
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                {currentStudents.length > 2 && (
-                                    <p className="text-sm text-gray-600 text-center">
-                                        + {currentStudents.length - 2} more student{currentStudents.length - 2 !== 1 ? 's' : ''}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-
-                        {/* No Students Yet - Helpful Guide */}
-                        {!loading && currentStudents.length === 0 && stats?.approvalStatus === 'approved' && (
-                            <div className="bg-gradient-to-br from-royal/5 to-royal/10 border-2 border-royal/20 rounded-xl p-8 text-center">
-                                <div className="max-w-md mx-auto">
-                                    <div className="text-6xl mb-4">🎓</div>
-                                    <h3 className="text-xl font-bold text-navy-950 mb-2">Ready to Teach?</h3>
-                                    <p className="text-gray-600 mb-6">
-                                        Students are looking for great tutors like you! Make sure your profile is complete and engaging to attract students.
-                                    </p>
-                                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                                        <button
-                                            onClick={() => handleTabChange('profile')}
-                                            className="px-6 py-3 bg-royal text-white rounded-lg font-semibold hover:bg-royal-dark transition-colors shadow-md"
-                                        >
-                                            ✏️ Complete Your Profile
-                                        </button>
-                                        <button
-                                            onClick={() => navigate('/find-tutors')}
-                                            className="px-6 py-3 bg-white text-royal border-2 border-royal rounded-lg font-semibold hover:bg-royal/5 transition-colors"
-                                        >
-                                            🔍 See How It Works
-                                        </button>
-                                    </div>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <PerformanceStat
+                                        label="Profile complete"
+                                        value={`${tutorDashboardMeta.profile.profileCompletionScore ?? 0}%`}
+                                        subtle="Target ≥ 90%"
+                                        tone={(tutorDashboardMeta.profile.profileCompletionScore ?? 0) >= 90 ? 'success' : 'warn'}
+                                    />
+                                    <PerformanceStat
+                                        label="Appeared in search"
+                                        value={tutorDashboardMeta.profile.searchAppearancesThisWeek ?? 0}
+                                        subtle="This week"
+                                    />
+                                    <PerformanceStat
+                                        label="All-time impressions"
+                                        value={tutorDashboardMeta.profile.searchAppearancesTotal ?? 0}
+                                        subtle="Search results shown"
+                                    />
                                 </div>
                             </div>
                         )}
 
-                        {/* Upcoming Sessions - Quick View */}
-                        {upcomingBookings.length > 0 && (
-                            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                                <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-200">
-                                    <h3 className="text-base font-bold text-navy-950">
-                                        Your Next Sessions
-                                    </h3>
-                                    <button
-                                        onClick={() => handleTabChange('sessions')}
-                                        className="text-sm text-gray-600 hover:text-navy-950 font-medium"
-                                    >
-                                        View All →
+                        {/* My students shelf — only first 3 */}
+                        {currentStudents.length > 0 && (
+                            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h3 className="text-sm font-bold text-navy-950">Your students</h3>
+                                        <p className="text-[11px] text-gray-500 mt-0.5">
+                                            {currentStudents.length} active · retention cliffs shown per card
+                                        </p>
+                                    </div>
+                                    <button onClick={() => handleTabChange('students')}
+                                        className="text-xs font-bold text-royal hover:text-royal-dark">
+                                        See all →
                                     </button>
                                 </div>
-                                <div className="space-y-3">
-                                    {upcomingBookings.slice(0, 3).map((booking) => (
-                                        <div key={booking._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
-                                            <div className="flex items-center gap-4">
-                                                <div className="p-2 bg-royal/10 rounded-lg">
-                                                    <span className="text-royal font-bold">
-                                                        {booking.sessionDate ? new Date(booking.sessionDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : 'TBD'}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-navy-950">{booking.studentId?.name || 'Student'}</p>
-                                                    <p className="text-sm text-gray-600">{booking.subject} • {booking.preferredSchedule}</p>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => handleTabChange('sessions')}
-                                                className="text-sm text-royal hover:text-royal-dark font-semibold"
-                                            >
-                                                View Details →
-                                            </button>
-                                        </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    {currentStudents.slice(0, 3).map((s) => (
+                                        <StudentQuickCard
+                                            key={s._id}
+                                            relationship={s}
+                                            onClick={() => handleTabChange('students')}
+                                        />
                                     ))}
                                 </div>
                             </div>
                         )}
-
-                        {/* Helpful Tips for Young Students */}
-                        <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                            <h3 className="text-base font-bold text-navy-950 mb-5 pb-4 border-b border-gray-200">
-                                Quick Tips for Success
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="p-4 bg-royal/5 rounded-lg border border-royal/20">
-                                    <div className="text-2xl mb-2">✅</div>
-                                    <p className="font-semibold text-navy-950 text-sm mb-1">Respond Quickly</p>
-                                    <p className="text-xs text-gray-600">When students request sessions, approve or respond within 24 hours. This helps you get more students!</p>
-                                </div>
-                                <div className="p-4 bg-lime/20 rounded-lg border border-green-100">
-                                    <div className="text-2xl mb-2">⭐</div>
-                                    <p className="font-semibold text-navy-950 text-sm mb-1">Get Great Reviews</p>
-                                    <p className="text-xs text-gray-600">After each session, ask students for feedback. Good reviews help more students find you!</p>
-                                </div>
-                                <div className="p-4 bg-royal/10 rounded-lg border border-purple-100">
-                                    <div className="text-2xl mb-2">📚</div>
-                                    <p className="font-semibold text-navy-950 text-sm mb-1">Share Materials</p>
-                                    <p className="text-xs text-gray-600">Upload study materials and homework. This helps students learn better and makes you stand out!</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Interactive Sections */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Recent Student Progress */}
-                            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-                                    <h3 className="text-base font-bold text-navy-950">
-                                        Student Progress
-                                    </h3>
-                                    <button
-                                        onClick={() => handleTabChange('students')}
-                                        className="text-sm text-gray-600 hover:text-navy-950 font-medium"
-                                    >
-                                        View All →
-                                    </button>
-                                </div>
-                                <div className="min-h-[200px]">
-                                    {currentStudents.length > 0 ? (
-                                        <ProgressReports />
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center h-48 text-gray-400">
-                                            <span className="text-4xl mb-2">📈</span>
-                                            <p className="text-sm">Progress reports will appear here</p>
-                                            <p className="text-xs mt-1">Start teaching to see student progress!</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Quick Actions */}
-                            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm animate-fade-in-up">
-                                <h3 className="text-base font-bold text-navy-950 mb-6 pb-4 border-b border-gray-200">
-                                    Quick Actions
-                                </h3>
-                                <div className="space-y-3">
-                                    <button
-                                        onClick={() => handleTabChange('sessions')}
-                                        className="w-full p-4 bg-royal/5 hover:bg-royal/10 rounded-lg border border-royal/30 text-left transition-all duration-200 transform hover:scale-[1.02] hover:shadow-sm"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="font-semibold text-navy-950">Book a Session</p>
-                                                <p className="text-xs text-gray-600 mt-1">Use calendar to schedule sessions with students</p>
-                                            </div>
-                                            <span className="text-royal transition-transform duration-200 group-hover:translate-x-1">→</span>
-                                        </div>
-                                    </button>
-                                    <button
-                                        onClick={() => handleTabChange('sessions')}
-                                        className="w-full p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 text-left transition-all duration-200 transform hover:scale-[1.02] hover:shadow-sm"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="font-semibold text-navy-950">Manage Sessions</p>
-                                                <p className="text-xs text-gray-600 mt-1">View and manage all your sessions</p>
-                                            </div>
-                                            <span className="text-gray-600 transition-transform duration-200 group-hover:translate-x-1">→</span>
-                                        </div>
-                                    </button>
-                                    <button
-                                        onClick={() => handleTabChange('students')}
-                                        className="w-full p-4 bg-lime/20 hover:bg-lime/30 rounded-lg border border-lime/40 text-left transition-colors"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="font-semibold text-navy-950">👨‍🎓 My Students</p>
-                                                <p className="text-xs text-gray-600 mt-1">See all your students and their progress</p>
-                                            </div>
-                                            <span className="text-lime-dark">→</span>
-                                        </div>
-                                    </button>
-                                    <button
-                                        onClick={() => handleTabChange('resources')}
-                                        className="w-full p-4 bg-royal/10 hover:bg-purple-100 rounded-lg border border-royal/20 text-left transition-colors"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="font-semibold text-navy-950">📚 Study Materials</p>
-                                                <p className="text-xs text-gray-600 mt-1">Share materials with your students</p>
-                                            </div>
-                                            <span className="text-navy-900">→</span>
-                                        </div>
-                                    </button>
-                                    <button
-                                        onClick={() => handleTabChange('schedule')}
-                                        className="w-full p-4 bg-royal/5 hover:bg-royal/10 rounded-lg border border-royal/20 text-left transition-colors"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="font-semibold text-navy-950">🗓️ Weekly Schedule</p>
-                                                <p className="text-xs text-gray-600 mt-1">Set your available teaching slots</p>
-                                            </div>
-                                            <span className="text-royal">→</span>
-                                        </div>
-                                    </button>
-                                    <button
-                                        onClick={() => handleTabChange('history')}
-                                        className="w-full p-4 bg-lime/20 hover:bg-lime/30 rounded-lg border border-lime/40 text-left transition-colors"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="font-semibold text-navy-950">💰 Class History & Earnings</p>
-                                                <p className="text-xs text-gray-600 mt-1">Track sessions and estimated income</p>
-                                            </div>
-                                            <span className="text-lime-dark">→</span>
-                                        </div>
-                                    </button>
-                                    <button
-                                        onClick={() => handleTabChange('profile')}
-                                        className="w-full p-4 bg-lime/20 hover:bg-lime/30 rounded-lg border border-lime/40 text-left transition-colors"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="font-semibold text-navy-950">✏️ Profile & Credibility</p>
-                                                <p className="text-xs text-gray-600 mt-1">Update profile and track your credibility score</p>
-                                            </div>
-                                            <span className="text-lime-dark">→</span>
-                                        </div>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 );
         }
@@ -740,6 +463,188 @@ const TutorDashboard = () => {
         </div>
     );
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Overview tab — inline helpers
+// ═══════════════════════════════════════════════════════════════════════════
+
+function TodayPriorities({ stats, bookings, currentStudents, onNav }) {
+    // Date.now called via useMemo to keep the component render pure
+    const [now] = useState(() => Date.now());
+    const in24h = now + 24 * 3_600_000;
+
+    const pending = (bookings || []).filter((b) => b.status === 'pending');
+    const todaySessions = (bookings || []).filter((b) =>
+        b.status === 'approved'
+        && b.sessionDate
+        && new Date(b.sessionDate).getTime() > now
+        && new Date(b.sessionDate).getTime() <= in24h
+    );
+    const needsProfileWork = stats && stats.profileCompletionScore < 90;
+    const newStudentsNeedingFirstSession = (currentStudents || []).filter((s) => (s.totalSessionsBooked || 0) === 0);
+
+    const items = [];
+    if (pending.length > 0) {
+        items.push({
+            tone: 'amber',
+            label: `Respond to ${pending.length} booking request${pending.length === 1 ? '' : 's'}`,
+            desc: 'Parents expect a reply within 24h — fast replies boost search ranking.',
+            action: 'Review',
+            onClick: () => onNav('sessions')
+        });
+    }
+    if (todaySessions.length > 0) {
+        items.push({
+            tone: 'royal',
+            label: `${todaySessions.length} session${todaySessions.length === 1 ? '' : 's'} in the next 24 hours`,
+            desc: 'Prep notes, warm up the Jitsi room, and confirm with the student.',
+            action: 'Open sessions',
+            onClick: () => onNav('sessions')
+        });
+    }
+    if (newStudentsNeedingFirstSession.length > 0) {
+        items.push({
+            tone: 'success',
+            label: `Book first session with ${newStudentsNeedingFirstSession.length} new student${newStudentsNeedingFirstSession.length === 1 ? '' : 's'}`,
+            desc: 'Retention cliff countdown starts the day your first paid session completes.',
+            action: 'Schedule',
+            onClick: () => onNav('sessions')
+        });
+    }
+    if (needsProfileWork) {
+        items.push({
+            tone: 'slate',
+            label: `Profile is ${stats.profileCompletionScore}% complete`,
+            desc: 'A 90%+ profile appears ~4× more often in search. Add bio, qualifications, photo.',
+            action: 'Complete',
+            onClick: () => onNav('profile')
+        });
+    }
+
+    if (items.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
+                    <svg className="w-6 h-6 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                </div>
+                <p className="text-sm font-bold text-navy-950">You're all caught up</p>
+                <p className="text-xs text-gray-500 mt-1 max-w-xs">Nothing urgent. Use this time to prep for your next session or check resources.</p>
+            </div>
+        );
+    }
+
+    const toneCls = {
+        amber:   'bg-amber-50 border-amber-200 text-amber-900',
+        royal:   'bg-royal/5 border-royal/30 text-royal-dark',
+        success: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+        slate:   'bg-slate-50 border-slate-200 text-slate-800'
+    };
+    const actionCls = {
+        amber:   'bg-amber-500 hover:bg-amber-600 text-white',
+        royal:   'bg-royal hover:bg-royal-dark text-white',
+        success: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+        slate:   'bg-slate-700 hover:bg-slate-800 text-white'
+    };
+
+    return (
+        <ol className="space-y-2.5">
+            {items.map((it, i) => (
+                <li key={i} className={`rounded-xl border p-3.5 ${toneCls[it.tone]}`}>
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold leading-snug">{it.label}</p>
+                            <p className="text-[11px] opacity-80 mt-0.5 leading-relaxed">{it.desc}</p>
+                        </div>
+                        <button
+                            onClick={it.onClick}
+                            className={`px-3 py-1.5 text-[11px] font-bold rounded-lg flex-shrink-0 ${actionCls[it.tone]}`}>
+                            {it.action}
+                        </button>
+                    </div>
+                </li>
+            ))}
+        </ol>
+    );
+}
+
+function PerformanceStat({ label, value, subtle, tone = 'neutral' }) {
+    const valueCls = {
+        neutral: 'text-navy-950',
+        success: 'text-emerald-700',
+        warn:    'text-amber-700'
+    }[tone];
+    return (
+        <div className="rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{label}</p>
+            <p className={`text-2xl font-extrabold mt-1 ${valueCls}`}>{value}</p>
+            {subtle && <p className="text-[10px] text-gray-400 mt-0.5">{subtle}</p>}
+        </div>
+    );
+}
+
+function StudentQuickCard({ relationship, onClick }) {
+    const student = relationship.studentId || {};
+    const done = relationship.sessionsCompleted || 0;
+    const total = relationship.totalSessionsBooked || 0;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    const isNew = total === 0;
+
+    const [now] = useState(() => Date.now());
+    const startedAt = relationship.relationshipStartDate ? new Date(relationship.relationshipStartDate) : null;
+    const months = startedAt ? Math.floor((now - startedAt.getTime()) / (30 * 24 * 3_600_000)) : 0;
+    const nextCliff = months < 3 ? { label: '3-month', bonus: 1000, monthsLeft: 3 - months }
+                   : months < 6 ? { label: '6-month', bonus: 2500, monthsLeft: 6 - months }
+                   : null;
+
+    return (
+        <button
+            onClick={onClick}
+            className="text-left bg-white border border-gray-100 rounded-xl p-4 hover:border-royal/40 hover:shadow-sm transition-all group">
+            <div className="flex items-start gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-royal to-navy-900 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
+                    {(student.name || '?').split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-navy-950 truncate">{student.name || 'Student'}</p>
+                    <p className="text-[11px] text-gray-500 truncate">
+                        {relationship.subject}{relationship.classGrade ? ` · Class ${relationship.classGrade}` : ''}
+                    </p>
+                </div>
+                {isNew && (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-lime/30 text-navy-950 flex-shrink-0">
+                        New
+                    </span>
+                )}
+            </div>
+
+            {isNew ? (
+                <p className="text-[11px] text-gray-500">No sessions yet — book the first one to start the retention clock.</p>
+            ) : (
+                <>
+                    <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Progress</span>
+                        <span className="text-[11px] font-bold text-navy-950">{done}/{total}</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-2">
+                        <div className="h-full bg-gradient-to-r from-royal to-lime rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                    {nextCliff && (
+                        <p className="text-[10px] text-amber-700 font-semibold">
+                            ₹{nextCliff.bonus.toLocaleString('en-IN')} {nextCliff.label} bonus in {nextCliff.monthsLeft}mo
+                        </p>
+                    )}
+                    {!nextCliff && (
+                        <p className="text-[10px] text-emerald-700 font-semibold">
+                            ✓ All retention cliffs earned
+                        </p>
+                    )}
+                </>
+            )}
+        </button>
+    );
+}
 
 export default TutorDashboard;
 

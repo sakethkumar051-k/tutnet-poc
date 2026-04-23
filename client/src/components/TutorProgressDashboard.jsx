@@ -4,6 +4,7 @@ import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
+import { useBookingStore } from '../stores/bookingStore';
 
 const TutorProgressDashboard = () => {
     const [attendanceStats, setAttendanceStats] = useState(null);
@@ -16,20 +17,19 @@ const TutorProgressDashboard = () => {
     const { user } = useAuth();
     const { showError } = useToast();
     const navigate = useNavigate();
-
     useEffect(() => {
         fetchAllData();
-    }, []);
+    }, [user?._id]);
 
     const fetchAllData = async () => {
         try {
             setLoading(true);
-            const [statsRes, attendanceRes, studentsRes, reviewsRes, bookingsRes] = await Promise.all([
+            await useBookingStore.getState().fetch({ force: false });
+            const [statsRes, attendanceRes, studentsRes, reviewsRes] = await Promise.all([
                 api.get('/attendance/stats').catch(() => ({ data: null })),
                 api.get('/attendance').catch(() => ({ data: [] })),
                 api.get('/current-tutors/tutor/my-students').catch(() => ({ data: [] })),
-                api.get(`/reviews/tutor/${user?._id}`).catch(() => ({ data: [] })),
-                api.get('/bookings/mine').catch(() => ({ data: [] }))
+                api.get(`/reviews/tutor/${user?._id}`).catch(() => ({ data: [] }))
             ]);
 
             setAttendanceStats(statsRes.data);
@@ -37,8 +37,7 @@ const TutorProgressDashboard = () => {
             setCurrentStudents(studentsRes.data || []);
             setReviews(reviewsRes.data || []);
 
-            // Calculate teaching statistics
-            const bookings = bookingsRes.data || [];
+            const bookings = useBookingStore.getState().bookings || [];
             const totalSessions = bookings.length;
             const completedSessions = bookings.filter(b => b.status === 'completed').length;
             const upcomingSessions = bookings.filter(b => {

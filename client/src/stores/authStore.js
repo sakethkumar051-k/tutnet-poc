@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import api from '../utils/api';
+import { useNotificationStore } from './notificationStore';
+import { useBookingStore } from './bookingStore';
+import { teardownSocket } from '../socketClient';
+import { getAccessToken, setAccessToken, clearAccessToken } from '../authToken';
 
 function decodeTokenPayload(token) {
     try {
@@ -19,22 +23,30 @@ export const useAuthStore = create((set, get) => ({
     user: null,
     loading: true,
 
-    // Hydrate user from stored token on app start
+    // Hydrate user: session access token + HttpOnly refresh cookie
     initialize: async () => {
-        const token = localStorage.getItem('token');
+        let token = getAccessToken();
+        if (token && isTokenExpired(token)) {
+            clearAccessToken();
+            token = null;
+        }
 
         if (!token) {
-            set({ loading: false });
+            try {
+                const { data } = await api.post('/auth/refresh');
+                if (data?.token) setAccessToken(data.token);
+            } catch {
+                set({ user: null, loading: false });
+                return;
+            }
+        }
+
+        token = getAccessToken();
+        if (!token) {
+            set({ user: null, loading: false });
             return;
         }
 
-        if (isTokenExpired(token)) {
-            localStorage.removeItem('token');
-            set({ loading: false });
-            return;
-        }
-
-        // Set temporary user from token payload while fetching full data
         const payload = decodeTokenPayload(token);
         if (payload?.id) {
             set({ user: { _id: payload.id, _tokenOnly: true } });
@@ -44,7 +56,7 @@ export const useAuthStore = create((set, get) => ({
             const { data } = await api.get('/auth/me');
             set({ user: data, loading: false });
         } catch {
-            localStorage.removeItem('token');
+            clearAccessToken();
             set({ user: null, loading: false });
         }
     },
@@ -52,27 +64,27 @@ export const useAuthStore = create((set, get) => ({
     login: async (credentialsOrToken) => {
         if (typeof credentialsOrToken === 'string') {
             const token = credentialsOrToken;
-            localStorage.setItem('token', token);
+            setAccessToken(token);
             try {
                 const { data } = await api.get('/auth/me');
                 set({ user: data });
                 return data;
             } catch (error) {
-                localStorage.removeItem('token');
+                clearAccessToken();
                 set({ user: null });
                 throw error;
             }
         }
 
         const { data } = await api.post('/auth/login', credentialsOrToken);
-        localStorage.setItem('token', data.token);
+        if (data.token) setAccessToken(data.token);
         set({ user: data });
         return data;
     },
 
     register: async (userData) => {
         const { data } = await api.post('/auth/register', userData);
-        localStorage.setItem('token', data.token);
+        if (data.token) setAccessToken(data.token);
         try {
             const { data: fullUser } = await api.get('/auth/me');
             set({ user: fullUser });
@@ -83,8 +95,16 @@ export const useAuthStore = create((set, get) => ({
         }
     },
 
-    logout: () => {
-        localStorage.removeItem('token');
+    logout: async () => {
+        try {
+            await api.post('/auth/logout');
+        } catch {
+            /* still clear client */
+        }
+        clearAccessToken();
+        teardownSocket();
+        useNotificationStore.getState().reset();
+        useBookingStore.getState().reset();
         set({ user: null });
     },
 

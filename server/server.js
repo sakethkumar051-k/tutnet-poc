@@ -1,7 +1,11 @@
+const http = require('http');
+const cookieParser = require('cookie-parser');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
+const compression = require('compression');
+const helmet = require('helmet');
 require('dotenv').config();
 
 const app = express();
@@ -28,30 +32,61 @@ const corsOptions = {
     credentials: true,
 };
 
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false
+}));
+app.use(compression());
 app.use(cors(corsOptions));
 // Make sure preflight OPTIONS requests on every route get a CORS response,
 // even before hitting the rate limiter or auth middleware.
 app.options('*', cors(corsOptions));
 // Razorpay webhook needs the raw body for HMAC signature verification.
 // Capture raw bytes for /api/payments/webhook BEFORE express.json() parses it.
-app.use('/api/payments/webhook', express.raw({ type: 'application/json' }), (req, _res, next) => {
+app.use('/api/payments/webhook', express.raw({ type: 'application/json', limit: '256kb' }), (req, _res, next) => {
     req.rawBody = req.body; // Buffer
     try { req.body = JSON.parse(req.body.toString()); } catch (_) { req.body = {}; }
     next();
 });
 
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
+app.use(cookieParser());
 app.use(morgan('dev'));
 
-// Rate limit API to reduce abuse (booking create/approve, auth, etc.)
 const rateLimit = require('express-rate-limit');
+
+const strictAuthLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => req.method === 'OPTIONS' || process.env.NODE_ENV !== 'production',
+    message: { message: 'Too many attempts. Try again later.', code: 'AUTH_RATE_LIMIT' }
+});
+
+const paymentsLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => req.method === 'OPTIONS' || process.env.NODE_ENV !== 'production',
+    message: { message: 'Too many payment requests. Try again later.', code: 'PAYMENTS_RATE_LIMIT' }
+});
+
+app.use('/api/auth/login', strictAuthLimiter);
+app.use('/api/auth/register', strictAuthLimiter);
+
+app.use('/api/payments', (req, res, next) => {
+    if (req.path === '/webhook' || req.originalUrl.includes('/webhook')) return next();
+    return paymentsLimiter(req, res, next);
+});
+
+// Rate limit API to reduce abuse (booking create/approve, auth, etc.)
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 300,
     standardHeaders: true,
     legacyHeaders: false,
-    // Never rate-limit preflight or local dev traffic — preflight without CORS
-    // response headers manifests as a CORS error in the browser.
     skip: (req) => req.method === 'OPTIONS' || process.env.NODE_ENV !== 'production',
     message: { message: 'Too many requests. Please try again later.', code: 'RATE_LIMIT_EXCEEDED' }
 });
@@ -84,7 +119,10 @@ app.get('/api/health', (req, res) => {
         status: 'OK',
         message: 'Tutnet API is running',
         timestamp: new Date().toISOString(),
-        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        paymentMode: process.env.PAYMENT_MODE || 'live',
+        payoutMode: process.env.PAYOUT_MODE || 'mock',
+        env: process.env.NODE_ENV || 'development'
     });
 });
 
@@ -93,17 +131,30 @@ app.get('/', (req, res) => {
     res.send('Tutor Connect API is running');
 });
 
-// Database Connection (non-blocking - server will start even if DB fails)
+// Database Connection (non-blocking + auto-retry; bails to log-only on persistent failure)
 const { startAllJobs } = require('./jobs');
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => {
-        console.log('MongoDB Connected');
-        startAllJobs();
+let jobsStarted = false;
+const connectWithRetry = (attempt = 1) => {
+    const delay = Math.min(30_000, 2_000 * Math.pow(2, attempt - 1));
+    mongoose.connect(process.env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 10_000
     })
-    .catch(err => {
-        console.error('MongoDB Connection Error:', err);
-        console.log('Server will continue without database connection');
-    });
+        .then(() => {
+            console.log(`MongoDB Connected (attempt ${attempt})`);
+            if (!jobsStarted) { startAllJobs(); jobsStarted = true; }
+        })
+        .catch(err => {
+            console.error(`MongoDB Connection Error (attempt ${attempt}):`, err.message);
+            console.log(`Retrying in ${Math.round(delay / 1000)}s…`);
+            setTimeout(() => connectWithRetry(attempt + 1), delay);
+        });
+};
+mongoose.connection.on('disconnected', () => {
+    console.warn('MongoDB disconnected — attempting to reconnect…');
+    if (mongoose.connection.readyState === 0) connectWithRetry();
+});
+mongoose.connection.on('reconnected', () => console.log('MongoDB reconnected'));
+connectWithRetry();
 
 // Routes (wrapped in try-catch to prevent server crash)
 try {
@@ -117,6 +168,7 @@ try {
     app.use('/api/dedicated-bookings', require('./routes/dedicatedBooking.routes'));
     // Legacy endpoint retained for backward compatibility.
     app.use('/api/bookings', require('./routes/booking.routes'));
+    app.use('/api/booking-actions', require('./routes/bookingActions.routes'));
     app.use('/api/demos', require('./routes/demos.routes'));
     app.use('/api/reviews', require('./routes/review.routes'));
     app.use('/api/favorites', require('./routes/favorite.routes'));
@@ -128,6 +180,20 @@ try {
     app.use('/api/study-materials', require('./routes/studyMaterial.routes'));
     app.use('/api/messages', require('./routes/message.routes'));
     app.use('/api/payments', require('./routes/payment.routes'));
+    app.use('/api/subscriptions', require('./routes/subscription.routes'));
+    app.use('/api/credits/topup', require('./routes/creditsTopup.routes'));
+    app.use('/api/rate-bands', require('./routes/rateBands.routes'));
+    app.use('/api/off-platform-reports', require('./routes/offPlatformReport.routes'));
+    app.use('/api/admin/revenue', require('./routes/adminRevenue.routes'));
+    app.use('/api/admin/razorpay', require('./routes/adminRazorpay.routes'));
+    app.use('/api/admin/support', require('./routes/adminSupport.routes'));
+    // Platform misc: contact form, ics calendar, tutor payout ledger.
+    // Mounted at /api (routes define their own leaf path).
+    app.use('/api', require('./routes/platform.routes'));
+    // More cross-cutting endpoints: referrals, family (parent/child), uploads, invoices.
+    app.use('/api', require('./routes/platformExtra.routes'));
+    // Serve uploaded files as static assets (read-only public access via unguessable path).
+    app.use('/uploads', express.static(require('path').resolve(__dirname, 'uploads')));
     app.use('/api/escalations', require('./routes/escalation.routes'));
     app.use('/api/incentives', require('./routes/incentive.routes'));
     app.use('/api/jobs', require('./routes/jobs.routes'));
@@ -177,7 +243,11 @@ app.use((req, res, next) => {
         : '';
 
     res.status(404).json({
-        message: `Route ${req.method} ${req.path} not found.${methodHint}`,
+        success: false,
+        error: {
+            code: 'NOT_FOUND',
+            message: `Route ${req.method} ${req.path} not found.${methodHint}`
+        },
         hint: correctMethod
             ? `Try using ${correctMethod} method instead of ${req.method}`
             : 'Check the API documentation for the correct endpoint and method',
@@ -196,10 +266,37 @@ app.use((req, res, next) => {
 // Error Handler (must be last)
 app.use(require('./middleware/error.middleware').errorHandler);
 
-// Start Server
-app.listen(PORT, () => {
+const { initSocket, closeIO } = require('./socket/io');
+const server = http.createServer(app);
+initSocket(server, corsOptions);
+
+server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Health check available at: http://localhost:${PORT}/api/health`);
-    // Background jobs are started inside the MongoDB `.then()` above so they
-    // can't run before the DB is ready. Nothing else to schedule here.
 });
+
+function gracefulShutdown(signal) {
+    console.log(`${signal} received: closing Socket.IO and HTTP server…`);
+    closeIO(() => {
+        server.close((err) => {
+            if (err) {
+                console.error('Error closing HTTP server:', err);
+                process.exit(1);
+            }
+            mongoose.connection.close().then(() => {
+                console.log('MongoDB connection closed.');
+                process.exit(0);
+            }).catch((e) => {
+                console.error('Error closing MongoDB:', e);
+                process.exit(1);
+            });
+        });
+    });
+    setTimeout(() => {
+        console.error('Forced shutdown after timeout');
+        process.exit(1);
+    }, 10_000).unref();
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

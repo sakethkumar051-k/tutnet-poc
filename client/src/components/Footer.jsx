@@ -13,11 +13,13 @@ const Footer = () => (
                         &copy; {new Date().getFullYear()} Tutnet. All rights reserved.
                     </p>
                 </div>
-                <div className="flex items-center gap-6 text-xs text-gray-600">
+                <div className="flex items-center gap-6 text-xs text-gray-600 flex-wrap justify-center">
+                    <Link to="/pricing" className="hover:text-gray-400 transition-colors">Pricing</Link>
+                    <Link to="/how-it-works" className="hover:text-gray-400 transition-colors">How it works</Link>
                     <Link to="/about" className="hover:text-gray-400 transition-colors">About</Link>
                     <Link to="/contact" className="hover:text-gray-400 transition-colors">Contact</Link>
-                    <span className="hover:text-gray-400 cursor-pointer transition-colors">Privacy</span>
-                    <span className="hover:text-gray-400 cursor-pointer transition-colors">Terms</span>
+                    <Link to="/terms" className="hover:text-gray-400 transition-colors">Terms</Link>
+                    <Link to="/tutor-agreement" className="hover:text-gray-400 transition-colors">Tutor Agreement</Link>
                 </div>
             </div>
         </div>

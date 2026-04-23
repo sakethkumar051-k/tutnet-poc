@@ -1,7 +1,7 @@
 import { cn } from '../../lib/utils';
 
 const variants = {
-    success: 'bg-lime/20 text-navy-950 border-emerald-100',
+    success: 'bg-lime/20 text-navy-950 border-lime/30',
     warning: 'bg-lime/20 text-navy-950 border-lime/30',
     error: 'bg-red-50 text-red-700 border-red-100',
     info: 'bg-royal/5 text-royal-dark border-royal/20',

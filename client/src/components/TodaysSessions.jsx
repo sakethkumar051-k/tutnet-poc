@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useMyBookings } from '../context/MyBookingsContext';
 import SessionDetailsModal from './SessionDetailsModal';
 import LoadingSkeleton from './LoadingSkeleton';
 import EmptyState from './EmptyState';
@@ -13,19 +14,24 @@ const TodaysSessions = () => {
     const [selectedSession, setSelectedSession] = useState(null);
     const { user } = useAuth();
     const { showError } = useToast();
+    const { bookings, loading: bookingsLoading, refreshBookings } = useMyBookings();
 
     useEffect(() => {
-        fetchTodaysSessions();
-        // Refresh every 5 minutes
-        const interval = setInterval(fetchTodaysSessions, 5 * 60 * 1000);
-        return () => clearInterval(interval);
-    }, []);
+        if (bookingsLoading) return;
 
-    const fetchTodaysSessions = async () => {
-        setLoading(true);
+        const run = async () => {
+            setLoading(true);
+            try {
+                await fetchTodaysSessions(bookings || []);
+            } finally {
+                setLoading(false);
+            }
+        };
+        run();
+    }, [bookings, bookingsLoading, user?.role]);
+
+    const fetchTodaysSessions = async (bookings) => {
         try {
-            // Fetch today's bookings
-            const { data: bookings } = await api.get('/bookings/mine');
             const today = new Date().toISOString().split('T')[0];
             
             // Filter for today's sessions (or most recent if no today's session)
@@ -110,8 +116,6 @@ const TodaysSessions = () => {
             setSessionsWithDetails(sessionsWithFeedback);
         } catch (err) {
             showError('Failed to fetch today\'s sessions');
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -201,9 +205,9 @@ const TodaysSessions = () => {
                                             >
                                                 View Details
                                             </button>
-                                            {session.onlineLink && (
+                                            {(session.sessionJoinUrl || session.onlineLink) && (
                                                 <a
-                                                    href={session.onlineLink}
+                                                    href={session.sessionJoinUrl || session.onlineLink}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="px-4 py-2 bg-lime text-navy-950 rounded-xl hover:bg-lime-light transition-colors text-sm font-medium text-center focus:outline-none focus:ring-2 focus:ring-royal/30 focus:ring-offset-2"
@@ -318,7 +322,7 @@ const TodaysSessions = () => {
                 <SessionDetailsModal
                     session={selectedSession}
                     onClose={() => setSelectedSession(null)}
-                    onUpdate={fetchTodaysSessions}
+                    onUpdate={refreshBookings}
                 />
             )}
         </div>

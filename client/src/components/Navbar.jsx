@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { useAuthModalStore } from '../stores/authModalStore';
 import NotificationBell from './NotificationBell';
 import NotificationPanel from './NotificationPanel';
 import ProfileDropdown from './ProfileDropdown';
@@ -168,9 +169,10 @@ const Navbar = ({ variant = 'public' }) => {
                         <div className="hidden md:flex items-center gap-8">
                             {[
                                 { to: '/', label: 'Home' },
-                                { to: '/about', label: 'About Us' },
-                                { to: '/courses', label: 'Courses', soon: true },
                                 { to: '/find-tutors', label: 'Find Tutors' },
+                                { to: '/pricing', label: 'Pricing' },
+                                { to: '/how-it-works', label: 'How it works' },
+                                { to: '/about', label: 'About' },
                             ].map((link) => (
                                 <Link
                                     key={link.to}
@@ -201,12 +203,20 @@ const Navbar = ({ variant = 'public' }) => {
                         {user ? (
                             <PublicProfilePill user={user} />
                         ) : (
-                            <Link
-                                to="/register"
-                                className="inline-flex items-center px-6 py-2.5 text-[14px] font-bold text-navy-950 bg-lime rounded-full hover:bg-lime-light transition-colors"
-                            >
-                                Join Now
-                            </Link>
+                            <>
+                                <button
+                                    onClick={() => useAuthModalStore.getState().openLogin()}
+                                    className="hidden sm:inline-flex text-[14px] font-medium text-gray-300 hover:text-white transition-colors"
+                                >
+                                    Log in
+                                </button>
+                                <Link
+                                    to="/register"
+                                    className="inline-flex items-center px-6 py-2.5 text-[14px] font-bold text-navy-950 bg-lime rounded-full hover:bg-lime-light transition-colors"
+                                >
+                                    Join Now
+                                </Link>
+                            </>
                         )}
 
                         {/* Mobile hamburger */}
@@ -222,13 +232,23 @@ const Navbar = ({ variant = 'public' }) => {
             {/* Mobile menu */}
             {mobileOpen && (
                 <div className="md:hidden border-t border-white/10 px-6 py-4 space-y-2">
-                    {[{ to: '/', label: 'Home' }, { to: '/about', label: 'About Us' }, { to: '/courses', label: 'Courses' }, { to: '/find-tutors', label: 'Find Tutors' }].map(l => (
+                    {[{ to: '/', label: 'Home' }, { to: '/find-tutors', label: 'Find Tutors' }, { to: '/pricing', label: 'Pricing' }, { to: '/how-it-works', label: 'How it works' }, { to: '/about', label: 'About' }].map(l => (
                         <Link key={l.to} to={l.to} onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium text-gray-300 hover:text-white rounded-lg">{l.label}</Link>
                     ))}
                     {user ? (
                         <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium text-lime hover:text-white rounded-lg">Dashboard</Link>
                     ) : (
-                        <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium text-gray-300 hover:text-white rounded-lg">Login</Link>
+                        <>
+                            <button
+                                onClick={() => { setMobileOpen(false); useAuthModalStore.getState().openLogin(); }}
+                                className="block w-full text-left px-3 py-2 text-sm font-medium text-gray-300 hover:text-white rounded-lg">
+                                Log in
+                            </button>
+                            <Link to="/register" onClick={() => setMobileOpen(false)}
+                                className="block px-3 py-2 text-sm font-bold text-lime hover:text-white rounded-lg">
+                                Join Now
+                            </Link>
+                        </>
                     )}
                 </div>
             )}

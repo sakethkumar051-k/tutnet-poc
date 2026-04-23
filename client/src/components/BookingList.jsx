@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
 import api from '../utils/api';
+import { useBookingStore } from '../stores/bookingStore';
 import ReviewForm from './ReviewForm';
 import LoadingSkeleton from './LoadingSkeleton';
 import EmptyState from './EmptyState';
@@ -17,13 +18,16 @@ const hasTutorChangeRequest = (booking) =>
     booking?.tutorChangeRequest && booking.tutorChangeRequest.status === 'pending';
 
 const BookingList = ({ role }) => {
-    const [bookings, setBookings] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const bookings = useBookingStore((s) => s.bookings);
+    const loading = useBookingStore((s) => s.loading);
+    const storeError = useBookingStore((s) => s.error);
     const [error, setError] = useState('');
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
     const [sessionDetailsModalOpen, setSessionDetailsModalOpen] = useState(false);
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [confirmModal, setConfirmModal] = useState({ open: false, action: null, bookingId: null, openSessionModal: false });
+    const [rejectModal, setRejectModal] = useState({ id: null, reason: '' });
+    const [cancelModal, setCancelModal] = useState({ id: null, reason: '' });
     const [rescheduleModal, setRescheduleModal] = useState(null);
     const [tutorChangeModal, setTutorChangeModal] = useState(null);
     const [expandedDetails, setExpandedDetails] = useState({});
@@ -31,21 +35,12 @@ const BookingList = ({ role }) => {
 
     const toggleDetails = (id) => setExpandedDetails((prev) => ({ ...prev, [id]: !prev[id] }));
 
-    const fetchBookings = async () => {
-        try {
-            const { data } = await api.get('/bookings/mine');
-            setBookings(data);
-        } catch (err) {
-            setError('Failed to fetch bookings');
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const fetchBookings = () => useBookingStore.getState().fetch({ force: true });
 
     useEffect(() => {
-        fetchBookings();
-    }, []);
+        if (storeError) setError('Failed to fetch bookings');
+        else setError('');
+    }, [storeError]);
 
     const handleApprove = async (id) => {
         try {
@@ -59,24 +54,32 @@ const BookingList = ({ role }) => {
     };
 
     const handleReject = (id) => {
-        setConfirmModal({
-            open: true,
-            action: async () => {
-                try {
-                    await api.patch(`/bookings/${id}/reject`);
-                    fetchBookings();
-                    showSuccess('Booking rejected');
-                } catch (err) {
-                    console.error(err);
-                    showError('Failed to reject booking');
-                }
-            },
-            bookingId: id,
-            title: 'Reject Booking',
-            message: 'Are you sure you want to reject this booking? This action cannot be undone.',
-            confirmText: 'Reject',
-            confirmColor: 'red'
-        });
+        setRejectModal({ id, reason: '' });
+    };
+
+    const submitReject = async () => {
+        const id = rejectModal.id;
+        if (!id) return;
+        try {
+            const body = rejectModal.reason.trim() ? { cancellationReason: rejectModal.reason.trim() } : {};
+            await api.patch(`/bookings/${id}/reject`, body);
+            fetchBookings();
+            showSuccess('Booking rejected');
+            setRejectModal({ id: null, reason: '' });
+        } catch (err) {
+            console.error(err);
+            showError('Failed to reject booking');
+        }
+    };
+
+    const handleMarkViewedByTutor = async (id) => {
+        try {
+            await api.patch(`/booking-actions/${id}/viewed-by-tutor`);
+            fetchBookings();
+            showSuccess('Marked as opened');
+        } catch (err) {
+            showError(err.response?.data?.message || 'Could not update');
+        }
     };
 
     const handleComplete = (id) => {
@@ -99,24 +102,22 @@ const BookingList = ({ role }) => {
     };
 
     const handleCancel = (id) => {
-        setConfirmModal({
-            open: true,
-            action: async () => {
-                try {
-                    await api.patch(`/bookings/${id}/cancel`);
-                    fetchBookings();
-                    showSuccess('Booking cancelled');
-                } catch (err) {
-                    console.error(err);
-                    showError('Failed to cancel booking');
-                }
-            },
-            bookingId: id,
-            title: 'Cancel Booking',
-            message: 'Are you sure you want to cancel this booking?',
-            confirmText: 'Cancel Booking',
-            confirmColor: 'red'
-        });
+        setCancelModal({ id, reason: '' });
+    };
+
+    const submitCancel = async () => {
+        const id = cancelModal.id;
+        if (!id) return;
+        try {
+            const body = cancelModal.reason.trim() ? { cancellationReason: cancelModal.reason.trim() } : {};
+            await api.patch(`/bookings/${id}/cancel`, body);
+            fetchBookings();
+            showSuccess('Booking cancelled');
+            setCancelModal({ id: null, reason: '' });
+        } catch (err) {
+            console.error(err);
+            showError('Failed to cancel booking');
+        }
     };
 
     const openReviewModal = (booking) => {
@@ -250,6 +251,31 @@ const BookingList = ({ role }) => {
                                         <p className="text-xs text-gray-400">
                                             Created {new Date(booking.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                         </p>
+                                        {role === 'student' && isPending && booking.viewedByTutorAt && (
+                                            <p className="text-xs text-royal font-medium mt-1">
+                                                Tutor opened your request ·{' '}
+                                                {new Date(booking.viewedByTutorAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+                                            </p>
+                                        )}
+                                        {role === 'tutor' && isPending && booking.viewedByTutorAt && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Opened{' '}
+                                                {new Date(booking.viewedByTutorAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+                                            </p>
+                                        )}
+                                        {(booking.status === 'cancelled' || booking.status === 'rejected') && booking.cancellationReason && (
+                                            <p className="text-xs text-gray-600 mt-2 border-l-2 border-gray-200 pl-2">
+                                                {booking.cancellationReason}
+                                            </p>
+                                        )}
+                                        {booking.lockedHourlyRate != null && booking.lockedHourlyRate > 0 && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Locked rate: ₹{booking.lockedHourlyRate}/hr
+                                                {booking.priceLockedAt && (
+                                                    <> · since {new Date(booking.priceLockedAt).toLocaleDateString()}</>
+                                                )}
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Request details (same style as Request Hub) */}
@@ -373,6 +399,15 @@ const BookingList = ({ role }) => {
                                                 {/* Pending: Accept (primary) + Reject (secondary) */}
                                                 {isPending && (
                                                     <>
+                                                        {!booking.viewedByTutorAt && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleMarkViewedByTutor(booking._id)}
+                                                                className="px-3 py-2 text-xs font-semibold border border-royal/40 text-royal rounded-lg hover:bg-royal/5 transition-colors"
+                                                            >
+                                                                Mark opened
+                                                            </button>
+                                                        )}
                                                         <button
                                                             onClick={() => handleApprove(booking._id)}
                                                             className="px-4 py-2 bg-lime text-navy-950 text-sm font-semibold rounded-xl hover:bg-lime-light transition-colors shadow-sm hover:shadow-md"
@@ -522,6 +557,70 @@ const BookingList = ({ role }) => {
                     onClose={() => setTutorChangeModal(null)}
                     onSuccess={fetchBookings}
                 />
+            )}
+
+            {rejectModal.id && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5 border border-gray-200">
+                        <h4 className="text-base font-bold text-navy-950 mb-2">Reject booking</h4>
+                        <p className="text-sm text-gray-600 mb-3">Optional message for the student.</p>
+                        <textarea
+                            value={rejectModal.reason}
+                            onChange={(e) => setRejectModal((m) => ({ ...m, reason: e.target.value }))}
+                            rows={3}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal/30"
+                            placeholder="Reason (optional)"
+                        />
+                        <div className="flex justify-end gap-2 mt-4">
+                            <button
+                                type="button"
+                                onClick={() => setRejectModal({ id: null, reason: '' })}
+                                className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={submitReject}
+                                className="px-4 py-2 text-sm font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700"
+                            >
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {cancelModal.id && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5 border border-gray-200">
+                        <h4 className="text-base font-bold text-navy-950 mb-2">Cancel booking</h4>
+                        <p className="text-sm text-gray-600 mb-3">Optional note (shared with your tutor).</p>
+                        <textarea
+                            value={cancelModal.reason}
+                            onChange={(e) => setCancelModal((m) => ({ ...m, reason: e.target.value }))}
+                            rows={3}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal/30"
+                            placeholder="Reason (optional)"
+                        />
+                        <div className="flex justify-end gap-2 mt-4">
+                            <button
+                                type="button"
+                                onClick={() => setCancelModal({ id: null, reason: '' })}
+                                className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50"
+                            >
+                                Back
+                            </button>
+                            <button
+                                type="button"
+                                onClick={submitCancel}
+                                className="px-4 py-2 text-sm font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700"
+                            >
+                                Cancel booking
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     );

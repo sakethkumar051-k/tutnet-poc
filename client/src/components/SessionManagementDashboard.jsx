@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useMyBookings } from '../context/MyBookingsContext';
 import SessionCalendar from './SessionCalendar';
 import SessionDetailsModal from './SessionDetailsModal';
 import TodaysSessions from './TodaysSessions';
@@ -19,6 +20,7 @@ const SessionManagementDashboard = () => {
     const [selectedSession, setSelectedSession] = useState(null);
     const { user } = useAuth();
     const { showError } = useToast();
+    const { bookings: allBookingsFromCtx, refreshBookings } = useMyBookings();
 
     const tutorId = searchParams.get('tutorId');
     const studentId = searchParams.get('studentId');
@@ -26,8 +28,11 @@ const SessionManagementDashboard = () => {
 
     useEffect(() => {
         fetchRelationshipData();
-        fetchTodaysData();
     }, [tutorId, studentId, currentTutorId]);
+
+    useEffect(() => {
+        fetchTodaysData();
+    }, [tutorId, studentId, currentTutorId, relationship, user?.role, allBookingsFromCtx]);
 
     const fetchRelationshipData = async () => {
         try {
@@ -105,9 +110,8 @@ const SessionManagementDashboard = () => {
 
     const fetchTodaysData = async () => {
         try {
-            // Fetch all sessions for this relationship
-            const { data: allBookings } = await api.get('/bookings/mine');
-            
+            const allBookings = allBookingsFromCtx || [];
+
             // Filter bookings for this relationship
             const relationshipBookings = allBookings.filter(b => {
                 if (user?.role === 'student') {
@@ -166,7 +170,7 @@ const SessionManagementDashboard = () => {
     };
 
     const handleBookingCreated = () => {
-        fetchTodaysData();
+        refreshBookings();
         fetchRelationshipData();
     };
 
@@ -323,7 +327,7 @@ const SessionManagementDashboard = () => {
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                                     session.attendanceStatus === 'completed' ? 'bg-lime/30 text-navy-950' :
                                                     session.status === 'approved' ? 'bg-royal/10 text-royal-dark' :
-                                                    session.status === 'completed' ? 'bg-purple-100 text-navy-900' :
+                                                    session.status === 'completed' ? 'bg-royal/10 text-navy-900' :
                                                     'bg-yellow-100 text-yellow-800'
                                                 }`}>
                                                     {session.attendanceStatus || session.status}

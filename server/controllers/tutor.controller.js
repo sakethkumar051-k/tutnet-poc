@@ -1,11 +1,14 @@
+const mongoose = require('mongoose');
 const TutorProfile = require('../models/TutorProfile');
 const User = require('../models/User');
+const { recordTutorSearchAppearances } = require('../utils/tutorSearchAnalytics');
 const { createNotification } = require('../utils/notificationHelper');
 const Favorite = require('../models/Favorite');
 const Booking = require('../models/Booking');
 const jwt = require('jsonwebtoken');
 const { computeProfileCompletion, validateStructuredFields } = require('../services/profileCompletion.service');
 const { BIO_MIN_LENGTH } = require('../constants/tutorProfile.constants');
+const { safe500, sendError } = require('../utils/responseHelpers');
 
 const tutorListCache = new Map();
 const TUTOR_CACHE_TTL = 2 * 60 * 1000;
@@ -24,6 +27,13 @@ function invalidateTutorCache() {
 const getTutors = async (req, res) => {
     try {
         const { subject, class: studentClass, area, minRate, maxRate, mode, minExperience, minRating, verifiedOnly, limit, all } = req.query;
+
+        const page = parseInt(req.query.page, 10);
+        const pageSize = parseInt(req.query.limit, 10);
+        const useOffsetPagination =
+            Number.isFinite(page) && page > 0 && Number.isFinite(pageSize) && pageSize > 0 && pageSize <= 60;
+        // `limit` alone (no page) = legacy cap on DB rows; with `page`+`limit`, limit is page size — slice later.
+        const legacyDbLimitOnly = Boolean(limit) && !useOffsetPagination;
 
         // Tutor not visible until profileStatus === 'approved'. Fallback to approvalStatus for legacy records.
         const showAllTutors = process.env.NODE_ENV !== 'production' || all === 'true';
@@ -61,12 +71,39 @@ const getTutors = async (req, res) => {
             query.experienceYears = { $gte: Number(minExperience) };
         }
 
-        // Find tutors matching profile criteria
-        let tutorsQuery = TutorProfile.find(query).populate('userId', 'name email phone location isActive');
+        // Hide tutors currently on active vacation (unless they explicitly opt in to show via ?includeOnVacation)
+        if (req.query.includeOnVacation !== 'true') {
+            query['vacation.active'] = { $ne: true };
+        }
 
-        // Apply limit if provided
-        if (limit) {
-            tutorsQuery = tutorsQuery.limit(parseInt(limit));
+        // Find tutors matching profile criteria
+        let tutorsQuery = TutorProfile.find(query).populate('userId', 'name email phone location isActive lastSeenAt timezone');
+
+        if (legacyDbLimitOnly) {
+            tutorsQuery = tutorsQuery.limit(parseInt(limit, 10));
+        }
+
+        let studentUser = null;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            try {
+                const token = authHeader.split(' ')[1];
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                if (decoded.typ !== 'refresh') {
+                    studentUser = await User.findById(decoded.id).select('role');
+                }
+            } catch {
+                studentUser = null;
+            }
+        }
+
+        if (!studentUser) {
+            res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=60');
+            const cacheKey = getTutorCacheKey(req.query);
+            const cached = tutorListCache.get(cacheKey);
+            if (cached && Date.now() - cached.ts < TUTOR_CACHE_TTL) {
+                return res.json(cached.data);
+            }
         }
 
         let tutors = await tutorsQuery;
@@ -84,6 +121,8 @@ const getTutors = async (req, res) => {
         // Filter by isActive
         tutors = tutors.filter(tutor => tutor.userId && tutor.userId.isActive);
 
+        await recordTutorSearchAppearances(tutors);
+
         // Add rating information to response
         let tutorsWithRating = tutors.map(tutor => ({
             ...tutor.toObject(),
@@ -94,29 +133,6 @@ const getTutors = async (req, res) => {
         // Filter by minimum rating (post-join)
         if (minRating) {
             tutorsWithRating = tutorsWithRating.filter(t => t.averageRating >= Number(minRating));
-        }
-
-        // Enrich with student-specific fields when a valid student token is present.
-        // Since this route is public, auth failures are swallowed and default values are used.
-        let studentUser = null;
-        const authHeader = req.headers.authorization;
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            try {
-                const token = authHeader.split(' ')[1];
-                const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                studentUser = await User.findById(decoded.id).select('role');
-            } catch (authError) {
-                studentUser = null;
-            }
-        }
-
-        if (!studentUser) {
-            res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=60');
-            const cacheKey = getTutorCacheKey(req.query);
-            const cached = tutorListCache.get(cacheKey);
-            if (cached && Date.now() - cached.ts < TUTOR_CACHE_TTL) {
-                return res.json(cached.data);
-            }
         }
 
         if (studentUser?.role === 'student' && tutorsWithRating.length > 0) {
@@ -198,15 +214,33 @@ const getTutors = async (req, res) => {
             }));
         }
 
-        if (!studentUser) {
-            const cacheKey = getTutorCacheKey(req.query);
-            tutorListCache.set(cacheKey, { data: tutorsWithRating, ts: Date.now() });
+        let payload;
+        if (useOffsetPagination) {
+            const total = tutorsWithRating.length;
+            const start = (page - 1) * pageSize;
+            const slice = tutorsWithRating.slice(start, start + pageSize);
+            payload = {
+                success: true,
+                tutors: slice,
+                pagination: {
+                    page,
+                    limit: pageSize,
+                    total,
+                    pages: Math.max(1, Math.ceil(total / pageSize))
+                }
+            };
+        } else {
+            payload = tutorsWithRating;
         }
 
-        res.json(tutorsWithRating);
+        if (!studentUser) {
+            const cacheKey = getTutorCacheKey(req.query);
+            tutorListCache.set(cacheKey, { data: payload, ts: Date.now() });
+        }
+
+        return res.json(payload);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        return safe500(res, error, '[getTutors]');
     }
 };
 
@@ -218,11 +252,10 @@ const getTutorProfileByUserId = async (req, res) => {
         const profile = await TutorProfile.findOne({ userId: req.params.userId })
             .select('weeklyAvailability availableSlots subjects classes hourlyRate approvalStatus')
             .populate('userId', 'name');
-        if (!profile) return res.status(404).json({ message: 'Tutor profile not found' });
+        if (!profile) return sendError(res, 404, 'Tutor profile not found', 'NOT_FOUND');
         res.json(profile);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        return safe500(res, error, '[getTutorProfileByUserId]');
     }
 };
 
@@ -231,8 +264,16 @@ const getTutorProfileByUserId = async (req, res) => {
 // @access  Public
 const getTutorById = async (req, res) => {
     try {
-        const tutor = await TutorProfile.findById(req.params.id).populate('userId', 'name email phone location');
-
+        const { id } = req.params;
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({ message: 'Invalid id' });
+        }
+        // Accept either TutorProfile._id (common) OR User._id (defensive fallback)
+        // so links that pass a user id — e.g. from relationships or messages — don't 404.
+        let tutor = await TutorProfile.findById(id).populate('userId', 'name email phone location lastSeenAt timezone');
+        if (!tutor) {
+            tutor = await TutorProfile.findOne({ userId: id }).populate('userId', 'name email phone location lastSeenAt timezone');
+        }
         if (!tutor) {
             return res.status(404).json({ message: 'Tutor not found' });
         }
@@ -389,7 +430,7 @@ const updateTutorProfile = async (req, res) => {
             subjects, classes, hourlyRate, experienceYears, bio, availableSlots, mode, languages,
             profilePicture, education, qualifications, strengthTags, travelRadius, availabilityMode,
             weeklyAvailability, noticePeriodHours, maxSessionsPerDay,
-            phone, location
+            phone, location, name, timezone
         } = req.body;
 
         const tutor = await TutorProfile.findOne({ userId: req.user.id });
@@ -463,7 +504,28 @@ const updateTutorProfile = async (req, res) => {
         // Apply updates
         if (subjects !== undefined) tutor.subjects = Array.isArray(subjects) ? subjects : (subjects ? [subjects] : tutor.subjects);
         if (classes !== undefined) tutor.classes = Array.isArray(classes) ? classes : (classes ? [classes] : tutor.classes);
-        if (hourlyRate !== undefined) tutor.hourlyRate = Number(hourlyRate);
+        if (hourlyRate !== undefined) {
+            const newRate = Number(hourlyRate);
+            // Rate band enforcement per REVENUE_MODEL.md §2
+            const { validateRate } = require('../constants/rateBands');
+            const profileSnapshot = {
+                classes: tutor.classes,
+                subjects: tutor.subjects,
+                strengthTags: tutor.strengthTags
+            };
+            const nextMode = (mode !== undefined ? mode : tutor.mode) || 'home';
+            const verdict = validateRate({ hourlyRate: newRate, mode: nextMode, profile: profileSnapshot });
+            if (!verdict.ok) {
+                return res.status(400).json({
+                    message: verdict.reason,
+                    code: 'RATE_OUT_OF_BAND',
+                    band: verdict.band,
+                    floor: verdict.floor,
+                    ceiling: verdict.ceiling
+                });
+            }
+            tutor.hourlyRate = newRate;
+        }
         if (experienceYears !== undefined) tutor.experienceYears = Number(experienceYears);
         if (bio !== undefined) tutor.bio = bio;
         if (availableSlots !== undefined) tutor.availableSlots = Array.isArray(availableSlots) ? availableSlots : availableSlots;
@@ -480,6 +542,12 @@ const updateTutorProfile = async (req, res) => {
 
         let user = await User.findById(req.user.id);
         if (user) {
+            if (name !== undefined && typeof name === 'string' && name.trim()) {
+                user.name = name.trim().slice(0, 120);
+            }
+            if (timezone !== undefined && typeof timezone === 'string' && timezone.trim()) {
+                user.timezone = timezone.trim().slice(0, 80);
+            }
             if (phone !== undefined) user.phone = phone;
             if (location && typeof location === 'object') {
                 if (!user.location) user.location = { city: 'Hyderabad', area: '', pincode: '' };
@@ -571,6 +639,7 @@ const getProfileOptions = async (req, res) => {
             TEACHING_MODES,
             NOTICE_PERIOD_OPTIONS,
             DAYS_OF_WEEK,
+            LANGUAGES_TEACHING,
             BIO_MIN_LENGTH
         } = require('../constants/tutorProfile.constants');
         res.json({
@@ -581,6 +650,7 @@ const getProfileOptions = async (req, res) => {
             teachingModes: TEACHING_MODES,
             noticePeriodOptions: NOTICE_PERIOD_OPTIONS,
             daysOfWeek: DAYS_OF_WEEK,
+            languages: LANGUAGES_TEACHING,
             bioMinLength: BIO_MIN_LENGTH
         });
     } catch (err) {
@@ -635,6 +705,7 @@ const getRecommendations = async (req, res) => {
         });
 
         const top = scored.sort((a, b) => b._score - a._score).slice(0, 6);
+        await recordTutorSearchAppearances(top);
         res.json(top);
     } catch (err) {
         console.error(err);

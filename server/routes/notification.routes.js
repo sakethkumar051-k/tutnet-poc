@@ -5,26 +5,27 @@ const {
     getUnreadCount,
     markAsRead,
     markAllAsRead,
-    deleteNotification
+    deleteNotification,
+    getPreferences,
+    updatePreferences,
+    fireTestNotification
 } = require('../controllers/notification.controller');
 const { protect } = require('../middleware/auth.middleware');
 
-// All routes require authentication
 router.use(protect);
 
-// Get unread count (must be before /:id routes)
+// Static paths first (must come before /:id)
 router.get('/unread-count', getUnreadCount);
+router.get('/preferences',  getPreferences);
+router.put('/preferences',  updatePreferences);
+router.patch('/read-all',   markAllAsRead);
+router.post('/test',        fireTestNotification);
 
-// Get notifications
+// List
 router.get('/', getNotifications);
 
-// Mark notification as read
+// Item actions
 router.patch('/:id/read', markAsRead);
-
-// Mark all as read
-router.patch('/read-all', markAllAsRead);
-
-// Delete notification
-router.delete('/:id', deleteNotification);
+router.delete('/:id',     deleteNotification);
 
 module.exports = router;

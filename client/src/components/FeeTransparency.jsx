@@ -1,6 +1,38 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 import CheckoutModal from './CheckoutModal';
+import { useBookingStore } from '../stores/bookingStore';
+
+// Inline invoice-download button so we don't introduce a separate import cycle.
+function InvoiceDownloadButton({ paymentId }) {
+    const [busy, setBusy] = useState(false);
+    const download = async () => {
+        setBusy(true);
+        try {
+            const res = await api.get(`/payments/${paymentId}/invoice.pdf`, { responseType: 'blob' });
+            const blob = new Blob([res.data], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tutnet-invoice-${paymentId}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch {
+            // silent — parent form won't surface toast here
+        } finally { setBusy(false); }
+    };
+    return (
+        <button onClick={download} disabled={busy}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-royal-dark hover:text-navy-950 border border-royal/20 hover:border-royal/40 rounded-lg">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+            </svg>
+            {busy ? '...' : 'PDF'}
+        </button>
+    );
+}
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
@@ -25,6 +57,7 @@ const STATUS_LABEL = {
 };
 
 export default function FeeTransparency() {
+    const mineBookings = useBookingStore((s) => s.bookings);
     // payments[] — each item is a Payment doc with bookingId populated
     const [payments, setPayments] = useState([]);
     // unpaidBookings[] — approved, non-trial bookings with no payment record
@@ -40,8 +73,7 @@ export default function FeeTransparency() {
             const { data: paymentData } = await api.get('/payments/student-history');
             setPayments(Array.isArray(paymentData) ? paymentData : []);
 
-            // All bookings to find unpaid approved sessions
-            const { data: bookings } = await api.get('/bookings/mine');
+            const bookings = mineBookings;
             const paidBookingIds = new Set(
                 paymentData
                     .filter(p => p.status === 'completed')
@@ -60,7 +92,7 @@ export default function FeeTransparency() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [mineBookings]);
 
     useEffect(() => { loadData(); }, [loadData]);
 
@@ -218,6 +250,7 @@ export default function FeeTransparency() {
                                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
                                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Amount</th>
                                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                                    <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Invoice</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
@@ -247,6 +280,13 @@ export default function FeeTransparency() {
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLOR[status] || STATUS_COLOR.unpaid}`}>
                                                     {STATUS_LABEL[status] || status}
                                                 </span>
+                                            </td>
+                                            <td className="px-5 py-3 text-right">
+                                                {status === 'completed' || status === 'partially_refunded' || status === 'refunded' ? (
+                                                    <InvoiceDownloadButton paymentId={p._id} />
+                                                ) : (
+                                                    <span className="text-xs text-gray-300">—</span>
+                                                )}
                                             </td>
                                         </tr>
                                     );

@@ -26,6 +26,11 @@ const reviewSchema = new mongoose.Schema({
     comment: {
         type: String,
         trim: true
+    },
+    /** Tutor's public reply to the review. Appears below the review on their profile. */
+    tutorReply: {
+        text: { type: String, trim: true, maxlength: 1000, default: '' },
+        repliedAt: { type: Date }
     }
 }, {
     timestamps: true

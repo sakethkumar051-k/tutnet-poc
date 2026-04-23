@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getBaseURL } from '../utils/api';
+import { setAccessToken } from '../authToken';
 
 const OAuthSuccess = () => {
     const navigate = useNavigate();
@@ -27,7 +28,9 @@ const OAuthSuccess = () => {
 
             try {
                 const baseURL = getBaseURL();
-                const response = await fetch(`${baseURL}/auth/oauth-token/${code}`);
+                const response = await fetch(`${baseURL}/auth/oauth-token/${code}`, {
+                    credentials: 'include'
+                });
 
                 if (!response.ok) {
                     const errData = await response.json().catch(() => ({}));
@@ -35,7 +38,7 @@ const OAuthSuccess = () => {
                 }
 
                 const { token } = await response.json();
-                localStorage.setItem('token', token);
+                setAccessToken(token);
                 await login(token);
                 navigate('/dashboard');
 

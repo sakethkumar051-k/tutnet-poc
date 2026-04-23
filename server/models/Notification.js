@@ -7,6 +7,24 @@ const notificationSchema = new mongoose.Schema({
         required: true,
         index: true
     },
+    /** Denormalised recipient role — makes admin-only history queries cheap. */
+    recipientRole: {
+        type: String,
+        enum: ['student', 'tutor', 'admin'],
+        index: true
+    },
+    /** Coarse category that drives the user's preference toggles. */
+    category: {
+        type: String,
+        enum: ['session', 'payment', 'review', 'message', 'admin', 'system', 'marketing'],
+        default: 'system',
+        index: true
+    },
+    /** Generic entity linkage — replaces the booking-only ref. `bookingId` stays for back-compat. */
+    entityType: { type: String, trim: true },
+    entityId:   { type: mongoose.Schema.Types.ObjectId },
+    /** Idempotency key — if set, inserts are deduplicated via a sparse-unique index. */
+    idempotencyKey: { type: String, trim: true, index: { unique: true, sparse: true } },
     type: {
         type: String,
         enum: [
@@ -86,8 +104,13 @@ const notificationSchema = new mongoose.Schema({
     timestamps: true
 });
 
-notificationSchema.index({ userId: 1, isRead: 1, isDeleted: 1 });
-notificationSchema.index({ createdAt: -1 });
+// Primary unread-list query: (user, not-deleted, not-read, newest first)
+notificationSchema.index({ userId: 1, isDeleted: 1, isRead: 1, createdAt: -1 });
+// Category filter on /notifications page
+notificationSchema.index({ userId: 1, category: 1, createdAt: -1 });
+// Admin-only history
+notificationSchema.index({ recipientRole: 1, createdAt: -1 });
+// Auto-delete after 30 days — frees space without a cron
 notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 });
 
 module.exports = mongoose.model('Notification', notificationSchema);

@@ -155,25 +155,67 @@ const MyCurrentStudents = () => {
                                     </p>
                                 </div>
 
-                                {/* Statistics */}
-                                <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                                    <div>
-                                        <p className="text-xs text-gray-600 mb-1 font-medium">Total Sessions</p>
-                                        <p className="text-2xl font-bold text-navy-950">{relationship.totalSessionsBooked}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-600 mb-1 font-medium">Completed</p>
-                                        <p className="text-2xl font-bold text-lime-dark">{relationship.sessionsCompleted}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-600 mb-1 font-medium">Missed</p>
-                                        <p className="text-2xl font-bold text-red-600">{relationship.sessionsMissed}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-600 mb-1 font-medium">Attendance</p>
-                                        <p className="text-2xl font-bold text-royal">{attendancePercentage}%</p>
-                                    </div>
+                                {/* Statistics — colored only when there's a real signal */}
+                                <div className="grid grid-cols-4 gap-2 mb-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                    <MiniStat
+                                        label="Booked"
+                                        value={relationship.totalSessionsBooked || 0}
+                                    />
+                                    <MiniStat
+                                        label="Done"
+                                        value={relationship.sessionsCompleted || 0}
+                                        tone={relationship.sessionsCompleted > 0 ? 'success' : 'neutral'}
+                                    />
+                                    <MiniStat
+                                        label="Missed"
+                                        value={relationship.sessionsMissed || 0}
+                                        tone={relationship.sessionsMissed > 0 ? 'danger' : 'muted'}
+                                    />
+                                    <MiniStat
+                                        label="Attendance"
+                                        value={`${attendancePercentage}%`}
+                                        tone={attendancePercentage >= 80 ? 'success' : attendancePercentage >= 60 ? 'royal' : 'danger'}
+                                    />
                                 </div>
+
+                                {/* Retention cliff tracker — revenue-model §5.1 */}
+                                {relationship.isActive && relationship.relationshipStartDate && (() => {
+                                    const months = Math.floor((Date.now() - new Date(relationship.relationshipStartDate).getTime()) / (30 * 24 * 3600 * 1000));
+                                    const next3mo = Math.max(0, 3 - months);
+                                    const next6mo = Math.max(0, 6 - months);
+                                    if (months >= 6) {
+                                        return (
+                                            <div className="mb-4 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2">
+                                                <span className="text-emerald-700">✓</span>
+                                                <p className="text-xs text-emerald-800">
+                                                    <span className="font-bold">6-month loyal student</span> · ₹3,500 in retention bonuses earned
+                                                </p>
+                                            </div>
+                                        );
+                                    }
+                                    if (months >= 3) {
+                                        return (
+                                            <div className="mb-4 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2">
+                                                <p className="text-xs text-amber-800">
+                                                    <span className="font-bold">3-month bonus earned.</span> Keep going — ₹2,500 at month 6.
+                                                </p>
+                                                <span className="text-[10px] font-bold text-amber-900">{next6mo}mo left</span>
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <div className="mb-4 px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <p className="text-[11px] font-semibold text-gray-600">Retention progress</p>
+                                                <p className="text-[10px] text-gray-400">{next3mo}mo to ₹1,000</p>
+                                            </div>
+                                            <div className="h-1.5 bg-white rounded-full overflow-hidden">
+                                                <div className="h-full bg-gradient-to-r from-royal to-lime rounded-full transition-all"
+                                                     style={{ width: `${Math.min(100, (months / 3) * 100)}%` }} />
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* Actions */}
                                 <div className="flex flex-wrap gap-2">
@@ -217,6 +259,22 @@ const MyCurrentStudents = () => {
         </>
     );
 };
+
+function MiniStat({ label, value, tone = 'neutral' }) {
+    const cls = {
+        neutral: 'text-navy-950',
+        muted:   'text-gray-300',
+        success: 'text-emerald-600',
+        royal:   'text-royal',
+        danger:  'text-rose-600'
+    }[tone];
+    return (
+        <div className="text-center">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{label}</p>
+            <p className={`text-xl font-extrabold mt-0.5 ${cls}`}>{value}</p>
+        </div>
+    );
+}
 
 export default MyCurrentStudents;
 

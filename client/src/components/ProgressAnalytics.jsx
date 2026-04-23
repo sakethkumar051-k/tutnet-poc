@@ -127,7 +127,7 @@ const ProgressAnalytics = () => {
                                     className={`h-3 rounded-full ${
                                         learning.progressLevel === 'Advanced' ? 'bg-lime-dark' :
                                         learning.progressLevel === 'Intermediate' ? 'bg-yellow-600' :
-                                        'bg-blue-600'
+                                        'bg-royal'
                                     }`}
                                     style={{
                                         width: learning.progressLevel === 'Advanced' ? '100%' :

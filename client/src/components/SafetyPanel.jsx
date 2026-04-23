@@ -81,24 +81,71 @@ export default function SafetyPanel({ role = 'tutor' }) {
         }
     };
 
+    const openCount = escalations.filter((e) => ['open', 'under_review'].includes(e.status)).length;
+    const resolvedCount = escalations.filter((e) => e.status === 'resolved').length;
+
     return (
         <div className="space-y-6">
+            {/* Hero SOS banner */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-red-500 via-rose-500 to-red-600 rounded-2xl p-6 sm:p-7 shadow-lg">
+                <div className="absolute -top-4 -right-4 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+                <div className="absolute -bottom-6 -left-6 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+                <div className="relative flex flex-wrap items-center justify-between gap-4">
+                    <div className="text-white">
+                        <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur px-3 py-1 rounded-full mb-3">
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">24/7 support</span>
+                        </div>
+                        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Your safety comes first</h2>
+                        <p className="text-sm text-white/90 mt-1 max-w-xl">
+                            Anything wrong during a session? Report it in one tap. Our team reviews every report within 24 hours — and urgent safety issues are escalated instantly.
+                        </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <button
+                            onClick={() => { setShowForm(true); setActiveTab('report'); setForm((v) => ({ ...v, type: 'safety_concern' })); }}
+                            className="px-5 py-3 bg-white text-red-600 text-sm font-bold rounded-xl hover:bg-rose-50 shadow-md inline-flex items-center gap-2 justify-center">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2L2 20h20L12 2zm0 3.45L19.28 19H4.72L12 5.45zm-1 5.05h2v5h-2v-5zm0 6.5h2v2h-2v-2z"/>
+                            </svg>
+                            Emergency report
+                        </button>
+                        <a
+                            href="tel:18001234567"
+                            className="px-5 py-3 bg-white/15 backdrop-blur border border-white/30 text-white text-sm font-bold rounded-xl hover:bg-white/25 inline-flex items-center gap-2 justify-center">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            Call support
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {/* Trust stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <TrustStat label="Open reports" value={openCount} tone={openCount > 0 ? 'warn' : 'ok'} />
+                <TrustStat label="Resolved" value={resolvedCount} tone="ok" />
+                <TrustStat label="Avg response" value="< 24h" tone="ok" />
+                <TrustStat label="Safety audit" value="Monthly" tone="royal" />
+            </div>
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-xl font-bold text-navy-950">Safety & Protection</h2>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                        Your safety is our priority. Use this panel to report concerns and review conduct guidelines.
+                    <h3 className="text-lg font-bold text-navy-950">Reports &amp; conduct</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                        Raise issues, follow up on past reports, and review our conduct rules.
                     </p>
                 </div>
                 <button
                     onClick={() => { setShowForm(true); setActiveTab('report'); }}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                    className="hidden sm:flex items-center gap-2 px-4 py-2 bg-navy-950 text-white text-sm font-semibold rounded-lg hover:bg-navy-900 transition-colors shadow-sm"
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Report Issue
+                    New report
                 </button>
             </div>
 
@@ -303,6 +350,27 @@ export default function SafetyPanel({ role = 'tutor' }) {
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+function TrustStat({ label, value, tone = 'gray' }) {
+    const cls = {
+        gray:  'bg-white border-gray-100',
+        ok:    'bg-lime/10 border-lime/30',
+        warn:  'bg-amber-50 border-amber-200',
+        royal: 'bg-royal/5 border-royal/20'
+    }[tone];
+    const valCls = {
+        gray:  'text-navy-950',
+        ok:    'text-lime-dark',
+        warn:  'text-amber-700',
+        royal: 'text-royal-dark'
+    }[tone];
+    return (
+        <div className={`rounded-xl border p-4 ${cls}`}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{label}</p>
+            <p className={`text-2xl font-extrabold mt-0.5 ${valCls}`}>{value}</p>
         </div>
     );
 }

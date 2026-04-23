@@ -27,6 +27,9 @@ router.get('/trial-status/:tutorId', authorize('student'), getTrialStatus);
 router.post('/', authorize('student', 'tutor'), createBooking);
 router.get('/mine', getMyBookings);
 router.get('/requests', getBookingRequests);
+// Single booking fetch — used by SessionRoom / Jitsi page.
+// Defined BEFORE the /:id/action patches so Express matches it correctly.
+router.get('/:id', require('../controllers/booking/bookingQueries').getBookingById);
 router.patch('/:id/cancel', authorize('student'), cancelBooking);
 router.patch('/:id/approve', authorize('tutor'), approveBooking);
 router.patch('/:id/reject', authorize('tutor'), rejectBooking);

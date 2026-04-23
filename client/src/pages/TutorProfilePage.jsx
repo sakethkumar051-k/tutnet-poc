@@ -7,6 +7,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import RequestDemoModal from '../components/RequestDemoModal';
 import DedicatedTutorModal from '../components/DedicatedTutorModal';
 import AvailabilityViewer from '../components/AvailabilityViewer';
+import SubscriptionCheckout from '../components/SubscriptionCheckout';
+import { formatPresence } from '../utils/presence';
 
 const GRADIENTS = [
     'from-navy-950 to-royal',
@@ -65,6 +67,12 @@ const TutorProfilePage = () => {
         setModalType(type);
     };
 
+    const openSubscription = () => {
+        if (!user) { openLogin('Sign in to subscribe to this tutor'); return; }
+        if (user.role !== 'student') return;
+        setModalType('subscription');
+    };
+
     if (loading) {
         return (
             <div className="min-h-[60vh] flex items-center justify-center bg-[#f7f7f7]">
@@ -93,6 +101,7 @@ const TutorProfilePage = () => {
     const modeLabel = tutor.mode === 'online' ? 'Online' : tutor.mode === 'home' ? 'Home tutoring' : 'Online & Home';
     const avgRating = tutor.averageRating || 0;
     const totalReviews = tutor.totalReviews || reviews.length || 0;
+    const presence = formatPresence(tutor.userId?.lastSeenAt);
 
     return (
         <div className="bg-[#f7f7f7] min-h-[calc(100vh-72px)] font-sans">
@@ -139,6 +148,11 @@ const TutorProfilePage = () => {
                             <h1 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight tracking-tight">
                                 {name}
                             </h1>
+                            {presence.label && (
+                                <p className={`text-sm mt-2 ${presence.isActive ? 'text-lime font-semibold' : 'text-gray-400'}`}>
+                                    {presence.isActive ? '● ' : ''}{presence.label}
+                                </p>
+                            )}
                             {tutor.subjects?.length > 0 && (
                                 <p className="mt-2 text-gray-400 text-sm">
                                     Teaches {tutor.subjects.slice(0, 3).join(', ')}
@@ -178,13 +192,13 @@ const TutorProfilePage = () => {
                                 </div>
                             </div>
 
-                            {/* Primary CTA */}
+                            {/* Primary CTA — Subscribe (new revenue model default) */}
                             <button
-                                onClick={() => openBooking('trial')}
+                                onClick={openSubscription}
                                 className="mt-5 w-full py-3 rounded-full bg-lime hover:bg-lime-light text-navy-950 text-sm font-bold transition-colors shadow-sm">
-                                Book a free trial
+                                Subscribe — from ₹{Math.round((tutor.hourlyRate || 0) * 16 * 0.93).toLocaleString('en-IN')}/mo
                             </button>
-                            <p className="text-[11px] text-gray-400 text-center mt-2">30-min session · No payment needed</p>
+                            <p className="text-[11px] text-gray-400 text-center mt-2">16 sessions · Cancel anytime · UPI & cards accepted</p>
 
                             {/* Divider with "or" */}
                             <div className="relative my-4 flex items-center">
@@ -193,12 +207,13 @@ const TutorProfilePage = () => {
                                 <div className="flex-1 border-t border-gray-100" />
                             </div>
 
-                            {/* Secondary CTA */}
+                            {/* Secondary CTA — Free trial */}
                             <button
-                                onClick={() => openBooking('dedicated')}
+                                onClick={() => openBooking('trial')}
                                 className="w-full py-3 rounded-full bg-navy-950 hover:bg-navy-900 text-white text-sm font-bold transition-colors">
-                                Request as dedicated tutor
+                                Book a free trial first
                             </button>
+                            <p className="text-[11px] text-gray-400 text-center mt-2">30-min session · No payment needed</p>
                         </div>
 
                         {/* Details card */}
@@ -343,6 +358,19 @@ const TutorProfilePage = () => {
             )}
             {modalType === 'dedicated' && (
                 <DedicatedTutorModal tutor={tutor} onClose={() => setModalType(null)} onSuccess={() => setModalType(null)} />
+            )}
+            {modalType === 'subscription' && (
+                <SubscriptionCheckout
+                    tutor={{
+                        _id: tutor.userId?._id || tutor.userId || tutor._id,
+                        name: tutor.userId?.name || tutor.name,
+                        hourlyRate: tutor.hourlyRate,
+                        tier: tutor.tier,
+                        subjects: tutor.subjects
+                    }}
+                    onClose={() => setModalType(null)}
+                    onSuccess={() => { setModalType(null); navigate('/student-dashboard?tab=sessions'); }}
+                />
             )}
         </div>
     );

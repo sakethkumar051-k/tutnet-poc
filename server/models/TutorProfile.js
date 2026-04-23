@@ -60,7 +60,76 @@ const tutorProfileSchema = new mongoose.Schema({
         timestamp: { type: Date, default: Date.now }
     }],
     averageRating: { type: Number, default: 0 },
-    totalReviews: { type: Number, default: 0 }
+    totalReviews: { type: Number, default: 0 },
+    /** Search listing analytics — total impressions + weekly bucket */
+    searchAppearancesTotal: { type: Number, default: 0 },
+    searchAppearancesThisWeek: { type: Number, default: 0 },
+    searchAppearancesWeekId: { type: String, default: '', trim: true },
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // REVENUE MODEL FIELDS (see REVENUE_MODEL.md §4)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** Current tutor tier. Drives commission rate. See commissionTier.service.js */
+    tier: {
+        type: String,
+        enum: ['starter', 'silver', 'gold', 'platinum'],
+        default: 'starter'
+    },
+    /** Lifetime completed & paid session count — authoritative for tier promotion */
+    totalSessions: { type: Number, default: 0 },
+    /** Current commission rate (%) for this tutor. Snapshotted onto each booking. */
+    currentCommissionRate: { type: Number, default: 25 },
+    /** Timestamp of last tier transition (for audit / dashboard) */
+    tierUpdatedAt: { type: Date, default: Date.now },
+    /** Tier progression history for the tutor dashboard UI */
+    tierHistory: [{
+        tier: { type: String, enum: ['starter', 'silver', 'gold', 'platinum'] },
+        commissionRate: Number,
+        reachedAt: { type: Date, default: Date.now },
+        reason: { type: String } // e.g. "Completed 21st session", "Dropped due to rating < 4.0"
+    }],
+
+    /** Refundable security deposit (₹). Forfeited on TSA §3 or §6 breach. */
+    securityDeposit: {
+        amountHeld: { type: Number, default: 0 },
+        status: {
+            type: String,
+            enum: ['none', 'pending', 'held', 'refunded', 'forfeited'],
+            default: 'none'
+        },
+        heldAt: Date,
+        releasedAt: Date,
+        forfeitedAt: Date,
+        forfeitReason: String
+    },
+
+    /** Silent risk score for anti-bypass (0-100, higher = riskier). */
+    riskScore: { type: Number, default: 0, min: 0, max: 100 },
+    /** Flagged events counter (chat filter hits, parent reports, decoy failures) */
+    flaggedEventsCount: { type: Number, default: 0 },
+
+    /** Aggregate lifetime earnings tracking for dashboards */
+    lifetimeGrossEarnings: { type: Number, default: 0 },
+    lifetimeCommissionPaid: { type: Number, default: 0 },
+    lifetimeIncentivesPaid: { type: Number, default: 0 },
+
+    /** Vacation / leave mode — tutor is temporarily unavailable and hidden from search.
+     * Existing bookings remain; new trial/session requests are disabled while active. */
+    vacation: {
+        active: { type: Boolean, default: false },
+        from: { type: Date },
+        to: { type: Date },
+        message: { type: String, trim: true, maxlength: 300, default: '' }
+    },
+
+    /** Uploaded qualification documents — degree scans, certificates, govt. id. */
+    qualificationDocs: [{
+        title: { type: String, trim: true, maxlength: 200 },
+        url: { type: String, required: true, trim: true },
+        mimeType: { type: String, trim: true },
+        uploadedAt: { type: Date, default: Date.now }
+    }]
 }, {
     timestamps: true
 });

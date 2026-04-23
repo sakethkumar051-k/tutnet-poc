@@ -1,8 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
+import AdminReportsPanel from '../components/AdminReportsPanel';
+import CustomerSupportConsole from '../components/CustomerSupportConsole';
 
 // ─── tiny helpers ────────────────────────────────────────────────────────────
+// Tier pill — matches the labels shown to tutors (REVENUE_MODEL.md §4)
+const TierPill = ({ tier }) => {
+    const cls = {
+        starter: 'bg-gray-100 text-gray-700',
+        silver: 'bg-slate-100 text-slate-700',
+        gold: 'bg-yellow-100 text-yellow-800',
+        platinum: 'bg-lime/30 text-navy-950'
+    }[tier] || 'bg-gray-100 text-gray-600';
+    return <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${cls}`}>{tier}</span>;
+};
+
 const StatusBadge = ({ status }) => {
     const map = {
         approved: 'bg-lime/30 text-navy-950 border-lime/40',
@@ -71,6 +84,17 @@ const TutorCard = ({ tutor, onApprove, onReject }) => {
                             <span className="px-2 py-0.5 rounded-md bg-royal/5 text-royal-dark text-xs font-mono border border-royal/20">{tutor.tutorCode}</span>
                         )}
                         <StatusBadge status={tutor.approvalStatus} />
+                        {tutor.tier && <TierPill tier={tutor.tier} />}
+                        {typeof tutor.currentCommissionRate === 'number' && (
+                            <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 text-[10px] font-bold tracking-wider">
+                                {tutor.currentCommissionRate}% COMMISSION
+                            </span>
+                        )}
+                        {typeof tutor.riskScore === 'number' && tutor.riskScore >= 25 && (
+                            <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 text-[10px] font-bold tracking-wider" title={`Flagged events: ${tutor.flaggedEventsCount || 0}`}>
+                                RISK {tutor.riskScore}
+                            </span>
+                        )}
                     </div>
                     <p className="text-xs text-gray-500 mb-1">{tutor.userId?.email}</p>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
@@ -80,6 +104,8 @@ const TutorCard = ({ tutor, onApprove, onReject }) => {
                         )}
                         {tutor.subjects?.length > 0 && <span>Subjects: {tutor.subjects.join(', ')}</span>}
                         {tutor.hourlyRate > 0 && <span>₹{tutor.hourlyRate}/hr</span>}
+                        {typeof tutor.totalSessions === 'number' && tutor.totalSessions > 0 && <span>{tutor.totalSessions} sessions</span>}
+                        {typeof tutor.averageRating === 'number' && tutor.averageRating > 0 && <span>{tutor.averageRating.toFixed(1)} ★</span>}
                         {tutor.experienceYears > 0 && <span>{tutor.experienceYears} yrs exp</span>}
                     </div>
                     {tutor.approvalStatus === 'rejected' && tutor.rejectionReason && (
@@ -361,7 +387,7 @@ const PlatformAnalyticsPanel = () => {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                     { label: 'Total Students', value: data.users.totalStudents, sub: `+${data.users.newStudents30d} this month`, color: 'text-royal-dark' },
-                    { label: 'Total Tutors', value: data.users.totalTutors, sub: `+${data.users.newTutors30d} this month`, color: 'text-purple-700' },
+                    { label: 'Total Tutors', value: data.users.totalTutors, sub: `+${data.users.newTutors30d} this month`, color: 'text-royal-dark' },
                     { label: 'Completed Sessions', value: data.sessions.completedSessions, sub: `${data.sessions.sessions30d} in 30d`, color: 'text-navy-950' },
                     { label: 'Est. Platform Revenue', value: `₹${data.estimatedRevenue.toLocaleString()}`, sub: 'from completed sessions', color: 'text-navy-950' }
                 ].map((k, i) => (
@@ -732,117 +758,266 @@ const EscalationsPanel = () => {
     );
 };
 
-const UsersPanel = () => {
-    const [users, setUsers]     = useState([]);
-    const [search, setSearch]   = useState('');
-    const [role, setRole]       = useState('all');
-    const [loading, setLoading] = useState(false);
-    const [alertTarget, setAlertTarget] = useState(null);
-    const [alertMsg, setAlertMsg] = useState({ title:'', message:'' });
-    const { showSuccess, showError } = useToast();
+// ─── Overview / Home panel ────────────────────────────────────────────────────
+const OverviewPanel = ({ counts, onNavigate }) => {
+    const [analytics, setAnalytics] = useState(null);
+    const [activity, setActivity]   = useState(null);
+    const [loading, setLoading]     = useState(true);
 
-    const load = useCallback(async () => {
-        setLoading(true);
-        try {
-            const params = new URLSearchParams({ role, ...(search ? { search } : {}) });
-            const { data } = await api.get(`/admin/users?${params}`);
-            setUsers(data);
-        } catch { showError('Failed to load users'); }
-        finally { setLoading(false); }
-    }, [role, search]);
+    useEffect(() => {
+        let cancelled = false;
+        Promise.all([
+            api.get('/admin/analytics').catch(() => ({ data: null })),
+            api.get('/admin/activity?limit=10').catch(() => ({ data: null }))
+        ]).then(([a, act]) => {
+            if (cancelled) return;
+            setAnalytics(a.data);
+            setActivity(act.data);
+            setLoading(false);
+        });
+        return () => { cancelled = true; };
+    }, []);
 
-    useEffect(()=>{ load(); },[load]);
+    if (loading) return <div className="text-center py-10 text-gray-400">Loading overview…</div>;
 
-    const handleSendAlert = async () => {
-        if (!alertTarget || !alertMsg.title || !alertMsg.message) return;
-        try {
-            await api.post('/admin/send-alert',{ userId: alertTarget._id, ...alertMsg });
-            showSuccess(`Alert sent to ${alertTarget.name}`);
-            setAlertTarget(null);
-            setAlertMsg({ title:'', message:'' });
-        } catch { showError('Failed to send alert'); }
+    const cards = [
+        { key: 'approvals', tab: 'approvals',   label: 'Pending Tutors',       value: counts.pendingTutors,    tone: counts.pendingTutors > 0 ? 'warn'   : 'ok', cta: 'Review queue' },
+        { key: 'escalate',  tab: 'escalations', label: 'Open Escalations',     value: counts.openEscalations,  tone: counts.openEscalations > 0 ? 'danger' : 'ok', cta: 'Respond' },
+        { key: 'reports',   tab: 'escalations', label: 'Submitted Reports',    value: counts.submittedReports, tone: counts.submittedReports > 0 ? 'danger' : 'ok', cta: 'Review' },
+        { key: 'support',   tab: 'support',     label: 'Customer 360',         value: counts.totalUsers || '—', tone: 'ok', cta: 'Open console' }
+    ];
+    const toneCls = {
+        ok:     'border-gray-200 bg-white',
+        warn:   'border-royal/30 bg-royal/5',
+        danger: 'border-rose-300 bg-rose-50'
+    };
+    const toneText = {
+        ok:     'text-navy-950',
+        warn:   'text-royal-dark',
+        danger: 'text-rose-700'
     };
 
     return (
-        <div className="space-y-5">
-            {/* Filters */}
-            <div className="flex flex-wrap items-center gap-3">
-                <input value={search} onChange={e=>setSearch(e.target.value)}
-                    placeholder="Search by name or email…"
-                    className="flex-1 min-w-[200px] px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-royal" />
-                <select value={role} onChange={e=>setRole(e.target.value)}
-                    className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-royal">
-                    <option value="all">All roles</option>
-                    <option value="student">Students</option>
-                    <option value="tutor">Tutors</option>
-                    <option value="admin">Admins</option>
-                </select>
-                <button onClick={load} className="px-3 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">Search</button>
+        <div className="space-y-6">
+            {/* Action queue */}
+            <div>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Action Queue</h3>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {cards.map((c) => (
+                        <button key={c.key} onClick={() => onNavigate(c.tab)}
+                            className={`text-left p-5 rounded-xl border-2 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 ${toneCls[c.tone]}`}>
+                            <p className="text-xs text-gray-500 font-medium">{c.label}</p>
+                            <p className={`text-3xl font-extrabold mt-1 ${toneText[c.tone]}`}>{c.value ?? 0}</p>
+                            <p className="text-xs text-royal-dark font-semibold mt-2">{c.cta} →</p>
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {loading ? (
-                <div className="text-center py-10 text-gray-400">Loading…</div>
-            ) : (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                    <table className="w-full text-sm">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                {['Name','Email','Role','Joined','Action'].map(h=>(
-                                    <th key={h} className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {users.map(u=>(
-                                <tr key={u._id} className="hover:bg-gray-50">
-                                    <td className="py-3 px-4 font-medium text-navy-950">{u.name}</td>
-                                    <td className="py-3 px-4 text-gray-500">{u.email}</td>
-                                    <td className="py-3 px-4"><StatusBadge status={u.role}/></td>
-                                    <td className="py-3 px-4 text-gray-400 text-xs">
-                                        {new Date(u.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <button onClick={()=>setAlertTarget(u)}
-                                            className="px-2 py-1 text-xs bg-royal/5 hover:bg-royal/10 text-royal-dark rounded-lg border border-royal/30 transition-colors">
-                                            Send Alert
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {!users.length && (
-                                <tr><td colSpan={5} className="py-10 text-center text-gray-400">No users found</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-
-            {/* Alert modal */}
-            {alertTarget && (
-                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-                        <h3 className="text-lg font-bold text-navy-950 mb-1">Send Alert to {alertTarget.name}</h3>
-                        <p className="text-sm text-gray-500 mb-4">{alertTarget.email} · {alertTarget.role}</p>
-                        <div className="space-y-3">
-                            <input value={alertMsg.title} onChange={e=>setAlertMsg(v=>({...v,title:e.target.value}))}
-                                placeholder="Alert title…"
-                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-royal" />
-                            <textarea value={alertMsg.message} onChange={e=>setAlertMsg(v=>({...v,message:e.target.value}))}
-                                placeholder="Message…" rows={3}
-                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-royal resize-none" />
-                        </div>
-                        <div className="flex gap-3 mt-4">
-                            <button onClick={()=>setAlertTarget(null)}
-                                className="flex-1 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-                            <button onClick={handleSendAlert}
-                                disabled={!alertMsg.title||!alertMsg.message}
-                                className="flex-1 py-2 text-sm bg-royal hover:bg-royal-dark text-white font-semibold rounded-lg disabled:opacity-50">
-                                Send
-                            </button>
-                        </div>
+            {/* System health */}
+            {analytics && (
+                <div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">System Health</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <Stat label="Total Users" value={analytics.users.total} sub={`+${analytics.users.recent} in 30d`} />
+                        <Stat label="Students" value={analytics.users.students} />
+                        <Stat label="Approved Tutors" value={analytics.users.approvedTutors} sub={`of ${analytics.users.tutors} total`} />
+                        <Stat label="Avg Rating" value={`${analytics.reviews.averageRating || 0} ★`} color="text-lime-dark" />
+                        <Stat label="Completed Sessions" value={analytics.bookings.completed} />
+                        <Stat label="Sessions (30d)" value={analytics.bookings.recent} color="text-royal-dark" />
+                        <Stat label="Attendance Rate" value={`${analytics.attendance.rate}%`} color={analytics.attendance.rate >= 80 ? 'text-lime-dark' : 'text-navy-950'} />
+                        <Stat label="Total Reviews" value={analytics.reviews.total} />
                     </div>
                 </div>
             )}
+
+            {/* Quick actions + recent activity */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-6">
+                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                    <h3 className="text-sm font-bold text-navy-950 mb-3">Quick Actions</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                        <QuickAction label="Customer 360"     onClick={() => onNavigate('support')} />
+                        <QuickAction label="Approve tutors"   onClick={() => onNavigate('approvals')} />
+                        <QuickAction label="Broadcast"        onClick={() => onNavigate('broadcast')} />
+                        <QuickAction label="Escalations"      onClick={() => onNavigate('escalations')} />
+                        <QuickAction label="Attendance check" onClick={() => onNavigate('attendance')} />
+                        <QuickAction label="Open revenue"     href="/admin/revenue" external />
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                    <h3 className="text-sm font-bold text-navy-950 mb-3">Recent Activity</h3>
+                    <RecentActivityList activity={activity} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const QuickAction = ({ label, onClick, href, external }) => {
+    const cls = 'w-full px-3 py-2.5 text-left text-sm font-semibold text-royal-dark bg-royal/5 hover:bg-royal/10 border border-royal/20 rounded-lg transition-colors flex items-center justify-between gap-2';
+    if (href) {
+        return (
+            <a href={href} target={external ? '_blank' : undefined} rel="noopener noreferrer" className={cls}>
+                {label}
+                <svg className="w-3 h-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+            </a>
+        );
+    }
+    return <button onClick={onClick} className={cls}>{label} <span className="opacity-60">→</span></button>;
+};
+
+const RecentActivityList = ({ activity }) => {
+    if (!activity) return <p className="text-xs text-gray-400 py-4">No activity data.</p>;
+    const items = [
+        ...(activity.bookings || []).slice(0, 4).map((b) => ({
+            kind: 'booking',
+            text: `${b.studentId?.name || 'Student'} → ${b.tutorId?.name || 'Tutor'} · ${b.subject || ''}`,
+            at: b.createdAt,
+            tag: b.status
+        })),
+        ...(activity.reviews || []).slice(0, 3).map((r) => ({
+            kind: 'review',
+            text: `${r.studentId?.name || 'Student'} reviewed ${r.tutorId?.name || 'Tutor'} · ${r.rating}★`,
+            at: r.createdAt
+        })),
+        ...(activity.users || []).slice(0, 3).map((u) => ({
+            kind: 'user',
+            text: `${u.name} signed up (${u.role})`,
+            at: u.createdAt
+        }))
+    ]
+        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+        .slice(0, 10);
+
+    if (!items.length) return <p className="text-xs text-gray-400 py-4">Quiet so far.</p>;
+    const dot = { booking: 'bg-royal', review: 'bg-lime-dark', user: 'bg-gray-400' };
+    return (
+        <ul className="space-y-2.5">
+            {items.map((it, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                    <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${dot[it.kind]}`} />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-700 truncate">{it.text}</p>
+                        <p className="text-[10px] text-gray-400">
+                            {new Date(it.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            {it.tag && <span className="ml-2 capitalize">· {it.tag}</span>}
+                        </p>
+                    </div>
+                </li>
+            ))}
+        </ul>
+    );
+};
+
+// ─── Broadcast (mass communication) ───────────────────────────────────────────
+const BroadcastPanel = () => {
+    const [recipients, setRecipients] = useState('all');
+    const [subject, setSubject]       = useState('');
+    const [message, setMessage]       = useState('');
+    const [channel, setChannel]       = useState('notification');
+    const [sending, setSending]       = useState(false);
+    const [lastSent, setLastSent]     = useState(null);
+    const { showSuccess, showError }  = useToast();
+
+    const submit = async () => {
+        if (!message.trim()) return;
+        setSending(true);
+        try {
+            const { data } = await api.post('/admin/mass-communication', {
+                recipients, subject, message, type: channel
+            });
+            setLastSent({ count: data.recipientsCount, at: new Date() });
+            showSuccess(`Broadcast queued for ${data.recipientsCount} recipient${data.recipientsCount === 1 ? '' : 's'}`);
+            setSubject(''); setMessage('');
+        } catch { showError('Broadcast failed'); }
+        finally { setSending(false); }
+    };
+
+    const chips = [
+        { v: 'all',      label: 'Everyone' },
+        { v: 'students', label: 'All Students' },
+        { v: 'tutors',   label: 'All Tutors' }
+    ];
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
+                <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Recipients</label>
+                    <div className="flex flex-wrap gap-1.5">
+                        {chips.map((c) => (
+                            <button key={c.v} onClick={() => setRecipients(c.v)}
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                                    recipients === c.v
+                                        ? 'bg-royal text-white border-royal'
+                                        : 'bg-white text-gray-600 border-gray-200 hover:border-royal/40'
+                                }`}>
+                                {c.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Channel</label>
+                    <div className="flex gap-1.5">
+                        {[
+                            { v: 'notification', label: 'In-app notification' },
+                            { v: 'email',        label: 'Email' }
+                        ].map((c) => (
+                            <button key={c.v} onClick={() => setChannel(c.v)}
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                                    channel === c.v
+                                        ? 'bg-navy-950 text-white border-navy-950'
+                                        : 'bg-white text-gray-600 border-gray-200 hover:border-navy-900/30'
+                                }`}>
+                                {c.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Subject (optional)</label>
+                    <input value={subject} onChange={(e) => setSubject(e.target.value)}
+                        placeholder="Platform update, outage, feature announcement…"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-royal/40" />
+                </div>
+
+                <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Message</label>
+                    <textarea value={message} onChange={(e) => setMessage(e.target.value)}
+                        rows={6}
+                        placeholder="What do you want to tell them?"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-royal/40 resize-none" />
+                    <p className="text-[10px] text-gray-400 mt-1">{message.length} characters</p>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                    {lastSent ? (
+                        <p className="text-xs text-gray-500">
+                            Last broadcast: {lastSent.count} recipients · {lastSent.at.toLocaleTimeString('en-IN')}
+                        </p>
+                    ) : <span />}
+                    <button onClick={submit} disabled={!message.trim() || sending}
+                        className="px-4 py-2 text-sm bg-royal hover:bg-royal-dark text-white font-semibold rounded-lg disabled:opacity-50 transition-colors">
+                        {sending ? 'Sending…' : 'Send Broadcast'}
+                    </button>
+                </div>
+            </div>
+
+            <div className="bg-royal/5 border border-royal/20 rounded-xl p-5 text-sm text-royal-dark space-y-3">
+                <h4 className="font-bold text-royal-dark">Broadcast guidelines</h4>
+                <ul className="list-disc pl-4 space-y-1.5 text-xs leading-relaxed">
+                    <li>Use for platform-wide announcements only — price changes, outages, policy updates.</li>
+                    <li>Keep subject under 60 characters; in-app notifications show only the first line.</li>
+                    <li>For individual targeting, use the <strong>Users</strong> tab and send a single alert instead.</li>
+                    <li>Email channel will hit inactive accounts too — notifications skip them.</li>
+                </ul>
+            </div>
         </div>
     );
 };
@@ -853,9 +1028,15 @@ const AdminDashboard = () => {
     const [allTutors, setAllTutors]           = useState([]);
     const [loadingPending, setLoadingPending] = useState(true);
     const [loadingAll, setLoadingAll]         = useState(false);
-    const [activeTab, setActiveTab]           = useState('approvals');
+    const [activeTab, setActiveTab]           = useState('overview');
     const [filterStatus, setFilterStatus]     = useState('all');
     const [rejectTarget, setRejectTarget]     = useState(null);
+    const [counts, setCounts]                 = useState({
+        pendingTutors: 0,
+        openEscalations: 0,
+        submittedReports: 0,
+        totalUsers: 0
+    });
     const { showSuccess, showError } = useToast();
 
     const showMsg = useCallback((type, text) => {
@@ -869,6 +1050,21 @@ const AdminDashboard = () => {
         finally { setLoadingPending(false); }
     }, [showMsg]);
 
+    const fetchCounts = useCallback(async () => {
+        const [tutors, esc, reports, analytics] = await Promise.all([
+            api.get('/admin/tutors/pending').catch(() => ({ data: [] })),
+            api.get('/escalations?status=open').catch(() => ({ data: [] })),
+            api.get('/off-platform-reports/admin?status=submitted').catch(() => ({ data: { reports: [] } })),
+            api.get('/admin/analytics').catch(() => ({ data: null }))
+        ]);
+        setCounts({
+            pendingTutors:    Array.isArray(tutors.data)   ? tutors.data.length   : 0,
+            openEscalations:  Array.isArray(esc.data)      ? esc.data.length      : 0,
+            submittedReports: Array.isArray(reports.data?.reports) ? reports.data.reports.length : 0,
+            totalUsers:       analytics.data?.users?.total || 0
+        });
+    }, []);
+
     const fetchAll = useCallback(async () => {
         setLoadingAll(true);
         try {
@@ -881,24 +1077,32 @@ const AdminDashboard = () => {
 
     useEffect(() => { fetchPending(); }, [fetchPending]);
     useEffect(() => { if (activeTab === 'tutors') fetchAll(); }, [activeTab, fetchAll]);
+    useEffect(() => {
+        fetchCounts();
+        const id = setInterval(fetchCounts, 60_000);
+        return () => clearInterval(id);
+    }, [fetchCounts]);
 
     const handleApprove = async (tutorId) => {
-        try { await api.patch(`/admin/tutors/${tutorId}/approve`); showMsg('success','Tutor approved'); fetchPending(); fetchAll(); }
+        try { await api.patch(`/admin/tutors/${tutorId}/approve`); showMsg('success','Tutor approved'); fetchPending(); fetchAll(); fetchCounts(); }
         catch { showMsg('error','Failed to approve'); }
     };
     const handleRejectConfirm = async (reason) => {
-        try { await api.patch(`/admin/tutors/${rejectTarget}/reject`, { reason }); showMsg('success','Tutor rejected'); setRejectTarget(null); fetchPending(); fetchAll(); }
+        try { await api.patch(`/admin/tutors/${rejectTarget}/reject`, { reason }); showMsg('success','Tutor rejected'); setRejectTarget(null); fetchPending(); fetchAll(); fetchCounts(); }
         catch { showMsg('error','Failed to reject'); }
     };
 
     const TABS = [
-        { id: 'approvals',  label: 'Pending Approvals', count: pendingTutors.length },
-        { id: 'tutors',     label: 'All Tutors' },
-        { id: 'attendance', label: 'Attendance Cross-Check' },
-        { id: 'analytics',  label: 'Analytics' },
+        { id: 'overview',    label: 'Overview' },
+        { id: 'support',     label: 'Customer 360' },
+        { id: 'approvals',   label: 'Pending Tutors',       count: counts.pendingTutors, tone: 'warn' },
+        { id: 'tutors',      label: 'All Tutors' },
+        { id: 'revenue',     label: 'Revenue & Money',      external: '/admin/revenue' },
+        { id: 'attendance',  label: 'Attendance Check' },
+        { id: 'analytics',   label: 'Analytics' },
         { id: 'patterns',    label: 'Risk & Alerts' },
-        { id: 'escalations', label: 'Escalations' },
-        { id: 'users',       label: 'Users' }
+        { id: 'escalations', label: 'Escalations',          count: counts.openEscalations + counts.submittedReports, tone: 'danger' },
+        { id: 'broadcast',   label: 'Broadcast' }
     ];
 
     return (
@@ -914,23 +1118,53 @@ const AdminDashboard = () => {
                 <aside className="w-52 bg-white border-r border-gray-200 py-4 flex-shrink-0 overflow-y-auto">
                     <nav className="space-y-0.5 px-2">
                         {TABS.map(t => (
-                            <button key={t.id} onClick={() => setActiveTab(t.id)}
-                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                                    activeTab === t.id ? 'bg-royal/5 text-royal-dark' : 'text-gray-600 hover:bg-gray-50 hover:text-navy-950'
-                                }`}>
-                                <span>{t.label}</span>
-                                {t.count !== undefined && (
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${t.count>0?'bg-lime/30 text-navy-950':'bg-gray-100 text-gray-500'}`}>
-                                        {t.count}
+                            t.external ? (
+                                <a key={t.id} href={t.external}
+                                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:bg-royal/5 hover:text-royal-dark">
+                                    <span className="flex items-center gap-1.5">{t.label}
+                                        <svg className="w-3 h-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                        </svg>
                                     </span>
-                                )}
-                            </button>
+                                </a>
+                            ) : (
+                                <button key={t.id} onClick={() => setActiveTab(t.id)}
+                                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                                        activeTab === t.id ? 'bg-royal/5 text-royal-dark' : 'text-gray-600 hover:bg-gray-50 hover:text-navy-950'
+                                    }`}>
+                                    <span>{t.label}</span>
+                                    {t.count !== undefined && (
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                                            t.count === 0
+                                                ? 'bg-gray-100 text-gray-500'
+                                                : t.tone === 'danger'
+                                                    ? 'bg-rose-100 text-rose-700'
+                                                    : t.tone === 'warn'
+                                                        ? 'bg-royal/10 text-royal-dark'
+                                                        : 'bg-lime/30 text-navy-950'
+                                        }`}>
+                                            {t.count}
+                                        </span>
+                                    )}
+                                </button>
+                            )
                         ))}
                     </nav>
                 </aside>
 
                 {/* Content */}
                 <main className="flex-1 p-6 overflow-y-auto">
+
+                    {/* OVERVIEW */}
+                    {activeTab === 'overview' && (
+                        <div>
+                            <div className="mb-5">
+                                <h2 className="text-lg font-bold text-navy-950">Overview</h2>
+                                <p className="text-sm text-gray-500 mt-0.5">At-a-glance queue, system health, and recent activity.</p>
+                            </div>
+                            <OverviewPanel counts={counts} onNavigate={setActiveTab} />
+                        </div>
+                    )}
 
                     {/* PENDING APPROVALS */}
                     {activeTab === 'approvals' && (
@@ -983,6 +1217,22 @@ const AdminDashboard = () => {
                         </div>
                     )}
 
+                    {/* CUSTOMER SUPPORT 360 */}
+                    {activeTab === 'support' && (
+                        <CustomerSupportConsole />
+                    )}
+
+                    {/* BROADCAST */}
+                    {activeTab === 'broadcast' && (
+                        <div>
+                            <div className="mb-5">
+                                <h2 className="text-lg font-bold text-navy-950">Broadcast</h2>
+                                <p className="text-sm text-gray-500 mt-0.5">Send a platform-wide announcement to all users, students, or tutors.</p>
+                            </div>
+                            <BroadcastPanel />
+                        </div>
+                    )}
+
                     {/* ATTENDANCE CROSS-CHECK */}
                     {activeTab === 'attendance' && (
                         <div>
@@ -1018,25 +1268,18 @@ const AdminDashboard = () => {
 
                     {/* ESCALATIONS */}
                     {activeTab === 'escalations' && (
-                        <div>
-                            <div className="mb-5">
-                                <h2 className="text-lg font-bold text-navy-950">Safety Reports & Escalations</h2>
-                                <p className="text-sm text-gray-500 mt-0.5">Review and respond to reports submitted by tutors and students.</p>
+                        <div className="space-y-10">
+                            <div>
+                                <div className="mb-5">
+                                    <h2 className="text-lg font-bold text-navy-950">Safety Reports & Escalations</h2>
+                                    <p className="text-sm text-gray-500 mt-0.5">Review and respond to reports submitted by tutors and students.</p>
+                                </div>
+                                <EscalationsPanel />
                             </div>
-                            <EscalationsPanel />
+                            <AdminReportsPanel />
                         </div>
                     )}
 
-                    {/* USERS */}
-                    {activeTab === 'users' && (
-                        <div>
-                            <div className="mb-5">
-                                <h2 className="text-lg font-bold text-navy-950">User Management</h2>
-                                <p className="text-sm text-gray-500 mt-0.5">Search users by name, email, or role. Send individual alerts.</p>
-                            </div>
-                            <UsersPanel />
-                        </div>
-                    )}
                 </main>
             </div>
 

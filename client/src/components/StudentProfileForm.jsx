@@ -17,7 +17,13 @@ export default function StudentProfileForm() {
         phone: '',
         classGrade: '',
         location: { city: 'Hyderabad', area: '', pincode: '' },
-        emergencyContact: { name: '', relationship: '', phone: '' }
+        emergencyContact: { name: '', relationship: '', phone: '' },
+        timezone: 'Asia/Kolkata',
+        preferences: {
+            reminderChannels: ['email'],
+            reminderLeadTimes: ['24h', '1h']
+        },
+        parentUserId: ''
     });
     const [loading, setLoading] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -37,10 +43,57 @@ export default function StudentProfileForm() {
                     name: user.emergencyContact?.name || '',
                     relationship: user.emergencyContact?.relationship || '',
                     phone: user.emergencyContact?.phone || ''
-                }
+                },
+                timezone: user.timezone || 'Asia/Kolkata',
+                preferences: {
+                    reminderChannels:
+                        Array.isArray(user.preferences?.reminderChannels) && user.preferences.reminderChannels.length
+                            ? [...user.preferences.reminderChannels]
+                            : ['email'],
+                    reminderLeadTimes:
+                        Array.isArray(user.preferences?.reminderLeadTimes) && user.preferences.reminderLeadTimes.length
+                            ? [...user.preferences.reminderLeadTimes]
+                            : ['24h', '1h']
+                },
+                parentUserId:
+                    typeof user.parentUserId === 'object' && user.parentUserId?._id
+                        ? String(user.parentUserId._id)
+                        : user.parentUserId
+                          ? String(user.parentUserId)
+                          : ''
             });
         }
     }, [user]);
+
+    const toggleReminderChannel = (ch) => {
+        setForm((f) => {
+            const arr = f.preferences.reminderChannels || [];
+            const next = arr.includes(ch) ? arr.filter((x) => x !== ch) : [...arr, ch];
+            return {
+                ...f,
+                preferences: {
+                    ...f.preferences,
+                    reminderChannels: next.length ? next : ['email']
+                }
+            };
+        });
+        setSaved(false);
+    };
+
+    const toggleLeadTime = (lt) => {
+        setForm((f) => {
+            const arr = f.preferences.reminderLeadTimes || [];
+            const next = arr.includes(lt) ? arr.filter((x) => x !== lt) : [...arr, lt];
+            return {
+                ...f,
+                preferences: {
+                    ...f.preferences,
+                    reminderLeadTimes: next.length ? next : ['1h']
+                }
+            };
+        });
+        setSaved(false);
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -49,6 +102,8 @@ export default function StudentProfileForm() {
         } else if (name === 'ec_name' || name === 'ec_relationship' || name === 'ec_phone') {
             const key = name.replace('ec_', '');
             setForm(f => ({ ...f, emergencyContact: { ...f.emergencyContact, [key]: value } }));
+        } else if (name === 'timezone' || name === 'parentUserId') {
+            setForm((f) => ({ ...f, [name]: value }));
         } else {
             setForm(f => ({ ...f, [name]: value }));
         }
@@ -60,16 +115,22 @@ export default function StudentProfileForm() {
         if (!form.name.trim()) { showError('Name is required'); return; }
         setLoading(true);
         try {
-            const { data } = await api.put('/auth/profile', {
+            const payload = {
                 name: form.name.trim(),
                 phone: form.phone.trim(),
                 classGrade: form.classGrade,
                 location: form.location,
-                emergencyContact: form.emergencyContact
-            });
-            if (data?.token) {
-                localStorage.setItem('token', data.token);
-            }
+                emergencyContact: form.emergencyContact,
+                timezone: form.timezone.trim() || 'Asia/Kolkata',
+                preferences: {
+                    reminderChannels: form.preferences.reminderChannels,
+                    reminderLeadTimes: form.preferences.reminderLeadTimes
+                }
+            };
+            const parent = form.parentUserId.trim();
+            if (parent) payload.parentUserId = parent;
+
+            const { data } = await api.put('/auth/profile', payload);
             // Update form immediately from response so saved data shows right away
             setForm({
                 name: data.name || '',
@@ -84,7 +145,24 @@ export default function StudentProfileForm() {
                     name: data.emergencyContact?.name || '',
                     relationship: data.emergencyContact?.relationship || '',
                     phone: data.emergencyContact?.phone || ''
-                }
+                },
+                timezone: data.timezone || 'Asia/Kolkata',
+                preferences: {
+                    reminderChannels:
+                        Array.isArray(data.preferences?.reminderChannels) && data.preferences.reminderChannels.length
+                            ? [...data.preferences.reminderChannels]
+                            : ['email'],
+                    reminderLeadTimes:
+                        Array.isArray(data.preferences?.reminderLeadTimes) && data.preferences.reminderLeadTimes.length
+                            ? [...data.preferences.reminderLeadTimes]
+                            : ['24h', '1h']
+                },
+                parentUserId:
+                    typeof data.parentUserId === 'object' && data.parentUserId?._id
+                        ? String(data.parentUserId._id)
+                        : data.parentUserId
+                          ? String(data.parentUserId)
+                          : ''
             });
             await refreshUser();
             showSuccess('Profile updated successfully');
@@ -182,6 +260,73 @@ export default function StudentProfileForm() {
                             className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
                             placeholder="Pincode"
                         />
+                    </div>
+                </div>
+
+                {/* Timezone & session reminders */}
+                <div className="pt-2 border-t border-gray-100">
+                    <p className="text-xs font-bold text-gray-700 mb-3">Scheduling & reminders</p>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Timezone</label>
+                            <input
+                                type="text"
+                                name="timezone"
+                                value={form.timezone}
+                                onChange={handleChange}
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal/40"
+                                placeholder="e.g. Asia/Kolkata"
+                            />
+                            <p className="text-[11px] text-gray-400 mt-1">Used for session times and email reminders.</p>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold text-gray-700 mb-2">Reminder channels</p>
+                            <div className="flex flex-wrap gap-3">
+                                {['email', 'push', 'sms'].map((ch) => (
+                                    <label key={ch} className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={form.preferences.reminderChannels.includes(ch)}
+                                            onChange={() => toggleReminderChannel(ch)}
+                                            className="rounded border-gray-300 text-royal focus:ring-royal/40"
+                                        />
+                                        <span className="capitalize">{ch}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            <p className="text-[11px] text-gray-400 mt-1">SMS and push depend on account setup and devices.</p>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold text-gray-700 mb-2">Remind me before sessions</p>
+                            <div className="flex flex-wrap gap-3">
+                                {[
+                                    { id: '24h', label: '24 hours' },
+                                    { id: '1h', label: '1 hour' }
+                                ].map(({ id, label }) => (
+                                    <label key={id} className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={form.preferences.reminderLeadTimes.includes(id)}
+                                            onChange={() => toggleLeadTime(id)}
+                                            className="rounded border-gray-300 text-royal focus:ring-royal/40"
+                                        />
+                                        {label}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Linked parent account ID</label>
+                            <input
+                                type="text"
+                                name="parentUserId"
+                                value={form.parentUserId}
+                                onChange={handleChange}
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-royal/40 font-mono"
+                                placeholder="Optional — MongoDB user id of a parent account"
+                            />
+                            <p className="text-[11px] text-gray-400 mt-1">For family-linked accounts when required.</p>
+                        </div>
                     </div>
                 </div>
 

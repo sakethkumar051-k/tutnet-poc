@@ -121,7 +121,7 @@ const DedicatedTutorModal = ({ tutor, onClose, onSuccess }) => {
             <div className="absolute inset-0 bg-navy-950/60 backdrop-blur-sm animate-fade-in" onClick={onClose} />
 
             {/* Modal */}
-            <div className="relative w-full max-w-[880px] bg-white rounded-3xl shadow-2xl animate-scale-in overflow-hidden max-h-[92vh]">
+            <div className="relative w-full max-w-[880px] bg-white rounded-3xl shadow-2xl animate-scale-in overflow-hidden max-h-[min(92vh,900px)] flex flex-col">
                 {/* Close */}
                 <button
                     onClick={onClose}
@@ -133,9 +133,9 @@ const DedicatedTutorModal = ({ tutor, onClose, onSuccess }) => {
                     </svg>
                 </button>
 
-                <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] w-full max-h-[92vh]">
+                <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] w-full flex-1 min-h-0">
                     {/* ── Left — tutor card ── */}
-                    <div className="bg-navy-950 relative overflow-hidden p-7 text-white hidden md:flex flex-col min-w-0">
+                    <div className="bg-navy-950 relative overflow-y-auto p-7 text-white hidden md:flex flex-col min-w-0">
                         <div className="absolute -top-20 -left-10 w-60 h-60 bg-royal/30 rounded-full blur-[80px] pointer-events-none" />
                         <div className="absolute -bottom-20 -right-10 w-60 h-60 bg-lime/10 rounded-full blur-[80px] pointer-events-none" />
 

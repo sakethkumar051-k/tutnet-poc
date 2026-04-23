@@ -8,6 +8,24 @@ import LoadingSpinner from './LoadingSpinner';
 const countUnverified = (records) =>
     records.filter(r => !r.parentVerificationStatus || r.parentVerificationStatus === 'unverified').length;
 
+// Reusable metric tile — dims when zero on certain accents so empty stats feel intentional
+const MetricTile = ({ value, label, accent = 'navy', dimIfZero = false }) => {
+    const isZero = !value || value === 0;
+    const map = {
+        navy: 'text-navy-950',
+        lime: 'text-lime-dark',
+        rose: 'text-rose-600',
+        royal: 'text-royal'
+    };
+    const color = dimIfZero && isZero ? 'text-gray-300' : (map[accent] || 'text-navy-950');
+    return (
+        <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
+            <p className={`text-3xl font-extrabold ${color} tracking-tight mb-0.5`}>{value}</p>
+            <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide">{label}</p>
+        </div>
+    );
+};
+
 const StudentProgressDashboard = () => {
     const [attendanceStats, setAttendanceStats] = useState(null);
     const [attendanceRecords, setAttendanceRecords] = useState([]);
@@ -176,50 +194,85 @@ const StudentProgressDashboard = () => {
             )}
 
             {/* SECTION 1: Overall Learning Health */}
-            <div className="bg-white rounded-lg border border-gray-200 p-8 shadow-sm">
-                <h2 className="text-2xl font-bold text-navy-950 mb-6">Overall Learning Health</h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Primary Metric: Attendance */}
-                    <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-sm font-medium text-gray-600 mb-3">Attendance Rate</p>
-                        <p className="text-6xl font-bold text-navy-950 mb-2">
-                            {attendanceStats?.attendancePercentage || 0}%
-                        </p>
-                        <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${overallStatus.color}`}>
-                            {overallStatus.label}
-                        </span>
-                    </div>
-
-                    {/* Supporting Metrics */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="text-center p-4 bg-white rounded-lg border border-gray-200">
-                            <p className="text-3xl font-bold text-navy-950 mb-1">
-                                {attendanceStats?.total || 0}
+            {(attendanceStats?.total || 0) === 0 ? (
+                // Friendly onboarding state — zero sessions, no meaningless "0%" stats
+                <div className="bg-white rounded-3xl border border-gray-100 p-8 sm:p-10">
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr] gap-8 items-center">
+                        <div>
+                            <p className="text-[10px] font-bold tracking-[0.2em] text-royal uppercase">Your progress starts here</p>
+                            <h2 className="text-2xl font-extrabold text-navy-950 tracking-tight mt-2 leading-tight">
+                                No data yet — book your first session to start tracking.
+                            </h2>
+                            <p className="text-sm text-gray-500 mt-3 leading-relaxed">
+                                Once you complete your first class, you'll see attendance rate, topic coverage, tutor ratings, and weekly learning trends here.
                             </p>
-                            <p className="text-xs text-gray-600 font-medium">Sessions</p>
+                            <div className="flex gap-2 mt-6">
+                                <button
+                                    onClick={() => navigate('/find-tutors')}
+                                    className="px-5 py-2.5 bg-lime hover:bg-lime-light text-navy-950 text-sm font-bold rounded-full transition-colors"
+                                >
+                                    Find a tutor
+                                </button>
+                                {currentTutors.length > 0 && (
+                                    <button
+                                        onClick={() => navigate('/student-dashboard?tab=sessions')}
+                                        className="px-5 py-2.5 border border-gray-200 text-navy-950 text-sm font-bold rounded-full hover:bg-gray-50 transition-colors"
+                                    >
+                                        View sessions
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                        <div className="text-center p-4 bg-white rounded-lg border border-gray-200">
-                            <p className="text-3xl font-bold text-lime-dark mb-1">
-                                {attendanceStats?.present || 0}
-                            </p>
-                            <p className="text-xs text-gray-600 font-medium">Completed</p>
-                        </div>
-                        <div className="text-center p-4 bg-white rounded-lg border border-gray-200">
-                            <p className="text-3xl font-bold text-red-600 mb-1">
-                                {attendanceStats?.absent || 0}
-                            </p>
-                            <p className="text-xs text-gray-600 font-medium">Missed</p>
-                        </div>
-                        <div className="text-center p-4 bg-white rounded-lg border border-gray-200">
-                            <p className="text-3xl font-bold text-royal mb-1">
-                                {attendanceRecords.filter(r => r.parentVerificationStatus === 'verified').length}
-                            </p>
-                            <p className="text-xs text-gray-600 font-medium">Verified by You</p>
+                        <div className="relative">
+                            <ul className="space-y-3">
+                                {[
+                                    ['Attendance rate', 'Across all tutors — reveals consistency.'],
+                                    ['Topic coverage', 'What your tutor has taught vs the syllabus.'],
+                                    ['Understanding score', 'Tutor assessment after each class.'],
+                                    ['Weekly trends', 'See if you\'re staying on track.']
+                                ].map(([t, d]) => (
+                                    <li key={t} className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded-full bg-lime/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <svg className="w-3 h-3 text-navy-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-navy-950">{t}</p>
+                                            <p className="text-xs text-gray-500 leading-relaxed">{d}</p>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     </div>
                 </div>
-            </div>
+            ) : (
+                <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm">
+                    <h2 className="text-2xl font-extrabold text-navy-950 tracking-tight mb-6">Overall Learning Health</h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Primary Metric: Attendance */}
+                        <div className="flex flex-col items-center justify-center p-6 bg-[#f7f7f7] rounded-2xl">
+                            <p className="text-[10px] font-bold tracking-[0.2em] text-gray-500 uppercase mb-3">Attendance rate</p>
+                            <p className="text-6xl font-extrabold text-navy-950 mb-3 tracking-tight">
+                                {attendanceStats?.attendancePercentage || 0}%
+                            </p>
+                            <span className={`px-4 py-1.5 rounded-full text-xs font-bold ${overallStatus.color}`}>
+                                {overallStatus.label}
+                            </span>
+                        </div>
+
+                        {/* Supporting Metrics — only non-zero values stand out */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <MetricTile value={attendanceStats?.total || 0} label="Sessions" accent="navy" />
+                            <MetricTile value={attendanceStats?.present || 0} label="Completed" accent="lime" />
+                            <MetricTile value={attendanceStats?.absent || 0} label="Missed" accent="rose" dimIfZero />
+                            <MetricTile value={attendanceRecords.filter(r => r.parentVerificationStatus === 'verified').length} label="Verified by you" accent="royal" />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* SECTION 2: Consistency & Trends */}
             {attendanceRecords.length > 0 && (
@@ -232,8 +285,8 @@ const StudentProgressDashboard = () => {
                                 {weeklyTrend.thisWeek}% → {weeklyTrend.lastWeek}%
                             </p>
                             <p className={`text-sm font-medium ${
-                                weeklyTrend.trend > 0 ? 'text-lime-dark' : 
-                                weeklyTrend.trend < 0 ? 'text-lime-dark' : 'text-gray-600'
+                                weeklyTrend.trend > 0 ? 'text-lime-dark' :
+                                weeklyTrend.trend < 0 ? 'text-rose-600' : 'text-gray-600'
                             }`}>
                                 {weeklyTrend.trend > 0 ? '↑' : weeklyTrend.trend < 0 ? '↓' : '→'} {Math.abs(weeklyTrend.trend)}% change
                             </p>

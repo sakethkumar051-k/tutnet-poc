@@ -111,9 +111,67 @@ const bookingSchema = new mongoose.Schema({
     focusAreas: { type: String, trim: true },
     additionalNotes: { type: String, trim: true },
     termsAccepted: { type: Boolean, default: false },
-    parentBookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' }
+    parentBookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
+
+    /** Zoom / Meet / custom URL — how participants join the online session */
+    sessionJoinUrl: { type: String, trim: true, default: '' },
+    /** First time the online session was joined (proof / duration) */
+    joinedSessionAt: { type: Date },
+    /** Last time a participant left the online session */
+    leftSessionAt: { type: Date },
+    cancellationReason: { type: String, trim: true, default: '' },
+    cancelledBy: {
+        type: String,
+        enum: ['', 'student', 'tutor', 'system', 'admin'],
+        default: ''
+    },
+    /** Tutor opened this pending request (student visibility) */
+    viewedByTutorAt: { type: Date },
+    /** Snapshot of tutor hourly rate when the booking was created */
+    lockedHourlyRate: { type: Number, min: 0 },
+    priceLockedAt: { type: Date },
+    /** Client retry key — duplicate POST with same key returns existing booking */
+    idempotencyKey: { type: String, trim: true },
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // REVENUE MODEL FIELDS (see REVENUE_MODEL.md)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** Subscription plan (see REVENUE_MODEL.md §3). Null for legacy/unconverted bookings. */
+    plan: {
+        type: String,
+        enum: ['flex', 'monthly', 'committed', 'intensive', null],
+        default: null
+    },
+    /** Session allowance for subscription plans (flex: unlimited=null; monthly: 20; intensive: 28) */
+    sessionAllowance: { type: Number, default: null },
+    /** Sessions already consumed against the plan in the current billing period */
+    sessionsConsumed: { type: Number, default: 0 },
+    /** Plan billing period start/end (for subscriptions) */
+    planPeriodStart: { type: Date },
+    planPeriodEnd: { type: Date },
+
+    /** Commission rate (%) snapshot at booking creation — immune to tier changes later */
+    commissionRate: { type: Number, min: 0, max: 100 },
+    /** Commission amount snapshot (₹) */
+    commissionAmount: { type: Number, min: 0 },
+    /** Tutor tier at booking creation (for analytics) */
+    tutorTierAtBooking: {
+        type: String,
+        enum: ['starter', 'silver', 'gold', 'platinum', null],
+        default: null
+    },
+    /** Parent credits applied to this invoice (cashback, referral, sibling, etc.) */
+    appliedCreditsAmount: { type: Number, default: 0 },
+    appliedCreditsReasons: [{ type: String, trim: true }]
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+bookingSchema.virtual('onlineLink').get(function () {
+    return this.sessionJoinUrl || '';
 });
 
 // Indexes for performance and conflict queries
@@ -124,6 +182,11 @@ bookingSchema.index({ studentId: 1, status: 1, sessionDate: 1 });
 bookingSchema.index({ bookingCategory: 1, status: 1 });
 bookingSchema.index({ trialExpiresAt: 1 });
 bookingSchema.index({ parentBookingId: 1 });
+bookingSchema.index(
+    { idempotencyKey: 1 },
+    { unique: true, partialFilterExpression: { idempotencyKey: { $type: 'string' } } }
+);
+bookingSchema.index({ plan: 1, planPeriodEnd: 1 });
 
 // Virtual to check if trial is expired
 bookingSchema.virtual('isExpired').get(function () {

@@ -9,7 +9,21 @@ export const TEACHING_MODES = [
     { value: 'both', label: 'Both' }
 ];
 
+export const LANGUAGE_OPTIONS = [
+    'English', 'Hindi', 'Telugu', 'Tamil', 'Kannada', 'Malayalam', 'Marathi',
+    'Bengali', 'Gujarati', 'Urdu', 'French', 'Sanskrit', 'Spanish', 'Other'
+];
+
+export const TIMEZONE_OPTIONS = [
+    { value: 'Asia/Kolkata', label: 'India — IST (Asia/Kolkata)' },
+    { value: 'Asia/Dubai', label: 'UAE — GST' },
+    { value: 'Asia/Singapore', label: 'Singapore' },
+    { value: 'Europe/London', label: 'UK — London' },
+    { value: 'America/New_York', label: 'US — Eastern' }
+];
+
 export const DEFAULT_OPTIONS = {
+    languages: LANGUAGE_OPTIONS,
     subjects: ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'English', 'Hindi', 'Telugu', 'Social Studies', 'Computer Science', 'Economics', 'Accountancy', 'Business Studies', 'Sanskrit', 'French', 'EVS', 'General Knowledge', 'Reasoning', 'Other'],
     classes: ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Undergraduate', 'Graduate', 'Competitive Exams'],
     strengthTags: ['Concept clarity', 'Exam preparation', 'Doubt solving', 'Board exams', 'JEE/NEET', 'Slow learners', 'Gifted students', 'Interactive teaching', 'Practice focus', 'Revision focus', 'Bilingual', 'Structured curriculum'],

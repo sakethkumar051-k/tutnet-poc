@@ -6,6 +6,7 @@ import { useAuthModalStore } from '../stores/authModalStore';
 import { useNavigate } from 'react-router-dom';
 import RegularBookingModal from './RegularBookingModal';
 import DedicatedTutorModal from './DedicatedTutorModal';
+import { formatPresence } from '../utils/presence';
 
 const getInitials = (name) =>
     name?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || 'T';
@@ -72,6 +73,7 @@ const TutorCard = ({ tutor, onRequestDemo, onFavoriteChange, onBookingSuccess })
     const isNew = reviewCount === 0;
     const isVerified = tutor.approvalStatus === 'approved';
     const modeLabel = tutor.mode === 'online' ? 'Online' : tutor.mode === 'home' ? 'Home' : 'Hybrid';
+    const presence = formatPresence(tutor.userId?.lastSeenAt);
 
     const handleDedicated = () => { if (requireAuth('Sign in to request a dedicated tutor')) setShowDedicatedModal(true); };
     const handleDemo = () => { if (requireAuth('Sign in to book a free trial class')) onRequestDemo(tutor); };
@@ -154,6 +156,11 @@ const TutorCard = ({ tutor, onRequestDemo, onFavoriteChange, onBookingSuccess })
                 </div>
 
                 {/* Meta line — dot-separated, clean alignment */}
+                {presence.label && (
+                    <p className={`text-[10px] font-semibold mt-1 ${presence.isActive ? 'text-lime-dark' : 'text-gray-400'}`}>
+                        {presence.isActive ? '● ' : ''}{presence.label}
+                    </p>
+                )}
                 <div className="flex items-center gap-0 mt-1 flex-wrap leading-none">
                     {metaItems.map((item, i) => (
                         <span key={i} className="flex items-center">

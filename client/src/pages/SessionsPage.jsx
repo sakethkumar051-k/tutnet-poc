@@ -1,24 +1,25 @@
 import { useState, useEffect } from 'react';
-import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useMyBookings } from '../context/MyBookingsContext';
+import api from '../utils/api';
 
 // Components
 import SessionTile from '../components/SessionTile';
-import NextSessionCard from '../components/NextSessionCard';
-import BookingList from '../components/BookingList';
+import RequestsHub from '../components/RequestsHub';
 import SessionDetailsModal from '../components/SessionDetailsModal';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
-import SessionManagementDashboard from '../components/SessionManagementDashboard';
+import SessionsCalendarView from '../components/SessionsCalendarView';
 
 const SessionsPage = () => {
     const { user } = useAuth();
     const { showSuccess, showError } = useToast();
+    const { bookings, loading: bookingsLoading, refreshBookings } = useMyBookings();
 
     // Data State
     const [allSessions, setAllSessions] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const loading = bookingsLoading;
 
     // UI State
     const [activeTab, setActiveTab] = useState('calendar'); // Default to calendar if that's what users prefer
@@ -27,21 +28,17 @@ const SessionsPage = () => {
     const [stats, setStats] = useState({ today: 0, upcoming: 0, completed: 0, requests: 0 });
 
     useEffect(() => {
-        fetchSessions();
-        const interval = setInterval(fetchSessions, 5 * 60 * 1000); // 5 min refresh
-        return () => clearInterval(interval);
-    }, []);
+        if (!bookingsLoading && bookings) {
+            processSessions(bookings);
+        }
+    }, [bookings, bookingsLoading]);
 
     const fetchSessions = async () => {
-        setLoading(true);
         try {
-            const { data } = await api.get('/bookings/mine');
-            processSessions(data);
+            await refreshBookings();
         } catch (err) {
             console.error(err);
             showError('Failed to load sessions');
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -145,16 +142,6 @@ const SessionsPage = () => {
                 <p className="text-gray-600 text-base">Manage your classes, schedule, and teaching history</p>
             </div>
 
-            {/* Next Session - Only show if valid */}
-            {nextSession && activeTab !== 'calendar' && (
-                <div className="animate-fade-in-up">
-                    <NextSessionCard
-                        session={nextSession}
-                        onJoin={(s) => handleAction(s, 'join')}
-                    />
-                </div>
-            )}
-
             {/* Tabs */}
             <div className="flex items-center space-x-1 border-b border-gray-200 overflow-x-auto no-scrollbar">
                 {[
@@ -192,11 +179,14 @@ const SessionsPage = () => {
                     <LoadingSkeleton type="list" count={4} />
                 ) : activeTab === 'calendar' ? (
                     <div className="animate-fade-in">
-                        <SessionManagementDashboard />
+                        <SessionsCalendarView
+                            sessions={allSessions.filter((s) => s.sessionDate && ['approved', 'completed', 'pending'].includes(s.status))}
+                            onSessionClick={(s) => setSelectedSession(s)}
+                        />
                     </div>
                 ) : activeTab === 'requests' ? (
                     <div className="animate-fade-in">
-                        <BookingList role={user?.role} />
+                        <RequestsHub onRequestProcessed={fetchSessions} />
                     </div>
                 ) : (
                     <div className="space-y-4">

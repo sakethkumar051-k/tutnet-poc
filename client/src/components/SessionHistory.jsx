@@ -1,58 +1,55 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useBookingStore } from '../stores/bookingStore';
 import SessionDetailsModal from './SessionDetailsModal';
 import LoadingSkeleton from './LoadingSkeleton';
 import EmptyState from './EmptyState';
 
 const SessionHistory = () => {
+    const bookings = useBookingStore((s) => s.bookings);
+    const bookingsLoading = useBookingStore((s) => s.loading);
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedSession, setSelectedSession] = useState(null);
     const { user } = useAuth();
     const { showError } = useToast();
 
-    useEffect(() => {
-        fetchSessionHistory();
-    }, []);
+    const baseList = useMemo(
+        () => bookings.filter((b) => b.status === 'completed' || b.status === 'approved'),
+        [bookings]
+    );
 
-    const fetchSessionHistory = async () => {
+    const loadFeedback = useCallback(async () => {
+        if (bookingsLoading && !bookings.length) return;
         setLoading(true);
         try {
-            // Fetch all bookings
-            const { data: bookings } = await api.get('/bookings/mine');
-            
-            // Fetch feedback for each booking (only for completed/approved)
             const sessionsWithDetails = await Promise.all(
-                bookings
-                    .filter(b => b.status === 'completed' || b.status === 'approved')
-                    .map(async (booking) => {
-                        try {
-                            const { data: feedback } = await api.get(`/session-feedback/booking/${booking._id}`);
-                            return {
-                                ...booking,
-                                feedback: feedback || null,
-                                hasFeedback: !!feedback,
-                                hasAttendance: !!feedback?.attendanceStatus,
-                                hasMaterials: feedback?.studyMaterials?.length > 0,
-                                hasHomework: feedback?.homework?.length > 0
-                            };
-                        } catch (err) {
-                            // No feedback yet - this is normal
-                            return {
-                                ...booking,
-                                feedback: null,
-                                hasFeedback: false,
-                                hasAttendance: false,
-                                hasMaterials: false,
-                                hasHomework: false
-                            };
-                        }
-                    })
+                baseList.map(async (booking) => {
+                    try {
+                        const { data: feedback } = await api.get(`/session-feedback/booking/${booking._id}`);
+                        return {
+                            ...booking,
+                            feedback: feedback || null,
+                            hasFeedback: !!feedback,
+                            hasAttendance: !!feedback?.attendanceStatus,
+                            hasMaterials: feedback?.studyMaterials?.length > 0,
+                            hasHomework: feedback?.homework?.length > 0
+                        };
+                    } catch {
+                        return {
+                            ...booking,
+                            feedback: null,
+                            hasFeedback: false,
+                            hasAttendance: false,
+                            hasMaterials: false,
+                            hasHomework: false
+                        };
+                    }
+                })
             );
 
-            // Sort by date (newest first)
             sessionsWithDetails.sort((a, b) => {
                 const dateA = a.sessionDate ? new Date(a.sessionDate) : new Date(a.createdAt);
                 const dateB = b.sessionDate ? new Date(b.sessionDate) : new Date(b.createdAt);
@@ -60,12 +57,16 @@ const SessionHistory = () => {
             });
 
             setSessions(sessionsWithDetails);
-        } catch (err) {
+        } catch {
             showError('Failed to fetch session history');
         } finally {
             setLoading(false);
         }
-    };
+    }, [baseList, bookingsLoading, bookings.length, showError]);
+
+    useEffect(() => {
+        loadFeedback();
+    }, [loadFeedback]);
 
     const getStatusBadge = (session) => {
         const status = session.attendanceStatus || session.status;
@@ -75,7 +76,7 @@ const SessionHistory = () => {
             scheduled: 'bg-yellow-100 text-yellow-800',
             student_absent: 'bg-red-100 text-red-800',
             tutor_absent: 'bg-orange-100 text-orange-800',
-            rescheduled: 'bg-purple-100 text-navy-900'
+            rescheduled: 'bg-royal/10 text-navy-900'
         };
         return (
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status] || colors.approved}`}>
@@ -93,7 +94,11 @@ const SessionHistory = () => {
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-navy-950">Session History</h2>
                 <button
-                    onClick={fetchSessionHistory}
+                    type="button"
+                    onClick={() => {
+                        useBookingStore.getState().fetch({ force: true });
+                        loadFeedback();
+                    }}
                     className="px-4 py-2 text-sm font-medium text-royal bg-royal/5 rounded-md hover:bg-royal/10 transition-colors"
                 >
                     🔄 Refresh
@@ -222,7 +227,8 @@ const SessionHistory = () => {
                     session={selectedSession}
                     onClose={() => setSelectedSession(null)}
                     onUpdate={() => {
-                        fetchSessionHistory();
+                        useBookingStore.getState().fetch({ force: true });
+                        loadFeedback();
                     }}
                 />
             )}

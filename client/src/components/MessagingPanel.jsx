@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { formatPresence } from '../utils/presence';
+import { getSocket } from '../socketClient';
+import ReportOffPlatformButton from './ReportOffPlatformButton';
+import NewConversationPicker from './NewConversationPicker';
 
 const formatTime = (d) => {
     const date = new Date(d);
@@ -11,12 +15,12 @@ const formatTime = (d) => {
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 };
 
-const Avatar = ({ name = '', size = 8 }) => {
+const Avatar = ({ name = '', className = 'w-9 h-9 text-xs' }) => {
     const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-    const colors = ['bg-royal/10 text-royal-dark', 'bg-purple-100 text-purple-700', 'bg-royal/10 text-royal-dark', 'bg-lime/30 text-navy-950'];
+    const colors = ['bg-royal/10 text-royal-dark', 'bg-royal/10 text-royal-dark', 'bg-royal/10 text-royal-dark', 'bg-lime/30 text-navy-950'];
     const color = colors[name.charCodeAt(0) % colors.length];
     return (
-        <div className={`w-${size} h-${size} rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${color}`}>
+        <div className={`rounded-full flex items-center justify-center font-semibold flex-shrink-0 ${color} ${className}`}>
             {initials}
         </div>
     );
@@ -28,11 +32,39 @@ export default function MessagingPanel({ preselectedUserId = null, preselectedUs
     const [selectedPartner, setSelectedPartner] = useState(null);
     const [messages, setMessages] = useState([]);
     const [newText, setNewText] = useState('');
+    const [showNewPicker, setShowNewPicker] = useState(false);
+
+    const handleStartConversation = useCallback((contact) => {
+        if (!contact?._id) return;
+        const partnerObj = {
+            _id: contact._id,
+            name: contact.name,
+            role: user?.role === 'student' ? 'tutor' : 'student',
+            lastSeenAt: null
+        };
+        setSelectedPartner(partnerObj);
+        setConversations((prev) => {
+            const exists = prev.some((c) => String(c.partner?._id) === String(contact._id));
+            if (exists) return prev;
+            return [{
+                partner: partnerObj,
+                lastMessage: { text: 'No messages yet', createdAt: new Date().toISOString() },
+                unreadCount: 0
+            }, ...prev];
+        });
+    }, [user?.role]);
     const [sending, setSending] = useState(false);
     const [loadingConvs, setLoadingConvs] = useState(true);
     const [loadingMsgs, setLoadingMsgs] = useState(false);
     const bottomRef = useRef(null);
-    const pollRef = useRef(null);
+    const lastMessageAtRef = useRef(null);
+    const pollIntervalRef = useRef(null);
+    const [socketConnected, setSocketConnected] = useState(false);
+
+    /** When Socket.IO is connected, rely on pushes; HTTP poll is only a slow safety net. */
+    const POLL_MS_VISIBLE = 20_000;
+    const POLL_MS_HIDDEN = 60_000;
+    const POLL_MS_SOCKET_BACKUP = 180_000;
 
     const fetchConversations = useCallback(async () => {
         try {
@@ -42,19 +74,92 @@ export default function MessagingPanel({ preselectedUserId = null, preselectedUs
         finally { setLoadingConvs(false); }
     }, []);
 
-    const fetchMessages = useCallback(async (partnerId) => {
+    const fetchMessagesFull = useCallback(async (partnerId) => {
         if (!partnerId) return;
         setLoadingMsgs(true);
         try {
             const { data } = await api.get(`/messages/${partnerId}`);
             setMessages(data);
+            const last = data?.length ? data[data.length - 1] : null;
+            lastMessageAtRef.current = last?.createdAt ? new Date(last.createdAt).toISOString() : null;
         } catch { /* silent */ }
         finally { setLoadingMsgs(false); }
+    }, []);
+
+    const fetchNewMessagesSince = useCallback(async (partnerId) => {
+        if (!partnerId || !lastMessageAtRef.current) return;
+        try {
+            const { data } = await api.get(`/messages/${partnerId}`, {
+                params: { since: lastMessageAtRef.current }
+            });
+            if (!data?.length) return;
+            setMessages((prev) => {
+                const ids = new Set(prev.map((m) => m._id));
+                const merged = [...prev];
+                data.forEach((m) => {
+                    if (!ids.has(m._id)) merged.push(m);
+                });
+                merged.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                return merged;
+            });
+            const last = data[data.length - 1];
+            if (last?.createdAt) {
+                lastMessageAtRef.current = new Date(last.createdAt).toISOString();
+            }
+        } catch { /* silent */ }
     }, []);
 
     useEffect(() => {
         fetchConversations();
     }, [fetchConversations]);
+
+    useEffect(() => {
+        const s = getSocket();
+        if (!s) {
+            setSocketConnected(false);
+            return undefined;
+        }
+        const onConnect = () => setSocketConnected(true);
+        const onDisconnect = () => setSocketConnected(false);
+        s.on('connect', onConnect);
+        s.on('disconnect', onDisconnect);
+        setSocketConnected(s.connected);
+        return () => {
+            s.off('connect', onConnect);
+            s.off('disconnect', onDisconnect);
+        };
+    }, [user]);
+
+    useEffect(() => {
+        const s = getSocket();
+        if (!s || !user?._id) return undefined;
+
+        const onNew = (payload) => {
+            const msg = payload?.message;
+            if (!msg) return;
+            fetchConversations();
+            const partnerId = selectedPartner?._id;
+            if (!partnerId) return;
+            const me = String(user._id);
+            const sid = String(msg.senderId?._id || msg.senderId);
+            const rid = String(msg.recipientId?._id || msg.recipientId);
+            const p = String(partnerId);
+            const inThread = (sid === me && rid === p) || (sid === p && rid === me);
+            if (!inThread) return;
+            setMessages((prev) => {
+                if (prev.some((m) => String(m._id) === String(msg._id))) return prev;
+                const merged = [...prev, msg];
+                merged.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                return merged;
+            });
+            if (msg.createdAt) {
+                lastMessageAtRef.current = new Date(msg.createdAt).toISOString();
+            }
+        };
+
+        s.on('message:new', onNew);
+        return () => s.off('message:new', onNew);
+    }, [user, selectedPartner, fetchConversations]);
 
     // Handle preselected user (e.g. "Message Tutor" button from another page)
     useEffect(() => {
@@ -65,12 +170,35 @@ export default function MessagingPanel({ preselectedUserId = null, preselectedUs
     }, [preselectedUserId, preselectedUserName]);
 
     useEffect(() => {
-        if (!selectedPartner) return;
-        fetchMessages(selectedPartner._id);
-        // Poll for new messages every 5s
-        pollRef.current = setInterval(() => fetchMessages(selectedPartner._id), 5000);
-        return () => clearInterval(pollRef.current);
-    }, [selectedPartner, fetchMessages]);
+        if (!selectedPartner) {
+            lastMessageAtRef.current = null;
+            return undefined;
+        }
+
+        fetchMessagesFull(selectedPartner._id);
+
+        const schedulePoll = () => {
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            let ms;
+            if (socketConnected) {
+                ms = POLL_MS_SOCKET_BACKUP;
+            } else {
+                ms = document.visibilityState === 'hidden' ? POLL_MS_HIDDEN : POLL_MS_VISIBLE;
+            }
+            pollIntervalRef.current = setInterval(() => {
+                fetchNewMessagesSince(selectedPartner._id);
+            }, ms);
+        };
+
+        schedulePoll();
+        const onVis = () => schedulePoll();
+        document.addEventListener('visibilitychange', onVis);
+
+        return () => {
+            document.removeEventListener('visibilitychange', onVis);
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        };
+    }, [selectedPartner, fetchMessagesFull, fetchNewMessagesSince, socketConnected]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -92,7 +220,10 @@ export default function MessagingPanel({ preselectedUserId = null, preselectedUs
         setSending(true);
         try {
             const { data } = await api.post('/messages', { recipientId: selectedPartner._id, text });
-            setMessages(prev => [...prev, data]);
+            setMessages((prev) => [...prev, data]);
+            if (data?.createdAt) {
+                lastMessageAtRef.current = new Date(data.createdAt).toISOString();
+            }
             fetchConversations();
         } catch { setNewText(text); }
         finally { setSending(false); }
@@ -104,11 +235,22 @@ export default function MessagingPanel({ preselectedUserId = null, preselectedUs
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden" style={{ height: '600px', display: 'flex' }}>
             {/* Sidebar — conversation list */}
             <div className="w-72 border-r border-gray-100 flex flex-col flex-shrink-0">
-                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-navy-950">Messages</span>
-                    {totalUnread > 0 && (
-                        <span className="text-xs bg-royal text-white rounded-full px-2 py-0.5">{totalUnread}</span>
-                    )}
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-semibold text-navy-950">Messages</span>
+                        {totalUnread > 0 && (
+                            <span className="text-[10px] bg-royal text-white rounded-full px-1.5 py-0.5 font-bold">{totalUnread}</span>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => setShowNewPicker(true)}
+                        className="flex items-center gap-1 px-2 py-1 rounded-full bg-navy-950 hover:bg-navy-900 text-white text-[11px] font-bold transition-colors"
+                    >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        New
+                    </button>
                 </div>
                 <div className="flex-1 overflow-y-auto">
                     {loadingConvs ? (
@@ -125,13 +267,21 @@ export default function MessagingPanel({ preselectedUserId = null, preselectedUs
                         </div>
                     ) : conversations.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-center px-6 py-8">
-                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            <div className="w-10 h-10 rounded-full bg-royal/10 flex items-center justify-center mb-3">
+                                <svg className="w-5 h-5 text-royal" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
                                 </svg>
                             </div>
-                            <p className="text-xs font-medium text-gray-500">No conversations yet</p>
-                            <p className="text-xs text-gray-400 mt-1">Start by messaging your tutor or a student</p>
+                            <p className="text-sm font-bold text-navy-950">No conversations yet</p>
+                            <p className="text-xs text-gray-500 mt-1 max-w-[200px] leading-relaxed">
+                                Start a conversation with {user?.role === 'student' ? 'a tutor you\'ve booked or favourited' : 'one of your students'}.
+                            </p>
+                            <button
+                                onClick={() => setShowNewPicker(true)}
+                                className="mt-4 px-4 py-2 bg-lime hover:bg-lime-light text-navy-950 text-xs font-bold rounded-full transition-colors"
+                            >
+                                Start conversation
+                            </button>
                         </div>
                     ) : (
                         conversations.map(conv => (
@@ -140,7 +290,7 @@ export default function MessagingPanel({ preselectedUserId = null, preselectedUs
                                 onClick={() => handleSelectConversation(conv)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 ${selectedPartner?._id === conv.partner._id ? 'bg-royal/5 border-l-2 border-l-royal' : ''}`}
                             >
-                                <Avatar name={conv.partner.name} size={9} />
+                                <Avatar name={conv.partner.name} className="w-9 h-9 text-xs" />
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between">
                                         <span className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-semibold text-navy-950' : 'font-medium text-gray-700'}`}>
@@ -169,13 +319,25 @@ export default function MessagingPanel({ preselectedUserId = null, preselectedUs
                 <div className="flex-1 flex flex-col min-w-0">
                     {/* Header */}
                     <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
-                        <Avatar name={selectedPartner.name} size={8} />
-                        <div>
+                        <Avatar name={selectedPartner.name} className="w-8 h-8 text-[11px]" />
+                        <div className="min-w-0 flex-1">
                             <p className="text-sm font-semibold text-navy-950">{selectedPartner.name}</p>
                             {selectedPartner.role && (
                                 <p className="text-xs text-gray-400 capitalize">{selectedPartner.role}</p>
                             )}
+                            {(() => {
+                                const p = formatPresence(selectedPartner.lastSeenAt);
+                                return p.label ? (
+                                    <p className={`text-[11px] mt-0.5 truncate ${p.isActive ? 'text-lime-dark font-medium' : 'text-gray-400'}`}>
+                                        {p.isActive ? '● ' : ''}{p.label}
+                                    </p>
+                                ) : null;
+                            })()}
                         </div>
+                        {/* Safety: off-platform report — only parents see it, only when chatting with a tutor */}
+                        {user?.role === 'student' && selectedPartner?.role === 'tutor' && (
+                            <ReportOffPlatformButton tutorId={selectedPartner._id} />
+                        )}
                     </div>
 
                     {/* Messages */}
@@ -199,10 +361,15 @@ export default function MessagingPanel({ preselectedUserId = null, preselectedUs
                                 const isMe = msg.senderId?._id === user?._id || msg.senderId === user?._id;
                                 return (
                                     <div key={msg._id} className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
-                                        {!isMe && <Avatar name={selectedPartner.name} size={6} />}
+                                        {!isMe && <Avatar name={selectedPartner.name} className="w-6 h-6 text-[10px]" />}
                                         <div className={`max-w-xs lg:max-w-sm px-3.5 py-2.5 rounded-2xl text-sm ${isMe ? 'bg-royal text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'}`}>
                                             <p className="leading-relaxed">{msg.text}</p>
-                                            <p className={`text-xs mt-1 ${isMe ? 'text-royal' : 'text-gray-400'}`}>{formatTime(msg.createdAt)}</p>
+                                            <div className={`text-xs mt-1 flex items-center justify-end gap-2 flex-wrap ${isMe ? 'text-white/80' : 'text-gray-400'}`}>
+                                                <span>{formatTime(msg.createdAt)}</span>
+                                                {isMe && msg.readAt && (
+                                                    <span className="opacity-90">Read</span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 );
@@ -249,6 +416,14 @@ export default function MessagingPanel({ preselectedUserId = null, preselectedUs
                         <p className="text-xs text-gray-400 mt-1">Choose from the list to start messaging</p>
                     </div>
                 </div>
+            )}
+
+            {showNewPicker && (
+                <NewConversationPicker
+                    role={user?.role}
+                    onPick={handleStartConversation}
+                    onClose={() => setShowNewPicker(false)}
+                />
             )}
         </div>
     );

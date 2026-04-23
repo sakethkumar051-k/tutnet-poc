@@ -1,10 +1,47 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import CheckoutModal from './CheckoutModal';
+import api from '../utils/api';
+import { useToast } from '../context/ToastContext';
 
 const SessionTile = ({ session, onAction, actionLabel, onRefresh }) => {
     const { user } = useAuth();
+    const { showSuccess, showError } = useToast();
     const [showCheckout, setShowCheckout] = useState(false);
+    const [joinUrlDraft, setJoinUrlDraft] = useState('');
+    const [savingJoinUrl, setSavingJoinUrl] = useState(false);
+
+    const isTutor = user?.role === 'tutor';
+    const hasJoinLink = Boolean(session.sessionJoinUrl || session.onlineLink);
+    const canTrackPresence = ['approved', 'pending'].includes(session.status);
+
+    useEffect(() => {
+        setJoinUrlDraft(session.sessionJoinUrl || session.onlineLink || '');
+    }, [session._id, session.sessionJoinUrl, session.onlineLink]);
+
+    const notifyJoinPresence = () => {
+        if (!session._id || !canTrackPresence) return;
+        api.patch(`/booking-actions/${session._id}/session-presence`, { action: 'join' }).catch(() => {});
+    };
+
+    const saveJoinUrl = async (e) => {
+        e?.preventDefault();
+        const url = joinUrlDraft.trim();
+        if (!url || !session._id) {
+            showError('Enter a valid video link');
+            return;
+        }
+        setSavingJoinUrl(true);
+        try {
+            await api.patch(`/booking-actions/${session._id}/session-join-url`, { sessionJoinUrl: url });
+            showSuccess('Join link saved');
+            onRefresh?.();
+        } catch (err) {
+            showError(err.response?.data?.message || 'Could not save link');
+        } finally {
+            setSavingJoinUrl(false);
+        }
+    };
 
     const getStatusColor = (status) => {
         const colors = {
@@ -92,24 +129,65 @@ const SessionTile = ({ session, onAction, actionLabel, onRefresh }) => {
                         </button>
                     )}
 
-                    {session.onlineLink && !['completed', 'cancelled'].includes(session.status) ? (
-                        <a
-                            href={session.onlineLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center px-4 py-2 bg-royal text-white text-sm font-medium rounded-lg hover:bg-royal-dark transition-colors shadow-sm"
-                            onClick={() => { if (onAction) onAction(session, 'join'); }}
-                        >
-                            Join
-                        </a>
-                    ) : (
+                    {isTutor && !hasJoinLink && !['completed', 'cancelled', 'rejected'].includes(session.status) && (
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 max-w-[min(100%,320px)]">
+                            <form onSubmit={saveJoinUrl} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 min-w-0">
+                                <input
+                                    type="url"
+                                    value={joinUrlDraft}
+                                    onChange={(e) => setJoinUrlDraft(e.target.value)}
+                                    placeholder="Paste Meet / Zoom link"
+                                    className="flex-1 min-w-0 text-xs border border-gray-200 rounded-lg px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-royal/30"
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={savingJoinUrl || !joinUrlDraft.trim()}
+                                    className="px-3 py-2 bg-navy-950 text-white text-xs font-semibold rounded-lg hover:bg-navy-900 disabled:opacity-50 whitespace-nowrap"
+                                >
+                                    {savingJoinUrl ? 'Saving…' : 'Save link'}
+                                </button>
+                            </form>
+                            <button
+                                type="button"
+                                onClick={() => onAction && onAction(session, 'view')}
+                                className="px-3 py-2 text-xs font-medium text-gray-600 hover:text-royal border border-gray-200 rounded-lg whitespace-nowrap"
+                            >
+                                Details
+                            </button>
+                        </div>
+                    )}
+                    {hasJoinLink && !['completed', 'cancelled'].includes(session.status) ? (
+                        <div className="flex gap-1.5">
+                            <a
+                                href={`/session/${session._id}`}
+                                className="inline-flex items-center px-4 py-2 bg-royal text-white text-sm font-medium rounded-lg hover:bg-royal-dark transition-colors shadow-sm"
+                                onClick={() => {
+                                    notifyJoinPresence();
+                                    if (onAction) onAction(session, 'join');
+                                }}
+                            >
+                                Join
+                            </a>
+                            <a
+                                href={session.sessionJoinUrl || session.onlineLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Open in a new tab"
+                                className="inline-flex items-center justify-center w-9 h-9 border border-gray-200 text-gray-500 hover:text-royal hover:border-royal/30 rounded-lg transition-colors"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                            </a>
+                        </div>
+                    ) : !isTutor || hasJoinLink ? (
                         <button
                             onClick={() => onAction && onAction(session, 'view')}
                             className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-royal hover:bg-gray-50 rounded-lg transition-colors"
                         >
                             {actionLabel || 'Details'}
                         </button>
-                    )}
+                    ) : null}
                 </div>
             </div>
 

@@ -2,10 +2,17 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import { useMyBookings } from '../context/MyBookingsContext';
 
 // Components
 import Sidebar from '../components/Sidebar';
 import SessionsPage from './SessionsPage';
+import CalendarExportButton from '../components/CalendarExportButton';
+import ReferralCard from '../components/ReferralCard';
+import FamilyPanel from '../components/FamilyPanel';
+import FeeTransparency from '../components/FeeTransparency';
+import StudentFinanceOverview from '../components/StudentFinanceOverview';
+import StudentAnalyticsPanel from '../components/StudentAnalyticsPanel';
 import TutorList from '../components/TutorList';
 import MyCurrentTutors from '../components/MyCurrentTutors';
 import FavoriteTutors from '../components/FavoriteTutors';
@@ -17,6 +24,7 @@ import WeeklyProgressReport from '../components/WeeklyProgressReport';
 import StudentProfileForm from '../components/StudentProfileForm';
 import SafetyPanel from '../components/SafetyPanel';
 import LearningGoals from '../components/LearningGoals';
+import ParentCreditsWallet from '../components/ParentCreditsWallet';
 
 const StatCard = ({ label, value, hint, accent = 'royal' }) => {
     const accents = {
@@ -45,6 +53,7 @@ const StudentDashboard = () => {
     const [pendingBookings, setPendingBookings] = useState([]);
     const [completedCount, setCompletedCount] = useState(0);
     const user = useAuthStore((s) => s.user);
+    const { bookings, loading: bookingsLoading } = useMyBookings();
 
     useEffect(() => {
         const tabFromUrl = searchParams.get('tab') || 'dashboard';
@@ -52,8 +61,38 @@ const StudentDashboard = () => {
     }, [searchParams, activeTab]);
 
     useEffect(() => {
-        if (activeTab === 'dashboard') fetchOverview();
+        if (activeTab !== 'dashboard') return;
+        (async () => {
+            try {
+                const tutorsRes = await api
+                    .get('/current-tutors/student/my-tutors')
+                    .catch(() => ({ data: [] }));
+                setCurrentTutors(tutorsRes.data || []);
+            } catch (error) {
+                console.error('Error fetching tutors:', error);
+            }
+        })();
     }, [activeTab]);
+
+    useEffect(() => {
+        if (activeTab !== 'dashboard') {
+            setLoading(false);
+            return;
+        }
+        if (bookingsLoading) {
+            setLoading(true);
+            return;
+        }
+        const list = bookings || [];
+        setPendingBookings(list.filter((b) => b.status === 'pending'));
+        setCompletedCount(list.filter((b) => b.status === 'completed').length);
+        setUpcomingBookings(
+            list
+                .filter((b) => b.status === 'approved' && b.sessionDate && new Date(b.sessionDate) >= new Date())
+                .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate))
+        );
+        setLoading(false);
+    }, [activeTab, bookings, bookingsLoading]);
 
     const handleTabChange = (tabId) => {
         setActiveTab(tabId);
@@ -66,35 +105,19 @@ const StudentDashboard = () => {
         navigate(`/student-dashboard?${newSearchParams.toString()}`, { replace: true });
     };
 
-    const fetchOverview = async () => {
-        try {
-            setLoading(true);
-            const [bookingsRes, tutorsRes] = await Promise.all([
-                api.get('/bookings/mine'),
-                api.get('/current-tutors/student/my-tutors').catch(() => ({ data: [] })),
-            ]);
-            const bookings = bookingsRes.data || [];
-            setCurrentTutors(tutorsRes.data || []);
-            setPendingBookings(bookings.filter((b) => b.status === 'pending'));
-            setCompletedCount(bookings.filter((b) => b.status === 'completed').length);
-            setUpcomingBookings(
-                bookings
-                    .filter((b) => b.status === 'approved' && b.sessionDate && new Date(b.sessionDate) >= new Date())
-                    .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate))
-            );
-        } catch (error) {
-            console.error('Error fetching overview:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const nextClass = useMemo(() => upcomingBookings[0], [upcomingBookings]);
 
     const renderContent = () => {
         switch (activeTab) {
             case 'sessions':
-                return <SessionsPage />;
+                return (
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-end">
+                            <CalendarExportButton label="Add to Calendar (.ics)" />
+                        </div>
+                        <SessionsPage />
+                    </div>
+                );
 
             case 'find-tutors':
                 return (
@@ -137,6 +160,24 @@ const StudentDashboard = () => {
                     </div>
                 );
 
+            case 'payments':
+                return (
+                    <div className="space-y-6">
+                        <div>
+                            <h1 className="text-2xl sm:text-3xl font-extrabold text-navy-950 tracking-tight">Payments</h1>
+                            <p className="text-sm text-gray-500 mt-1">
+                                Everything you've paid, every refund, credit balance, and active plan — in one place.
+                            </p>
+                        </div>
+                        <StudentFinanceOverview />
+                        <div className="bg-white p-6 rounded-3xl border border-gray-100">
+                            <h2 className="text-xl font-extrabold text-navy-950 mb-1">Transaction history</h2>
+                            <p className="text-sm text-gray-500 mb-4">Download any invoice as a PDF.</p>
+                            <FeeTransparency />
+                        </div>
+                    </div>
+                );
+
             case 'progress': {
                 if (searchParams.get('tutorId')) return <ProgressAnalytics />;
                 return (
@@ -155,10 +196,18 @@ const StudentDashboard = () => {
 
             case 'profile':
                 return (
-                    <div className="bg-white p-6 rounded-3xl border border-gray-100">
-                        <h2 className="text-xl font-extrabold text-navy-950 mb-1">My Profile</h2>
-                        <p className="text-sm text-gray-500 mb-6">Update your personal information and learning details</p>
-                        <StudentProfileForm />
+                    <div className="space-y-6">
+                        <div className="bg-white p-6 rounded-3xl border border-gray-100">
+                            <h2 className="text-xl font-extrabold text-navy-950 mb-1">My Profile</h2>
+                            <p className="text-sm text-gray-500 mb-6">Update your personal information and learning details</p>
+                            <StudentProfileForm />
+                        </div>
+                        <div className="bg-white p-6 rounded-3xl border border-gray-100">
+                            <h2 className="text-xl font-extrabold text-navy-950 mb-1">Family</h2>
+                            <p className="text-sm text-gray-500 mb-6">Link children under one parent account for unified billing and sibling discounts.</p>
+                            <FamilyPanel />
+                        </div>
+                        <ReferralCard />
                     </div>
                 );
 
@@ -174,7 +223,7 @@ const StudentDashboard = () => {
                         <div>
                             <p className="text-xs font-bold tracking-[0.2em] uppercase text-gray-400 mb-2">Dashboard</p>
                             <h1 className="text-3xl sm:text-4xl font-extrabold text-navy-950 leading-tight tracking-tight">
-                                Hey {firstName} 👋
+                                Hey {firstName}
                             </h1>
                             <p className="mt-2 text-gray-500">
                                 {upcomingBookings.length > 0
@@ -184,6 +233,9 @@ const StudentDashboard = () => {
                                     : 'Let\'s find your first tutor.'}
                             </p>
                         </div>
+
+                        {/* Business analytics — ROI, loyalty, progress at a glance */}
+                        <StudentAnalyticsPanel />
 
                         {/* Next class — hero card */}
                         {nextClass ? (
@@ -282,6 +334,9 @@ const StudentDashboard = () => {
                                 </button>
                             </div>
                         )}
+
+                        {/* Credits wallet */}
+                        <ParentCreditsWallet />
 
                         {/* My tutors — compact */}
                         <div className="bg-white rounded-3xl border border-gray-100 p-6">

@@ -38,6 +38,12 @@ const NOTICE_PERIOD_OPTIONS = [
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+/** Languages tutors can teach in — shown on profile and search filters */
+const LANGUAGES_TEACHING = [
+    'English', 'Hindi', 'Telugu', 'Tamil', 'Kannada', 'Malayalam', 'Marathi',
+    'Bengali', 'Gujarati', 'Urdu', 'French', 'Sanskrit', 'Spanish', 'Other'
+];
+
 const BIO_MIN_LENGTH = 150;
 
 module.exports = {
@@ -48,5 +54,6 @@ module.exports = {
     CERTIFICATIONS,
     NOTICE_PERIOD_OPTIONS,
     DAYS_OF_WEEK,
+    LANGUAGES_TEACHING,
     BIO_MIN_LENGTH
 };

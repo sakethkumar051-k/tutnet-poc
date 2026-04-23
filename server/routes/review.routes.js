@@ -3,7 +3,8 @@ const router = express.Router();
 const {
     createReview,
     getTutorReviews,
-    getStudentReviews
+    getStudentReviews,
+    replyToReview
 } = require('../controllers/review.controller');
 const { protect } = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/role.middleware');
@@ -11,6 +12,7 @@ const { authorize } = require('../middleware/role.middleware');
 router.post('/', protect, authorize('student'), createReview);
 router.get('/tutor/:tutorId', getTutorReviews);
 router.get('/student/:studentId', protect, getStudentReviews);
+router.patch('/:id/reply', protect, authorize('tutor'), replyToReview);
 
 module.exports = router;
 

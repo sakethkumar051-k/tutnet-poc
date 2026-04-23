@@ -26,6 +26,22 @@ const messageSchema = new mongoose.Schema({
     read: {
         type: Boolean,
         default: false
+    },
+    /** When the recipient first marked this message as read (read receipts) */
+    readAt: {
+        type: Date,
+        default: null
+    },
+
+    /** Original text before moderation redaction (admin-only visibility). */
+    originalText: { type: String, select: false, maxlength: 2000 },
+
+    /** Anti-bypass moderation verdict (set by messageModerator.service) */
+    moderation: {
+        flagged: { type: Boolean, default: false },
+        reasons: [String],
+        riskWeight: Number,
+        matches: [String]
     }
 }, {
     timestamps: true

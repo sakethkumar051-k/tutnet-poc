@@ -12,6 +12,7 @@ export const useNotifications = () => {
         markAsRead: store.markAsRead,
         markAllAsRead: store.markAllAsRead,
         fetchNotifications: store.fetchNotifications,
+        deleteNotification: store.deleteNotification
     };
 };
 

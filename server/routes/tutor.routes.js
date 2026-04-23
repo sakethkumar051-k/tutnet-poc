@@ -45,6 +45,32 @@ router.patch('/availability', protect, authorize('tutor'), async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 });
+// Toggle vacation mode — tutor goes on leave (hidden from search)
+router.patch('/vacation', protect, authorize('tutor'), async (req, res) => {
+    try {
+        const TutorProfile = require('../models/TutorProfile');
+        const { active, from, to, message } = req.body;
+        if (typeof active !== 'boolean') {
+            return res.status(400).json({ message: '`active` must be a boolean' });
+        }
+        const update = {
+            'vacation.active': active,
+            'vacation.from': active ? (from ? new Date(from) : new Date()) : null,
+            'vacation.to': active && to ? new Date(to) : null,
+            'vacation.message': active ? String(message || '').slice(0, 300) : ''
+        };
+        const profile = await TutorProfile.findOneAndUpdate(
+            { userId: req.user.id },
+            { $set: update },
+            { new: true }
+        );
+        if (!profile) return res.status(404).json({ message: 'Tutor profile not found' });
+        res.json({ vacation: profile.vacation });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // Parameterized route must be last
 router.get('/:id', getTutorById);
 
