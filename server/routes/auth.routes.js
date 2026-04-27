@@ -28,6 +28,17 @@ const passport = require('passport');
 const crypto = require('crypto');
 const { generateAccessToken, generateRefreshToken } = require('../utils/jwtTokens');
 const { setRefreshTokenCookie, setOauthSignupRoleCookie, clearOauthSignupRoleCookie } = require('../utils/authCookies');
+const { isGoogleOAuthConfigured } = require('../config/passport');
+
+// If Google OAuth env vars are missing, redirect the user back to the login page
+// with a clear error code instead of letting passport ship placeholder credentials
+// to Google (which produced the "invalid client / invalid secret" error).
+const requireGoogleOAuth = (req, res, next) => {
+    if (isGoogleOAuthConfigured()) return next();
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    console.error('[auth] Google OAuth attempted but not configured on this server.');
+    return res.redirect(`${clientUrl}/login?error=oauth_not_configured`);
+};
 
 // In-memory one-time code store { code -> { token, expiresAt } }
 // Simple and sufficient for a single-instance server.
@@ -67,6 +78,7 @@ router.get('/oauth-token/:code', (req, res) => {
 // @desc    Initiate Google OAuth (?role=tutor|student — stored in session for new signups only)
 // @route   GET /api/auth/google
 router.get('/google',
+    requireGoogleOAuth,
     (req, res, next) => {
         const q = req.query?.role;
         const resolved = q === 'tutor' || q === 'student' ? q : 'student';
@@ -78,23 +90,24 @@ router.get('/google',
             next();
         });
     },
-    passport.authenticate('google', {
+    (req, res, next) => passport.authenticate('google', {
         scope: ['profile', 'email'],
         prompt: 'select_account'
-    })
+    })(req, res, next)
 );
 
 // @desc    Google OAuth Callback
 // @route   GET /api/auth/google/callback
 router.get('/google/callback',
+    requireGoogleOAuth,
     (req, res, next) => {
         console.log('Google Callback Hit');
         next();
     },
-    passport.authenticate('google', {
+    (req, res, next) => passport.authenticate('google', {
         failureRedirect: `${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=oauth_failed`,
         session: false
-    }),
+    })(req, res, next),
     async (req, res) => {
         console.log('Google Auth Successful, User:', req.user?._id);
         try {

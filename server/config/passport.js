@@ -3,11 +3,50 @@ const User = require('../models/User');
 const TutorProfile = require('../models/TutorProfile');
 const { OAUTH_SIGNUP_ROLE_COOKIE } = require('../utils/authCookies');
 
+// Resolve the OAuth callback URL Google must redirect back to.
+// Priority: explicit GOOGLE_CALLBACK_URL > derived from SERVER_URL > localhost dev fallback.
+// In production we refuse to silently use a localhost URL, since that guarantees a
+// redirect_uri_mismatch with the Google Console registration.
+const resolveCallbackURL = () => {
+    if (process.env.GOOGLE_CALLBACK_URL) return process.env.GOOGLE_CALLBACK_URL;
+    if (process.env.SERVER_URL) {
+        return `${process.env.SERVER_URL.replace(/\/$/, '')}/api/auth/google/callback`;
+    }
+    if (process.env.NODE_ENV === 'production') return null;
+    return 'http://localhost:5001/api/auth/google/callback';
+};
+
+// Whether Google OAuth is fully configured. The route layer checks this so we can
+// surface a clear error to clients instead of letting passport ship placeholder
+// credentials to Google (which is what was producing the "invalid client" error).
+const isGoogleOAuthConfigured = () => Boolean(
+    process.env.GOOGLE_CLIENT_ID &&
+    process.env.GOOGLE_CLIENT_SECRET &&
+    resolveCallbackURL()
+);
+
 module.exports = (passport) => {
+    if (!isGoogleOAuthConfigured()) {
+        const missing = [
+            !process.env.GOOGLE_CLIENT_ID && 'GOOGLE_CLIENT_ID',
+            !process.env.GOOGLE_CLIENT_SECRET && 'GOOGLE_CLIENT_SECRET',
+            !resolveCallbackURL() && 'GOOGLE_CALLBACK_URL (or SERVER_URL)'
+        ].filter(Boolean).join(', ');
+        console.warn(
+            `[auth] Google OAuth disabled — missing env: ${missing}. ` +
+            `Set these on your host and ensure the callback URL matches the one ` +
+            `registered in the Google Cloud Console.`
+        );
+        return;
+    }
+
+    const callbackURL = resolveCallbackURL();
+    console.log(`[auth] Google OAuth enabled. Callback URL: ${callbackURL}`);
+
     passport.use(new GoogleStrategy({
-        clientID: process.env.GOOGLE_CLIENT_ID || 'your-client-id',
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'your-client-secret',
-        callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5001/api/auth/google/callback',
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL,
         passReqToCallback: true
     },
         async (req, accessToken, refreshToken, profile, done) => {
@@ -93,3 +132,6 @@ module.exports = (passport) => {
         }
     });
 };
+
+module.exports.isGoogleOAuthConfigured = isGoogleOAuthConfigured;
+module.exports.resolveCallbackURL = resolveCallbackURL;
